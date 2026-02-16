@@ -1,0 +1,59 @@
+# Sprint Services Configuration
+# Copy to {SPRINT_DIR}/services.yaml and customize
+#
+# This file defines what services your sprint needs and how to start them.
+# The loop will use this instead of guessing from VISION.md.
+
+services:
+  # Example: Backend API
+  # api:
+  #   port: 3001
+  #   health: /api/health      # Health check endpoint
+  #   start: npm run dev:api   # Command to start
+  #   type: http               # http, https, tcp, grpc
+  #   required: true           # Block if can't start?
+
+  # Example: Frontend
+  # frontend:
+  #   port: 3000
+  #   health: /
+  #   start: cd frontend && npm run dev
+  #   type: http
+
+  # Example: PostgreSQL via Docker
+  # postgres:
+  #   port: 5432
+  #   start: docker-compose up -d postgres
+  #   type: tcp
+  #   required: true
+
+  # Example: Redis via Docker
+  # redis:
+  #   port: 6379
+  #   start: docker-compose up -d redis
+  #   type: tcp
+  #   required: false          # Optional - app works without it
+
+  # Example: Browser automation
+  # browser:
+  #   port: 9222
+  #   start: npm run browser:start
+  #   type: http
+  #   health: /json/version
+
+  # Example: Python FastAPI
+  # api:
+  #   port: 8000
+  #   health: /health
+  #   start: uvicorn main:app --reload
+  #   type: http
+
+  # Example: Go service
+  # api:
+  #   port: 8080
+  #   health: /healthz
+  #   start: go run ./cmd/server
+  #   type: http
+
+# If you're using docker-compose for everything, you can skip this file.
+# The loop will auto-detect docker-compose.yml and use it instead.
