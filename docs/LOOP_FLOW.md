@@ -190,8 +190,11 @@ flowchart TD
         CriticalEval -- "findings → tasks" --> DecisionEngine
         CoherenceEval --> DecisionEngine
 
-        %% VRC Heartbeat
-        DecisionEngine -.-> VRC["VRC HEARTBEAT<br/>Every iteration<br/>Quick (Haiku) / Full (Opus)"]
+        %% Per-iteration infrastructure (runs after every action)
+        DecisionEngine -.-> ProcessMon["PROCESS MONITOR<br/>L0-1: metrics (free)<br/>L2: Strategy Reasoner (Opus, on RED)"]
+        ProcessMon -.-> PlanHealth["PLAN HEALTH CHECK<br/>After N mid-loop tasks<br/>or after course correction"]
+        PlanHealth -.-> StateSave["STATE SAVE<br/>(atomic write to .json.tmp<br/>then rename)"]
+        StateSave -.-> VRC["VRC HEARTBEAT<br/>Every iteration<br/>Quick (Haiku) / Full (Opus)"]
         VRC -.-> VRCCheck{Value<br/>delivered?}
         VRCCheck -.-> |no| BudgetCheck{Budget?}
         BudgetCheck -.-> |"< 80%"| DecisionEngine
@@ -255,12 +258,12 @@ flowchart TD
     class InputVal,VisionVal,Discovery,PRDRefine,PlanGen,QualityGates,BlockerRes,Preflight preloop
     class DecisionEngine,P0,P1,P2,P3,P4,P5,P6,P7,P8,P9 decision
     class Execute,RunQC,GenerateQC,FixFlow,ServiceFix action
-    class CriticalEval,CoherenceEval,CourseCorrect,CourseCorrect2,Research action
+    class CriticalEval,CoherenceEval,CourseCorrect,CourseCorrect2,Research,ProcessMon,PlanHealth action
     class ExitGate,ExitResult exit
     class InteractivePause,PresentHuman,PRDPresent,PresentEpic human
     class VRC,VRCCheck,BudgetCheck vrc
     class GitSetup,PreLoopCommit,TaskCommit,QCCheckpoint,ServiceCommit,CCCommit,RegenCommit,RollbackCommit,ExitCommit,DeliveryCommit git
-    class Rollback,GitReset,StateSync git
+    class Rollback,GitReset,StateSync,StateSave git
 ```
 
 ## Git Operations Summary

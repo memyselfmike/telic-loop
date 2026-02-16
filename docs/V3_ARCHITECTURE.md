@@ -279,6 +279,7 @@ class LoopConfig:
 
     # Reliability
     max_task_retries: int = 3
+    max_rollbacks_per_sprint: int = 3    # repeated rollback = plan is wrong, not execution
 
     # Derived paths
     @property
@@ -654,6 +655,8 @@ class LoopState:
 
 **Note**: `LoopState.load()` uses `dacite.from_dict()` for safe nested dataclass reconstruction. See Phase 1 Plan §12 for the full implementation.
 
+**Atomic writes**: `LoopState.save()` writes to a `.json.tmp` file first, then atomically renames to `.loop_state.json`. This prevents corruption if the process crashes mid-write. On startup, if `.loop_state.json` is missing but `.json.tmp` exists, load from the tmp file (the rename was interrupted).
+
 ---
 
 ## Claude Wrapper
@@ -719,7 +722,7 @@ class Claude:
 Multi-turn conversation with tool execution. Key behaviors:
 - **Adaptive thinking**: When `thinking_effort` is set, passes `thinking={"type": "adaptive"}` + `output_config={"effort": thinking_effort}` to the API
 - **Streaming**: Automatically enabled when `max_tokens > STREAMING_THRESHOLD` (21333)
-- **Beta namespace**: When `betas` is set, uses `client.beta.messages` instead of `client.messages`
+- **Beta namespace**: When `betas` is set, uses `client.beta.messages` instead of `client.messages`. The `betas` list is passed ONLY to `client.beta.messages.create(betas=...)` — do NOT also pass it as a header or kwarg to the non-beta endpoint
 - **Provider tools**: `web_search` and `web_fetch` are server-side — results appear inline in `response.content`, NOT routed through `execute_tool()`
 - **pause_turn**: When `response.stop_reason == "pause_turn"`, re-send conversation as-is (server-side tool loop hit its limit)
 - **Token tracking**: Accumulates into `self.state.total_tokens_used` for budget tracking
@@ -782,11 +785,14 @@ Full JSON schemas: see each Phase Plan.
 ```python
 def get_tools_for_role(role: AgentRole) -> list[dict]:
     """Return execution + provider tools appropriate for this role.
-    Structured output tools are added separately per-prompt by the orchestrator."""
+    Structured output tools are added separately per-prompt by the orchestrator.
+    Note: CLASSIFIER gets no execution tools but DOES get structured output tools
+    (report_triage, report_vrc, report_coherence) — those are injected by the
+    orchestrator when calling claude.session(), not returned here."""
     match role:
         case AgentRole.RESEARCHER:  return EXECUTION_TOOLS + PROVIDER_TOOLS
         case AgentRole.EVALUATOR:   return READ_ONLY_TOOLS  # inspect but not modify
-        case AgentRole.CLASSIFIER:  return []                # pure reasoning
+        case AgentRole.CLASSIFIER:  return []                # no filesystem tools; structured output tools injected per-prompt
         case _:                     return EXECUTION_TOOLS    # full filesystem
 ```
 
@@ -859,8 +865,10 @@ JSON state is the single source of truth, but humans and LLM agents benefit from
 | Artifact | Generated From | When Rendered |
 |----------|---------------|---------------|
 | `IMPLEMENTATION_PLAN.md` | `state.tasks` | After pre-loop, quality gates, course correction |
-| `VALUE_CHECKLIST.md` | `state.vrc_history` + `state.tasks` | After each full VRC |
+| `VALUE_CHECKLIST.md` | `state.vrc_history` + `state.verifications` + `state.tasks` | After each full VRC (Phase 2+) |
 | `DELIVERY_REPORT.md` | Full state | After exit gate passes or budget exhausted |
+
+**Implementation note**: `render_value_checklist(state)` maps each VRC deliverable to its verification status and task completion. Phase 1 implements `render_plan_markdown` and `generate_delivery_report`; Phase 2 adds `render_value_checklist` alongside the VRC heartbeat.
 
 ```
                     ┌──────────────────────┐
@@ -966,17 +974,37 @@ When the course corrector determines that recent changes have made things worse 
 **State synchronization detail:**
 
 ```python
-def execute_rollback(state: LoopState, checkpoint: GitCheckpoint, reason: str):
-    """Roll back git and synchronize loop state."""
+def execute_rollback(config: LoopConfig, state: LoopState, checkpoint: GitCheckpoint, reason: str):
+    """Roll back git and synchronize loop state.
+
+    Uses a write-ahead log (WAL) pattern: record intent before acting,
+    so a crash at any point can be recovered by replaying the log.
+    """
+    # 0. Write-ahead log: record rollback intent BEFORE any destructive action
+    wal_path = config.state_file.with_suffix(".rollback_wal")
+    wal_data = {
+        "status": "started",
+        "from_hash": state.git.last_commit_hash,
+        "to_hash": checkpoint.commit_hash,
+        "to_label": checkpoint.label,
+        "reason": reason,
+        "iteration": state.iteration,
+    }
+    wal_path.write_text(json.dumps(wal_data, indent=2))
+
     # 1. Git reset
     subprocess.run(["git", "reset", "--hard", checkpoint.commit_hash], check=True)
 
-    # 2. Identify reverted tasks
+    # 2. Clean untracked files that may have been created by rolled-back tasks
+    #    (ghost files that git reset --hard does not remove)
+    subprocess.run(["git", "clean", "-fd"], check=True)
+
+    # 3. Identify reverted tasks
     completed_task_ids = {t.task_id for t in state.tasks.values() if t.status == "done"}
     checkpoint_task_ids = set(checkpoint.tasks_completed)
     reverted_task_ids = completed_task_ids - checkpoint_task_ids
 
-    # 3. Reset reverted tasks to pending (preserve retry_count)
+    # 4. Reset reverted tasks to pending (preserve retry_count)
     for task_id in reverted_task_ids:
         task = state.tasks[task_id]
         task.status = "pending"
@@ -986,7 +1014,7 @@ def execute_rollback(state: LoopState, checkpoint: GitCheckpoint, reason: str):
         task.completion_notes = f"Rolled back at iteration {state.iteration}: {reason}"
         # retry_count preserved — loop knows this task was attempted before
 
-    # 4. Reset verifications to checkpoint state
+    # 5. Reset verifications to checkpoint state
     for vid, v in state.verifications.items():
         if vid in checkpoint.verifications_passing:
             v.status = "passed"
@@ -994,12 +1022,15 @@ def execute_rollback(state: LoopState, checkpoint: GitCheckpoint, reason: str):
             v.status = "pending"
             v.failures = []
 
-    # 5. Update regression baseline
+    # 6. Update regression baseline
     state.regression_baseline = set(checkpoint.verifications_passing)
 
-    # 6. Record rollback
+    # 7. Reset iterations_without_progress to prevent immediate re-trigger of course correction
+    state.iterations_without_progress = 0
+
+    # 8. Record rollback
     state.git.rollbacks.append({
-        "from_hash": state.git.last_commit_hash,
+        "from_hash": wal_data["from_hash"],
         "to_hash": checkpoint.commit_hash,
         "to_label": checkpoint.label,
         "reason": reason,
@@ -1007,21 +1038,31 @@ def execute_rollback(state: LoopState, checkpoint: GitCheckpoint, reason: str):
         "tasks_reverted": list(reverted_task_ids),
     })
 
-    # 7. Update git state
+    # 9. Update git state
     state.git.last_commit_hash = checkpoint.commit_hash
 
-    # 8. Commit the rollback (new commit on top)
-    git_commit(state, f"Rollback to {checkpoint.label}: {reason}")
+    # 10. Commit the rollback (new commit on top)
+    git_commit(config, state, f"telic-loop({config.sprint}): Rollback to {checkpoint.label}: {reason}")
 
-    # 9. Save state
+    # 11. Save state (atomic write)
     state.save(config.state_file)
+
+    # 12. Remove WAL — rollback complete
+    wal_path.unlink(missing_ok=True)
 ```
+
+**Crash recovery:**
+On startup, check for `.rollback_wal` file. If found, the previous rollback was interrupted:
+- If `status == "started"`: the git reset may have happened but state may be inconsistent. Re-run the full rollback from the WAL's `to_hash`.
+- After successful recovery, delete the WAL file.
 
 **Safety constraints:**
 - Cannot roll back past the pre-loop checkpoint (plan structure depends on it)
 - Cannot roll back to a checkpoint from a previous epic (epic boundaries are hard barriers)
 - Maximum rollbacks per sprint: configurable (default 3) — repeated rollback suggests the plan itself is wrong, not the execution
 - Rollback preserves `retry_count` so the loop doesn't infinitely retry the same tasks with the same approach — the course corrector must restructure them
+- `iterations_without_progress` is reset to 0 after rollback to prevent immediate re-trigger of course correction
+- After rollback, services should be health-checked (and restarted if needed) since rolled-back tasks may have started services that are now orphaned or in an inconsistent state
 
 ### Non-Software Deliverables
 

@@ -24,6 +24,8 @@ Thumbs.db
 
 # Loop runtime state
 .loop_state.json
+.loop_state.json.tmp
+.rollback_wal
 
 # Environment
 .env

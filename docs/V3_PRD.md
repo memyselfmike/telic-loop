@@ -152,7 +152,7 @@ VRC runs every iteration. Quick mode (Haiku — metrics only) on most iterations
 **Done when**: VRC runs every iteration. vrc_history grows monotonically. Recommendations influence decision engine.
 
 #### R18: Course Correction (Phase 2)
-When stuck or VRC says COURSE_CORRECT, Opus restructures plan, descopes features, or adds new tasks. Max course corrections enforced.
+When stuck or VRC says COURSE_CORRECT, Opus restructures plan, descopes features, adds new tasks, or rolls back to a known-good git checkpoint (R33). Rollback resets reverted tasks to pending with retry_count preserved. Max course corrections enforced — exhausted corrections escalate to human via Interactive Pause.
 **Done when**: Opus agent diagnoses stuck state and restructures. Uses `report_course_correction` and `manage_task`.
 
 #### R19: Plan Health Check (Phase 2)
@@ -189,6 +189,12 @@ Automated structural analysis (Dimensions 1-2: Structural Integrity + Interactio
 All 7 dimensions (Structural Integrity, Interaction Coherence, Conceptual Integrity, Behavioral Consistency, Informational Flow, Resilience, Evolutionary Capacity) evaluated at epic boundaries and pre-exit-gate. Uses Opus for semantic analysis.
 **Done when**: Full evaluation runs at epic boundaries. Findings feed into Course Correction. Trends tracked in `coherence_history`.
 
+### Git Safety
+
+#### R33: Git Operations and Rollback (Phase 1 + Phase 2)
+The loop uses git as a safety net and audit trail. Phase 1: Feature branch isolation (never work on protected branches), selective staging (never `git add -A`), sensitive file scanning before every commit, atomic commits after task completion, and graceful init if no repo exists. Phase 2: Checkpoint creation at QC pass (known-good states), rollback during course correction with state synchronization, write-ahead log for crash-safe rollback, max rollbacks per sprint enforced.
+**Done when**: Loop creates feature branch at start, commits after each task with selective staging, never commits sensitive files, checkpoints after QC pass, can roll back to checkpoint with full state sync, and recovers from interrupted rollback via WAL.
+
 ### Infrastructure
 
 #### R25: Decision Engine (Phase 1)
@@ -223,7 +229,7 @@ No single agent session should approach context window limits. Track token count
 Anthropic SDK auto-detects auth from environment (`ANTHROPIC_API_KEY` or `~/.anthropic/config`). First API call surfaces auth issues immediately. No explicit key validation code needed.
 
 ### NF6: Dependencies
-Minimal: `anthropic>=0.40.0`, `requests>=2.31.0`. No ML libraries, no database, no additional infrastructure.
+Minimal: `anthropic>=0.40.0`, `requests>=2.31.0`, `dacite>=1.8.0` (safe nested dataclass deserialization). No ML libraries, no database, no additional infrastructure.
 
 ---
 
@@ -302,7 +308,7 @@ Minimal: `anthropic>=0.40.0`, `requests>=2.31.0`. No ML libraries, no database, 
 |--------|-------------|-----------|
 | Manual debugging after loop | Hours | Zero |
 | Time to detect broken service | ~15 iterations | 1 iteration (pre-check) |
-| Fix agent success rate | ~20% (blind) | ~70% (with context + regression) |
+| Fix agent success rate | ~20% (blind) | Significantly higher (with error context, attempt history, research, and regression) |
 | Regression detection | End of sprint (if at all) | After every task |
 | Experience evaluation | Never (tests only) | Every 3 tasks (separate Evaluator agent) |
 | Builder self-grading | Always (builder runs own tests) | Never (QC agent + Evaluator are separate) |

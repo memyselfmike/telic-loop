@@ -439,7 +439,19 @@ def decide_next_action(config: LoopConfig, state: LoopState) -> Action:
         return Action.SERVICE_FIX
 
     # P2: Stuck → course correct (Phase 2 implements real CC; Phase 1 stub logs)
+    # Enforce max_course_corrections — if exhausted, trigger interactive pause for human help
+    course_correction_count = len(state.progress_log_count("course_correct"))
     if state.is_stuck(config):
+        if course_correction_count >= config.max_course_corrections:
+            # Exhausted all course corrections — escalate to human
+            if state.pause is None:
+                state.pause = PauseState(
+                    reason=f"Loop stuck after {config.max_course_corrections} course corrections",
+                    instructions="The loop has exhausted its automatic recovery options. "
+                                 "Please review the current state and provide guidance.",
+                    requested_at=datetime.now().isoformat(),
+                )
+            return Action.INTERACTIVE_PAUSE
         return Action.COURSE_CORRECT
 
     # Scope task queries to current epic for multi_epic visions
@@ -587,8 +599,9 @@ def pick_next_task(state: LoopState) -> TaskState | None:
     pending = [t for t in state.tasks.values() if t.status == "pending"]
     if not pending:
         return None
+    # Descoped dependencies count as satisfied — the task proceeds without them
     ready = [t for t in pending
-             if all(state.tasks.get(dep, TaskState(task_id="")).status == "done"
+             if all(state.tasks.get(dep, TaskState(task_id="")).status in ("done", "descoped")
                     for dep in (t.dependencies or []))]
     if not ready:
         return None
@@ -606,14 +619,20 @@ def do_execute(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
         return False
 
     task.status = "in_progress"
-    session = claude.session(AgentRole.BUILDER)
-    prompt = load_prompt("execute").format(
-        TASK=json.dumps(asdict(task), indent=2),
-        SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),
-        SPRINT=config.sprint,
-        SPRINT_DIR=str(config.sprint_dir),
-    )
-    session.send(prompt)
+    try:
+        session = claude.session(AgentRole.BUILDER)
+        prompt = load_prompt("execute").format(
+            TASK=json.dumps(asdict(task), indent=2),
+            SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),
+            SPRINT=config.sprint,
+            SPRINT_DIR=str(config.sprint_dir),
+        )
+        session.send(prompt)
+    except Exception as e:
+        # Builder crashed — don't leave task stuck in "in_progress" (GAP-15)
+        print(f"  Builder agent failed: {e}")
+        task.status = "pending"
+        task.retry_count += 1
 
     completed = task.status == "done"  # set by report_task_complete handler
 
@@ -622,14 +641,14 @@ def do_execute(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
         if task.retry_count >= config.max_task_retries:
             task.status = "blocked"
             task.blocked_reason = "Agent failed to complete after max retries"
-        else:
+        elif task.status == "in_progress":  # still in_progress (no tool call and no exception)
             task.status = "pending"
         return False
 
     state.tasks_since_last_critical_eval += 1
     if task.source != "plan":
         state.mid_loop_tasks_since_health_check += 1
-    git_commit(f"loop-v3({config.sprint}): {task.task_id} - completed")
+    git_commit(config, state, f"telic-loop({config.sprint}): {task.task_id} - completed")
 
     if config.regression_after_every_task and state.regression_baseline:
         regressions = run_regression(config, state)
@@ -862,12 +881,19 @@ def do_fix(config, state, claude) -> bool:
 
         # Verify fix by re-running affected tests
         for v in affected:
+            v.attempts += 1  # count this fix attempt
             results = run_tests_parallel([v], config.regression_timeout)
-            exit_code = results.get(v.verification_id, (1, "", ""))[0]
+            exit_code, stdout, stderr = results.get(v.verification_id, (1, "", ""))
             if exit_code == 0:
                 v.status = "passed"
                 state.add_regression_pass(v.verification_id)
                 any_fixed = True
+            else:
+                v.failures.append(FailureRecord(
+                    timestamp=datetime.now().isoformat(), attempt=v.attempts,
+                    exit_code=exit_code, stdout=stdout[:2000], stderr=stderr[:2000],
+                    fix_applied=f"Fix for root cause: {rc['cause'][:200]}",
+                ))
 
         # Check for regressions after fix
         if state.regression_baseline:
@@ -1142,6 +1168,7 @@ def record_progress(self, action, result, made_progress):
     self.iterations_without_progress = 0 if made_progress else self.iterations_without_progress + 1
 
 def is_stuck(self, config): return self.iterations_without_progress >= config.max_no_progress
+def progress_log_count(self, action): return [e for e in self.progress_log if e.get("action") == action]
 
 @property
 def latest_vrc(self): return self.vrc_history[-1] if self.vrc_history else None
@@ -1162,6 +1189,7 @@ def invalidate_tests(self):
     self.gates_passed.discard("verifications_generated")
 
 def save(self, path):
+    """Atomic state save: write to .tmp then rename to prevent corruption on crash."""
     data = asdict(self)
     data["gates_passed"] = sorted(data["gates_passed"])
     data["regression_baseline"] = sorted(data["regression_baseline"])
@@ -1174,7 +1202,9 @@ def save(self, path):
             return sorted(obj)
         raise TypeError(f"Cannot serialize {type(obj).__name__}: {obj!r}")
 
-    path.write_text(json.dumps(data, indent=2, default=_serialize))
+    tmp_path = path.with_suffix(".json.tmp")
+    tmp_path.write_text(json.dumps(data, indent=2, default=_serialize))
+    tmp_path.replace(path)  # atomic on POSIX; near-atomic on Windows (NTFS)
 
 @classmethod
 def load(cls, path):
@@ -1204,10 +1234,50 @@ def load_prompt(name: str) -> str:
     """Load a prompt template from the prompts/ directory."""
     return (Path(__file__).parent / "prompts" / f"{name}.md").read_text()
 
-def git_commit(message: str):
-    """Create a git commit with the given message."""
-    subprocess.run(["git", "add", "-A"], check=True)
-    subprocess.run(["git", "commit", "-m", message], check=True)
+def git_commit(config: LoopConfig, state: LoopState, message: str):
+    """Create a safe git commit. Never uses 'git add -A'.
+    See Architecture Reference § Git Operations for full spec."""
+    # Stage modified tracked files
+    subprocess.run(["git", "add", "-u"], check=True)
+
+    # Stage new files only from safe directories (derived from context)
+    safe_dirs = _get_safe_directories(config, state)
+    for d in safe_dirs:
+        if Path(d).exists():
+            subprocess.run(["git", "add", str(d)], check=True)
+
+    # Scan staged files for sensitive patterns — unstage any matches
+    result = subprocess.run(["git", "diff", "--cached", "--name-only"],
+                            capture_output=True, text=True)
+    staged = result.stdout.strip().splitlines()
+    for f in staged:
+        if _matches_sensitive_pattern(f, state.git.sensitive_patterns):
+            subprocess.run(["git", "reset", "HEAD", f], check=True)
+            print(f"  WARNING: Unstaged sensitive file: {f}")
+
+    # Commit (allow empty to handle edge case where all staged files were sensitive)
+    result = subprocess.run(["git", "diff", "--cached", "--quiet"])
+    if result.returncode != 0:  # there are staged changes
+        subprocess.run(["git", "commit", "-m", message], check=True)
+        # Update last_commit_hash
+        hash_result = subprocess.run(["git", "rev-parse", "HEAD"],
+                                     capture_output=True, text=True)
+        state.git.last_commit_hash = hash_result.stdout.strip()
+
+def _get_safe_directories(config: LoopConfig, state: LoopState) -> list[str]:
+    """Derive safe directories for staging new files from SprintContext."""
+    safe = [str(config.sprint_dir)]
+    # Add common safe patterns discovered from context
+    for d in ["src", "tests", "test", "lib", "docs"]:
+        if (config.sprint_dir / d).exists():
+            safe.append(str(config.sprint_dir / d))
+    return safe
+
+def _matches_sensitive_pattern(filepath: str, patterns: list[str]) -> bool:
+    """Check if a file path matches any sensitive pattern."""
+    from fnmatch import fnmatch
+    name = Path(filepath).name
+    return any(fnmatch(name, pat) or fnmatch(filepath, pat) for pat in patterns)
 
 def render_plan_snapshot(config: LoopConfig, state: LoopState):
     """Re-render the plan markdown from structured state."""
@@ -1289,11 +1359,34 @@ def _acquire_lock(lock_path: Path):
     return lock_file  # keep reference alive to hold lock
 
 
+def _ensure_git_repo(config: LoopConfig):
+    """Verify we are inside a git repo. Initialize one if not (H5)."""
+    result = subprocess.run(["git", "rev-parse", "--is-inside-work-tree"],
+                            capture_output=True, text=True)
+    if result.returncode != 0:
+        print("  No git repository found — initializing one")
+        subprocess.run(["git", "init"], cwd=str(config.sprint_dir), check=True)
+
+def _recover_interrupted_rollback(config: LoopConfig, state: LoopState):
+    """Check for interrupted rollback (WAL recovery)."""
+    wal_path = config.state_file.with_suffix(".rollback_wal")
+    if wal_path.exists():
+        import json as _json
+        wal = _json.loads(wal_path.read_text())
+        print(f"  WARNING: Recovering from interrupted rollback to {wal['to_label']}")
+        # Re-run the git reset to ensure consistent state
+        subprocess.run(["git", "reset", "--hard", wal["to_hash"]], check=True)
+        subprocess.run(["git", "clean", "-fd"], check=True)
+        wal_path.unlink()
+
+
 def main():
     sprint = sys.argv[1]
     config = LoopConfig(sprint=sprint, sprint_dir=Path(f"sprints/{sprint}"))
     lock = _acquire_lock(config.sprint_dir / ".loop.lock")
+    _ensure_git_repo(config)
     state = LoopState.load(config.state_file) if config.state_file.exists() else LoopState(sprint=sprint)
+    _recover_interrupted_rollback(config, state)
     claude = Claude(config, state)
 
     if state.phase == "pre_loop":

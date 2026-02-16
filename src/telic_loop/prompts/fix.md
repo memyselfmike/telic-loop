@@ -62,13 +62,13 @@ Apply the minimal change that resolves the underlying problem. Follow these rule
 
 6. **Keep changes minimal.** Fix this root cause. Do not refactor adjacent code. Do not improve things that are not broken.
 
-### Step 4: Verify Your Fix
+### Step 4: Confirm Your Fix
 
-After applying the fix, run the affected verification scripts to confirm they pass:
+After applying the fix, do a quick sanity check that your changes are internally consistent:
 
-- Run each failing verification listed in `{FAILING_VERIFICATIONS}`
-- If any still fail, diagnose why and iterate
-- If your fix causes OTHER previously-passing verifications to fail, you have introduced a regression — undo and try a different approach
+- Re-read the files you changed to confirm the edits are correct
+- Check that you did not accidentally break imports, function signatures, or other callers
+- Do NOT run the verification scripts yourself — the orchestrator will re-run QC after your fix to verify independently (builder never self-grades)
 
 ### Step 5: Handle True Blockers
 
