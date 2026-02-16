@@ -64,8 +64,25 @@ def critique_prd(
 
     ref = state.prd_refinement
 
+    # Crash-resume: if we were researching, re-run research then present
+    if ref.status == "researching":
+        print("\n  Resuming PRD critique (was researching)...")
+        critique = state.agent_results.get("critique", {})
+        research = _research_prd_rejection(config, state, claude, critique)
+        if ref.rounds:
+            ref.rounds[-1].research_results = research
+        _present_prd_rejection(critique, research=research or None)
+
+        ref.status = "awaiting_input"
+        state.save(config.state_file)
+
+        action = _prd_prompt_loop(config, state)
+        if action == "quit":
+            raise SystemExit("User quit during PRD refinement.")
+        # action == "revised" — fall through to re-critique
+
     # Crash-resume: if we were awaiting input, skip straight to prompt
-    if ref.status == "awaiting_input":
+    elif ref.status == "awaiting_input":
         print("\n  Resuming PRD critique (was waiting for input)...")
         action = _prd_prompt_loop(config, state)
         if action == "quit":
@@ -104,8 +121,13 @@ def critique_prd(
             state.save(config.state_file)
             return critique
 
-        # REJECT — interactive refinement
-        _present_prd_rejection(critique)
+        # REJECT — research alternatives, then present
+        ref.status = "researching"
+        state.save(config.state_file)
+        research = _research_prd_rejection(config, state, claude, critique)
+        ref.rounds[-1].research_results = research
+
+        _present_prd_rejection(critique, research=research or None)
 
         ref.status = "awaiting_input"
         state.save(config.state_file)
@@ -138,8 +160,34 @@ def refine_vision(
 
     ref = state.vision_refinement
 
+    # Crash-resume: if we were researching, re-run research then present
+    if ref.status == "researching":
+        print("\n  Resuming vision refinement (was researching)...")
+        validation = state.agent_results.get("vision_validation", {})
+        hard_issues = [
+            i for i in validation.get("issues", [])
+            if i.get("severity") == "hard"
+        ]
+        research = _research_vision_issues(config, state, claude, hard_issues)
+        if ref.rounds:
+            ref.rounds[-1].research_results = research
+        _present_vision_brief(validation, research=research or None)
+
+        ref.status = "awaiting_input"
+        state.save(config.state_file)
+
+        action = _vision_prompt_loop(config, state, has_hard_issues=bool(hard_issues))
+        if action == "quit":
+            raise SystemExit("User quit during vision refinement.")
+        if action == "acknowledge":
+            ref.status = "done"
+            ref.consensus_reason = "Soft issues acknowledged by human"
+            state.save(config.state_file)
+            return validation
+        # action == "revised" — fall through to re-validate
+
     # Crash-resume: if we were awaiting input, skip straight to prompt
-    if ref.status == "awaiting_input":
+    elif ref.status == "awaiting_input":
         print("\n  Resuming vision refinement (was waiting for input)...")
         has_hard = any(
             i.get("severity") == "hard"
@@ -188,8 +236,15 @@ def refine_vision(
             state.save(config.state_file)
             return validation
 
-        # NEEDS_REVISION — present findings and enter interactive loop
-        _present_vision_brief(validation)
+        # NEEDS_REVISION — research HARD issues, then present findings
+        research = None
+        if hard_issues:
+            ref.status = "researching"
+            state.save(config.state_file)
+            research = _research_vision_issues(config, state, claude, hard_issues)
+            ref.rounds[-1].research_results = research
+
+        _present_vision_brief(validation, research=research)
 
         ref.status = "awaiting_input"
         state.save(config.state_file)
@@ -214,6 +269,106 @@ def refine_vision(
 
 
 # ---------------------------------------------------------------------------
+# Pre-loop research helpers
+# ---------------------------------------------------------------------------
+
+def _research_vision_issues(
+    config: "LoopConfig", state: "LoopState", claude: "Claude",
+    hard_issues: list[dict],
+) -> dict:
+    """Spawn RESEARCHER session to find information about vision HARD issues.
+
+    Batches all HARD issues into one prompt. Returns the research dict
+    from state.agent_results["research"], or empty dict on failure.
+    """
+    from .claude import AgentRole, load_prompt
+
+    # Format issues for the prompt
+    issue_lines = []
+    for i in hard_issues:
+        issue_id = i.get("id", "?")
+        category = i.get("category", "?")
+        desc = i.get("description", "")
+        suggestion = i.get("suggested_revision", "")
+        issue_lines.append(f"- **[{issue_id}] {category}**: {desc}")
+        if suggestion:
+            issue_lines.append(f"  Suggested revision: {suggestion}")
+    issues_text = "\n".join(issue_lines)
+
+    # Read vision for context
+    vision_text = config.vision_file.read_text() if config.vision_file.exists() else "(no vision file)"
+
+    try:
+        print("  Running RESEARCHER for vision issues...")
+        session = claude.session(AgentRole.RESEARCHER)
+        prompt = load_prompt("preloop_research",
+            ISSUES=issues_text,
+            DOCUMENT_CONTEXT=f"VISION.md:\n{vision_text}",
+        )
+        session.send(prompt)
+
+        research = state.agent_results.get("research", {})
+        if research:
+            print("  Research complete.")
+        else:
+            print("  Research returned no findings.")
+        return research
+    except Exception as e:
+        print(f"  Research failed (non-blocking): {e}")
+        return {}
+
+
+def _research_prd_rejection(
+    config: "LoopConfig", state: "LoopState", claude: "Claude",
+    critique: dict,
+) -> dict:
+    """Spawn RESEARCHER session to find information about PRD rejection.
+
+    Returns the research dict from state.agent_results["research"],
+    or empty dict on failure.
+    """
+    from .claude import AgentRole, load_prompt
+
+    # Format rejection details for the prompt
+    reason = critique.get("reason", "")
+    amendments = critique.get("amendments", [])
+    descope = critique.get("descope_suggestions", [])
+
+    issue_lines = [f"- **Rejection reason**: {reason}"]
+    if amendments:
+        issue_lines.append("- **Suggested amendments**:")
+        for a in amendments:
+            issue_lines.append(f"  - {a}")
+    if descope:
+        issue_lines.append("- **Descope suggestions**:")
+        for s in descope:
+            issue_lines.append(f"  - {s}")
+    issues_text = "\n".join(issue_lines)
+
+    # Read PRD for context
+    prd_text = config.prd_file.read_text() if config.prd_file.exists() else "(no PRD file)"
+
+    try:
+        print("  Running RESEARCHER for PRD rejection...")
+        session = claude.session(AgentRole.RESEARCHER)
+        prompt = load_prompt("preloop_research",
+            ISSUES=issues_text,
+            DOCUMENT_CONTEXT=f"PRD.md:\n{prd_text}",
+        )
+        session.send(prompt)
+
+        research = state.agent_results.get("research", {})
+        if research:
+            print("  Research complete.")
+        else:
+            print("  Research returned no findings.")
+        return research
+    except Exception as e:
+        print(f"  Research failed (non-blocking): {e}")
+        return {}
+
+
+# ---------------------------------------------------------------------------
 # Interactive refinement helpers
 # ---------------------------------------------------------------------------
 
@@ -225,7 +380,7 @@ _DIMENSION_LABELS = {
 }
 
 
-def _present_vision_brief(validation: dict) -> None:
+def _present_vision_brief(validation: dict, research: dict | None = None) -> None:
     """Print a structured terminal summary of vision validation findings."""
     print("\n" + "=" * 60)
     print("  VISION VALIDATION — NEEDS REVISION")
@@ -265,6 +420,18 @@ def _present_vision_brief(validation: dict) -> None:
             print(f"    ~ [{i.get('category', '?')}] {i.get('description', '')}")
             if i.get("suggested_revision"):
                 print(f"      Suggestion: {i['suggested_revision']}")
+
+    # Research findings (if available)
+    if research and research.get("findings"):
+        print("\n" + "-" * 60)
+        print("  RESEARCH FINDINGS")
+        print("-" * 60)
+        print(f"  {research['findings']}")
+        sources = research.get("sources", [])
+        if sources:
+            print("\n  Sources:")
+            for src in sources:
+                print(f"    - {src}")
 
     # Overall reason
     reason = validation.get("reason", "")
@@ -323,7 +490,7 @@ def _vision_prompt_loop(
             return "revised"
 
 
-def _present_prd_rejection(critique: dict) -> None:
+def _present_prd_rejection(critique: dict, research: dict | None = None) -> None:
     """Print a structured terminal summary of PRD rejection."""
     print("\n" + "=" * 60)
     print("  PRD CRITIQUE — REJECTED")
@@ -344,6 +511,18 @@ def _present_prd_rejection(critique: dict) -> None:
         print("\n  Descope suggestions:")
         for i, s in enumerate(descope, 1):
             print(f"    {i}. {s}")
+
+    # Research findings (if available)
+    if research and research.get("findings"):
+        print("\n" + "-" * 60)
+        print("  RESEARCH FINDINGS")
+        print("-" * 60)
+        print(f"  {research['findings']}")
+        sources = research.get("sources", [])
+        if sources:
+            print("\n  Sources:")
+            for src in sources:
+                print(f"    - {src}")
 
     print()
 
