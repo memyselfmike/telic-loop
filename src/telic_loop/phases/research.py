@@ -23,7 +23,9 @@ def do_research(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
     failing = {
         v.verification_id: v
         for v in state.verifications.values()
-        if v.status == "failed" and v.attempts >= config.max_fix_attempts
+        if v.status == "failed" and v.attempts >= state.process_monitor.current_strategy.get(
+            "max_fix_attempts", config.max_fix_attempts,
+        )
     }
     if not failing:
         state.research_attempted_for_current_failures = True

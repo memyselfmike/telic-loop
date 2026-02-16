@@ -78,7 +78,10 @@ def decide_next_action(config: LoopConfig, state: LoopState) -> Action:
     # P4: Fix failing QC
     failing = [v for v in state.verifications.values() if v.status == "failed"]
     if failing:
-        fixable = [v for v in failing if v.attempts < config.max_fix_attempts]
+        max_fix = state.process_monitor.current_strategy.get(
+            "max_fix_attempts", config.max_fix_attempts,
+        )
+        fixable = [v for v in failing if v.attempts < max_fix]
         if fixable:
             return Action.FIX
         if not state.research_attempted_for_current_failures:

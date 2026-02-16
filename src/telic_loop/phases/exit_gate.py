@@ -14,9 +14,10 @@ if TYPE_CHECKING:
 
 
 def do_exit_gate(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
-    """Run exit gate verification: regression sweep + fresh VRC + critical eval."""
+    """Run exit gate verification: coherence + regression sweep + fresh VRC + critical eval."""
     from ..git import git_commit
     from ..state import TaskState
+    from .coherence import do_full_coherence_eval
     from .critical_eval import do_critical_eval
     from .execute import run_tests_parallel
     from .vrc import run_vrc
@@ -28,6 +29,13 @@ def do_exit_gate(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
     if state.exit_gate_attempts > config.max_exit_gate_attempts:
         print(f"  Max attempts ({config.max_exit_gate_attempts}) reached — partial report")
         return True
+
+    # 0. Full coherence evaluation (catch cross-feature interaction issues)
+    print("  Running full coherence evaluation...")
+    coherence = do_full_coherence_eval(config, state, claude)
+    if coherence and coherence.overall == "CRITICAL":
+        print("  EXIT GATE FAILED — coherence CRITICAL")
+        return False
 
     # 1. Full regression sweep
     print("  Running full regression sweep...")
