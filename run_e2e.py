@@ -4,6 +4,9 @@ import os
 import sys
 from pathlib import Path
 
+# Unbuffered output so prints appear immediately when run from a parent process
+os.environ["PYTHONUNBUFFERED"] = "1"
+
 # Allow nested Claude Code sessions
 os.environ.pop("CLAUDECODE", None)
 
