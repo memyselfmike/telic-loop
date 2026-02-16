@@ -35,6 +35,25 @@ _TOOL_SETS: dict[str, list[str]] = {
     "minimal": _MINIMAL_TOOLS,
 }
 
+# Playwright MCP tools available when browser evaluation is enabled
+PLAYWRIGHT_MCP_TOOLS = [
+    "mcp__playwright__browser_navigate",
+    "mcp__playwright__browser_click",
+    "mcp__playwright__browser_fill",
+    "mcp__playwright__browser_snapshot",
+    "mcp__playwright__browser_take_screenshot",
+    "mcp__playwright__browser_select_option",
+    "mcp__playwright__browser_go_back",
+    "mcp__playwright__browser_go_forward",
+    "mcp__playwright__browser_wait",
+    "mcp__playwright__browser_press_key",
+    "mcp__playwright__browser_resize",
+    "mcp__playwright__browser_tab_list",
+    "mcp__playwright__browser_tab_new",
+    "mcp__playwright__browser_tab_select",
+    "mcp__playwright__browser_tab_close",
+]
+
 # Windows CreateProcess limits command line to ~32K chars.
 # The SDK passes system_prompt + user_message as CLI args.
 # When the total exceeds this, switch to streaming mode (prompt via stdin).
@@ -101,7 +120,13 @@ class Claude:
         self.config = config
         self.state = state
 
-    def session(self, role: AgentRole, system_extra: str = "") -> ClaudeSession:
+    def session(
+        self,
+        role: AgentRole,
+        system_extra: str = "",
+        mcp_servers: dict | None = None,
+        extra_tools: list[str] | None = None,
+    ) -> ClaudeSession:
         model_attr, max_turns, tools_set = role.value
         model = getattr(self.config, model_attr)
         system = load_prompt("system", SPRINT_DIR=str(self.config.sprint_dir))
@@ -109,6 +134,8 @@ class Claude:
             system += "\n" + system_extra
         system += _tool_cli_instructions(self.config.state_file)
         builtin_tools = list(_TOOL_SETS.get(tools_set, _FULL_TOOLS))
+        if extra_tools:
+            builtin_tools.extend(extra_tools)
 
         return ClaudeSession(
             model=model,
@@ -117,6 +144,7 @@ class Claude:
             builtin_tools=builtin_tools,
             state=self.state,
             config=self.config,
+            mcp_servers=mcp_servers,
         )
 
 
@@ -131,6 +159,7 @@ class ClaudeSession:
         builtin_tools: list[str] | None = None,
         state: LoopState | None = None,
         config: LoopConfig | None = None,
+        mcp_servers: dict | None = None,
     ):
         self.model = model
         self.system = system
@@ -138,6 +167,7 @@ class ClaudeSession:
         self.builtin_tools = builtin_tools or []
         self.state = state
         self.config = config
+        self.mcp_servers = mcp_servers or {}
 
     def send(self, user_message: str, task_source: str = "agent") -> str:
         """Send a prompt to Claude Code, let SDK handle tool execution, return final text."""
@@ -167,6 +197,7 @@ class ClaudeSession:
             allowed_tools=list(self.builtin_tools),
             permission_mode="bypassPermissions",
             max_turns=self.max_turns,
+            mcp_servers=self.mcp_servers if self.mcp_servers else {},
         )
 
         # Estimate CLI arg size; switch to streaming mode if too large for Windows

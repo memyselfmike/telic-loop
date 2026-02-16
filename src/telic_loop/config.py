@@ -33,6 +33,10 @@ class LoopConfig:
     critical_eval_interval: int = 3
     critical_eval_on_all_pass: bool = True
 
+    # Browser evaluation (Critical Evaluator)
+    browser_eval_headless: bool = False       # False = headed (dev), True = headless (CI)
+    browser_eval_viewport: str = "1280x720"   # Playwright viewport size
+
     # Safety limits
     max_exit_gate_attempts: int = 3
     max_course_corrections: int = 5

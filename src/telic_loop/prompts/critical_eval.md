@@ -47,6 +47,8 @@ Based on the `deliverable_type` in `{SPRINT_CONTEXT}`:
 | **config** | Apply the configuration. Does it produce the expected behavior? Are instructions clear? |
 | **hybrid** | Evaluate each component using the appropriate strategy above. |
 
+{BROWSER_SECTION}
+
 ### Step 3: Walk Through Every VISION Promise
 
 For each capability or outcome the VISION promises, attempt to use it as the target user would:
