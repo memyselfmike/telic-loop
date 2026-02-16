@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import os
+from collections.abc import AsyncGenerator, AsyncIterable
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from claude_code_sdk import (
     AssistantMessage,
@@ -33,6 +34,11 @@ _TOOL_SETS: dict[str, list[str]] = {
     "research": _RESEARCH_TOOLS,
     "minimal": _MINIMAL_TOOLS,
 }
+
+# Windows CreateProcess limits command line to ~32K chars.
+# The SDK passes system_prompt + user_message as CLI args.
+# When the total exceeds this, switch to streaming mode (prompt via stdin).
+_WIN_CMD_LIMIT = 30_000
 
 
 class AgentRole(Enum):
@@ -163,10 +169,18 @@ class ClaudeSession:
             max_turns=self.max_turns,
         )
 
+        # Estimate CLI arg size; switch to streaming mode if too large for Windows
+        estimated_cli_len = len(self.system or "") + len(user_message) + 500
+        prompt: str | AsyncIterable[dict[str, Any]]
+        if estimated_cli_len > _WIN_CMD_LIMIT:
+            prompt = _streaming_prompt(user_message)
+        else:
+            prompt = user_message
+
         text_parts: list[str] = []
 
         try:
-            async for message in query(prompt=user_message, options=options):
+            async for message in query(prompt=prompt, options=options):
                 if isinstance(message, AssistantMessage):
                     for block in message.content:
                         if isinstance(block, TextBlock):
@@ -185,6 +199,17 @@ class ClaudeSession:
                 raise ExceptionGroup("Claude SDK errors", real) from eg
 
         return "\n".join(text_parts)
+
+
+async def _streaming_prompt(user_message: str) -> AsyncGenerator[dict[str, Any]]:
+    """Yield a single user message in the SDK's stream-json format.
+
+    Used when the prompt is too large for Windows CLI arg limits.
+    """
+    yield {
+        "type": "user",
+        "message": {"role": "user", "content": user_message},
+    }
 
 
 def _sync_state(target: LoopState, source: LoopState) -> None:

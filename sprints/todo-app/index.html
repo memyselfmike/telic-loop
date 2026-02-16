@@ -132,7 +132,6 @@
             border-radius: 8px;
             margin-bottom: 10px;
             transition: all 0.3s;
-            gap: 12px;
             min-height: 44px;
         }
 
@@ -150,6 +149,16 @@
             min-width: 22px;
             cursor: pointer;
             accent-color: #667eea;
+        }
+
+        .task-label {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            padding: 2px 0;
+            min-height: 44px;
         }
 
         .task-text {
@@ -204,6 +213,8 @@
             #taskInput {
                 font-size: 16px; /* Prevent iOS zoom on focus */
             }
+
+            /* Checkbox remains at comfortable 22px; the label provides the 44px tap target */
 
             .delete-btn {
                 opacity: 1; /* Always visible on mobile */
@@ -402,6 +413,9 @@
                     li.className = 'task-item' + (task.completed ? ' completed' : '');
                     li.dataset.id = task.id;
 
+                    const label = document.createElement('label');
+                    label.className = 'task-label';
+
                     const checkbox = document.createElement('input');
                     checkbox.type = 'checkbox';
                     checkbox.className = 'task-checkbox';
@@ -417,8 +431,9 @@
                     deleteBtn.textContent = 'Delete';
                     deleteBtn.addEventListener('click', () => deleteTask(task.id));
 
-                    li.appendChild(checkbox);
-                    li.appendChild(text);
+                    label.appendChild(checkbox);
+                    label.appendChild(text);
+                    li.appendChild(label);
                     li.appendChild(deleteBtn);
                     taskList.appendChild(li);
                 });
