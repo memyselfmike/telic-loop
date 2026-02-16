@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import json
-import sys
 from dataclasses import asdict
-from datetime import datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -165,13 +163,54 @@ def _refine_epic_detail(
 def _run_epic_preloop(
     config: LoopConfig, state: LoopState, claude: Claude, epic: Epic,
 ) -> None:
-    """Run pre-loop scoped to this epic."""
-    from ..discovery import discover_context
+    """Run pre-loop steps scoped to an epic's deliverables.
 
-    # Re-discover context scoped to this epic if needed
+    1. Context discovery (scoped to epic)
+    2. Plan generation — agent creates tasks via manage_task tool
+    3. Tag newly created tasks with this epic's ID
+    4. Run quality gates on the new tasks
+    """
+    from ..claude import AgentRole, load_prompt
+    from ..discovery import discover_context
+    from ..render import render_plan_snapshot
+    from .preloop import _run_quality_gates
+
+    # Re-discover context scoped to this epic
     if epic.detail_level == "full":
         print(f"  Running scoped context discovery for epic: {epic.title}")
         discover_context(config, claude, state)
+
+    # Plan generation — agent creates tasks via manage_task tool calls
+    print(f"  Generating tasks for epic: {epic.title}")
+    session = claude.session(AgentRole.REASONER)
+    prompt = load_prompt("plan").format(
+        SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),
+        SPRINT=config.sprint,
+        SPRINT_DIR=str(config.sprint_dir),
+    )
+    session.send(
+        f"Generate tasks for epic '{epic.title}':\n"
+        f"Value: {epic.value_statement}\n"
+        f"Deliverables: {', '.join(epic.deliverables)}\n"
+        f"Task sketch: {', '.join(epic.task_sketch)}\n\n{prompt}",
+        task_source="plan",
+    )
+
+    # Tag newly created tasks with this epic's ID
+    # (decision engine uses epic_id for scoping tasks to the current epic)
+    tagged = 0
+    for task in state.tasks.values():
+        if not task.epic_id and task.status == "pending":
+            task.epic_id = epic.epic_id
+            tagged += 1
+    print(f"  Tagged {tagged} tasks with epic_id={epic.epic_id}")
+
+    render_plan_snapshot(config, state)
+
+    # Run quality gates on the new task set
+    _run_quality_gates(config, state, claude)
+
+    state.save(config.state_file)
 
 
 def _adjust_next_epic(
@@ -201,7 +240,6 @@ def _wait_for_human_response(timeout_minutes: int = 0) -> str | None:
         except (EOFError, KeyboardInterrupt):
             return None
 
-    import select
     import threading
 
     result: list[str | None] = [None]

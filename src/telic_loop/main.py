@@ -25,7 +25,7 @@ def run_value_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None
     from .phases.process_monitor import maybe_run_strategy_reasoner
     from .phases.qc import do_fix, do_generate_qc, do_run_qc
     from .phases.research import do_research
-    from .phases.vrc import do_vrc_heartbeat
+    from .phases.vrc import run_vrc
     from .phases.coherence import do_full_coherence_eval
 
     print("\n" + "=" * 60)
@@ -53,7 +53,24 @@ def run_value_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None
             print(f"TOKEN BUDGET EXHAUSTED ({state.total_tokens_used:,} tokens)")
             break
 
+        # Budget-aware action gating
+        budget_pct = (
+            (state.total_tokens_used / config.token_budget * 100)
+            if config.token_budget else 0
+        )
+
         action = decide_next_action(config, state)
+
+        if budget_pct >= 95:
+            print(f"  BUDGET CRITICAL: {budget_pct:.0f}% consumed — completing current work only")
+            if action not in (
+                Action.FIX, Action.RUN_QC, Action.EXIT_GATE,
+                Action.INTERACTIVE_PAUSE,
+            ):
+                action = Action.EXIT_GATE
+        elif budget_pct >= 80:
+            print(f"  BUDGET WARNING: {budget_pct:.0f}% consumed — economizing")
+
         print(f"\n── Iteration {iteration} ── Action: {action.value}")
 
         # Exit gate is special — it can terminate the loop
@@ -80,14 +97,26 @@ def run_value_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None
             state, config, claude, action=action.value, made_progress=progress,
         )
 
-        # Plan health check
-        maybe_run_plan_health_check(config, state, claude)
+        # Plan health check — force after course correction
+        if action == Action.COURSE_CORRECT and progress:
+            maybe_run_plan_health_check(config, state, claude, force=True)
+        else:
+            maybe_run_plan_health_check(config, state, claude)
 
-        # VRC heartbeat
-        do_vrc_heartbeat(config, state, claude)
+        # VRC heartbeat and coherence check — skip during pause and after exit gate
+        # (exit gate runs its own fresh VRC; pause should not burn tokens)
+        if state.pause is None and action != Action.EXIT_GATE:
+            # Force full VRC after critical eval or course correction
+            force_full_vrc = action in (Action.CRITICAL_EVAL, Action.COURSE_CORRECT)
+            vrc = run_vrc(config, state, claude, force_full=force_full_vrc)
+            print(
+                f"  VRC #{len(state.vrc_history)}: {vrc.value_score:.0%} value | "
+                f"{vrc.deliverables_verified}/{vrc.deliverables_total} | "
+                f"→ {vrc.recommendation}"
+            )
 
-        # Quick coherence check
-        quick_coherence_check(config, state)
+            # Quick coherence check
+            quick_coherence_check(config, state)
 
         # Render updated value checklist
         render_value_checklist(config, state)
