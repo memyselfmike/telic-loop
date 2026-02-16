@@ -49,7 +49,7 @@ def run_vrc(
     else:
         session = claude.session(AgentRole.CLASSIFIER)
 
-    prompt = load_prompt("vrc").format(
+    prompt = load_prompt("vrc",
         SPRINT=config.sprint,
         SPRINT_DIR=str(config.sprint_dir),
         IS_FULL_VRC="FULL" if is_full_vrc else "QUICK",

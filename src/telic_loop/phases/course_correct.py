@@ -29,7 +29,7 @@ def do_course_correct(config: LoopConfig, state: LoopState, claude: Claude) -> b
         ),
     )
 
-    prompt = load_prompt("course_correct").format(
+    prompt = load_prompt("course_correct",
         SPRINT=config.sprint,
         SPRINT_DIR=str(config.sprint_dir),
         VISION=config.vision_file.read_text() if config.vision_file.exists() else "",

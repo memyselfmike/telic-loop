@@ -47,7 +47,7 @@ def do_critical_eval(config: LoopConfig, state: LoopState, claude: Claude) -> bo
         for t in recent_tasks[:10]
     )
 
-    prompt = load_prompt("critical_eval").format(
+    prompt = load_prompt("critical_eval",
         SPRINT=config.sprint,
         SPRINT_DIR=str(config.sprint_dir),
         SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),

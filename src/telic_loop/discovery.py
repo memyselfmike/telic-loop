@@ -34,7 +34,7 @@ def discover_context(config: LoopConfig, claude: Claude, state: LoopState) -> No
     from .claude import AgentRole, load_prompt
 
     session = claude.session(AgentRole.REASONER)
-    prompt = load_prompt("discover_context").format(
+    prompt = load_prompt("discover_context",
         SPRINT=config.sprint,
         SPRINT_DIR=str(config.sprint_dir),
     )
@@ -61,7 +61,7 @@ def critique_prd(
     from .claude import AgentRole, load_prompt
 
     session = claude.session(AgentRole.REASONER)
-    prompt = load_prompt("prd_critique").format(
+    prompt = load_prompt("prd_critique",
         SPRINT_CONTEXT=json.dumps(state.context.__dict__, default=str),
         SPRINT=config.sprint,
         SPRINT_DIR=str(config.sprint_dir),
@@ -91,7 +91,7 @@ def refine_vision(
         return {"verdict": "PASS", "reason": "No vision file to validate"}
 
     session = claude.session(AgentRole.REASONER)
-    prompt = load_prompt("vision_validate").format(
+    prompt = load_prompt("vision_validate",
         SPRINT=config.sprint,
         SPRINT_DIR=str(config.sprint_dir),
     )
@@ -176,7 +176,7 @@ def decompose_into_epics(
     prd_text = config.prd_file.read_text() if config.prd_file.exists() else ""
 
     session = claude.session(AgentRole.REASONER)
-    prompt = load_prompt("epic_decompose").format(
+    prompt = load_prompt("epic_decompose",
         SPRINT=config.sprint,
         SPRINT_DIR=str(config.sprint_dir),
         VISION=vision_text,

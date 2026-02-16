@@ -46,9 +46,16 @@ class AgentRole(Enum):
     CLASSIFIER = ("model_triage",      5, "minimal")
 
 
-def load_prompt(name: str) -> str:
-    """Load a prompt template from the prompts/ directory."""
-    return (Path(__file__).parent / "prompts" / f"{name}.md").read_text()
+def load_prompt(name: str, **kwargs: str) -> str:
+    """Load a prompt template and safely format placeholders.
+
+    Uses string replacement instead of str.format() to avoid conflicts
+    with literal braces in JSON examples within prompt templates.
+    """
+    template = (Path(__file__).parent / "prompts" / f"{name}.md").read_text()
+    for key, value in kwargs.items():
+        template = template.replace(f"{{{key}}}", str(value))
+    return template
 
 
 def _tool_cli_instructions(state_file: Path) -> str:
@@ -91,7 +98,9 @@ class Claude:
     def session(self, role: AgentRole, system_extra: str = "") -> ClaudeSession:
         model_attr, max_turns, tools_set = role.value
         model = getattr(self.config, model_attr)
-        system = load_prompt("system") + ("\n" + system_extra if system_extra else "")
+        system = load_prompt("system", SPRINT_DIR=str(self.config.sprint_dir))
+        if system_extra:
+            system += "\n" + system_extra
         system += _tool_cli_instructions(self.config.state_file)
         builtin_tools = list(_TOOL_SETS.get(tools_set, _FULL_TOOLS))
 

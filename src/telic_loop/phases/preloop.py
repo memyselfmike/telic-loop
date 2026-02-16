@@ -89,7 +89,7 @@ def run_preloop(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
     # Step 5: Generate plan
     if not state.gate_passed("plan_generated"):
         session = claude.session(AgentRole.REASONER)
-        prompt = load_prompt("plan").format(
+        prompt = load_prompt("plan",
             SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),
             SPRINT=config.sprint,
             SPRINT_DIR=str(config.sprint_dir),
@@ -162,7 +162,7 @@ def _run_single_gate(
 
     for attempt in range(1, max_retries + 1):
         session = claude.session(AgentRole.REASONER)
-        prompt = load_prompt(prompt_name).format(
+        prompt = load_prompt(prompt_name,
             SPRINT=config.sprint,
             SPRINT_DIR=str(config.sprint_dir),
             SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),

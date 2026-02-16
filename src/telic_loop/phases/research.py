@@ -48,7 +48,7 @@ def do_research(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
         ),
     )
 
-    prompt = load_prompt("research").format(
+    prompt = load_prompt("research",
         FAILURES=json.dumps(failure_context, indent=2),
         SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),
         VISION_SUMMARY=(

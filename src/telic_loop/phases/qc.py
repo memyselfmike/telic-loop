@@ -21,7 +21,7 @@ def do_generate_qc(config: LoopConfig, state: LoopState, claude: Claude) -> bool
     from ..state import VerificationState
 
     session = claude.session(AgentRole.QC)
-    prompt = load_prompt("generate_verifications").format(
+    prompt = load_prompt("generate_verifications",
         SPRINT=config.sprint,
         SPRINT_DIR=str(config.sprint_dir),
         PLAN=config.plan_file.read_text() if config.plan_file.exists() else "",
@@ -127,7 +127,7 @@ def do_fix(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
             f"- {v.verification_id}: {v.last_error[:200] if v.last_error else 'unknown'}"
             for v in failing.values()
         )
-        triage_session.send(load_prompt("triage").format(FAILURES=error_summary))
+        triage_session.send(load_prompt("triage", FAILURES=error_summary))
         root_causes = state.agent_results.get("triage") or []
     else:
         test = next(iter(failing.values()))
@@ -154,7 +154,7 @@ def do_fix(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
             }
             for v in affected
         ]
-        prompt = load_prompt("fix").format(
+        prompt = load_prompt("fix",
             SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),
             ROOT_CAUSE=json.dumps({
                 "cause": rc["cause"],

@@ -58,7 +58,7 @@ def do_execute(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
 
     try:
         session = claude.session(AgentRole.BUILDER)
-        prompt = load_prompt("execute").format(
+        prompt = load_prompt("execute",
             TASK=json.dumps(asdict(task), indent=2),
             SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),
             SPRINT=config.sprint,
@@ -215,7 +215,7 @@ def _handle_regressions(
             "attempt_history": test.attempt_history,
             "script": Path(test.script_path).read_text() if test.script_path else "",
         }]
-        prompt = load_prompt("fix").format(
+        prompt = load_prompt("fix",
             SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),
             ROOT_CAUSE=json.dumps({
                 "cause": f"Regression caused by {causal_task.task_id}",

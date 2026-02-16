@@ -137,7 +137,7 @@ def maybe_run_strategy_reasoner(
 
     session = claude.session(
         AgentRole.REASONER,
-        system_extra=load_prompt("process_monitor").format(
+        system_extra=load_prompt("process_monitor",
             SPRINT=config.sprint,
             SPRINT_DIR=str(config.sprint_dir),
             ITERATION=state.iteration,

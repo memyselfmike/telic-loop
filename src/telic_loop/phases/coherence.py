@@ -78,7 +78,7 @@ def do_full_coherence_eval(
         ),
     )
 
-    prompt = load_prompt("coherence_eval").format(
+    prompt = load_prompt("coherence_eval",
         SPRINT=config.sprint,
         SPRINT_DIR=str(config.sprint_dir),
         EVAL_MODE="full",

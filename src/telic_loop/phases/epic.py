@@ -78,7 +78,7 @@ def epic_feedback_checkpoint(
         if state.current_epic_index + 1 < len(state.epics) else None
     )
 
-    prompt = load_prompt("epic_feedback").format(
+    prompt = load_prompt("epic_feedback",
         EPIC_TITLE=completed_epic.title,
         EPIC_NUMBER=state.current_epic_index + 1,
         EPIC_TOTAL=len(state.epics),
@@ -143,7 +143,7 @@ def _refine_epic_detail(
             "Consider what was learned from previous epics."
         ),
     )
-    prompt = load_prompt("plan").format(
+    prompt = load_prompt("plan",
         SPRINT=config.sprint,
         SPRINT_DIR=str(config.sprint_dir),
         SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),
@@ -183,7 +183,7 @@ def _run_epic_preloop(
     # Plan generation — agent creates tasks via manage_task tool calls
     print(f"  Generating tasks for epic: {epic.title}")
     session = claude.session(AgentRole.REASONER)
-    prompt = load_prompt("plan").format(
+    prompt = load_prompt("plan",
         SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),
         SPRINT=config.sprint,
         SPRINT_DIR=str(config.sprint_dir),
