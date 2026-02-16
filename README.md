@@ -82,9 +82,10 @@ The builder never grades its own work. QC checks correctness. Critical evaluatio
 5. **Critical Evaluation** — Uses deliverable as real user, pursues excellence not just correctness
 6. **VRC Heartbeat** — Continuous value tracking every iteration
 7. **Interactive Pause** — Pauses for genuine human-only actions, resumes autonomously
-8. **Course Correction** — Self-diagnoses stuck states, changes strategy
-9. **External Research** — Searches web when built-in knowledge is stale
-10. **Structured State** — JSON single source of truth, no markdown editing
+8. **Course Correction** — Self-diagnoses stuck states, changes strategy or rolls back
+9. **Git Safety Net** — Feature branches, per-task commits, checkpoints at QC pass, rollback to known-good state
+10. **External Research** — Searches web when built-in knowledge is stale
+11. **Structured State** — JSON single source of truth, no markdown editing
 
 ## Implementation Phases
 
@@ -107,6 +108,7 @@ telic-loop/
 │   ├── discovery.py         # Context Discovery
 │   ├── decision.py          # Decision engine
 │   ├── claude.py            # Anthropic SDK wrapper
+│   ├── git.py               # Git ops: branching, commits, safety, rollback
 │   ├── tools.py             # Tool implementations
 │   ├── render.py            # Markdown generation from state
 │   ├── phases/              # Action handlers
@@ -137,6 +139,7 @@ telic-loop/
 
 ## Documentation
 
+- [Loop Flow](docs/LOOP_FLOW.md) — Visual flow diagram (Mermaid) with git operations
 - [Vision](docs/V3_VISION.md) — The full vision document
 - [Architecture](docs/V3_ARCHITECTURE.md) — Structural specification
 - [PRD](docs/V3_PRD.md) — Product requirements with acceptance criteria

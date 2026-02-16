@@ -11,6 +11,7 @@ The value loop is stuck. Something fundamental is preventing progress. Your job 
 - **Current Plan**: {PLAN}
 - **Task Summary**: {TASK_SUMMARY}
 - **VRC History** (recent snapshots): {VRC_HISTORY}
+- **Git Checkpoints** (known-good states): {GIT_CHECKPOINTS}
 - **Stuck Reason**: {STUCK_REASON}
 
 ## The Core Principle
@@ -38,6 +39,7 @@ Examine the evidence. Do not guess. The data tells you what is wrong.
 | **Wrong order** | Tasks executing successfully but not producing value (VRC flat) | High-value tasks are blocked behind low-value ones |
 | **Knowledge gap** | Errors reference unknown APIs, undocumented behavior, or version mismatches | The loop needs external research before it can proceed |
 | **Architectural mismatch** | Many tasks fail in the same files or the same integration points | The plan assumes an architecture that does not match reality |
+| **Compounding regressions** | Value score has dropped since last checkpoint, each fix breaks something else | Recent changes have poisoned the codebase — rollback to last known-good state |
 
 Name the pattern explicitly. Cite specific task IDs, verification IDs, or VRC snapshots as evidence.
 
@@ -73,6 +75,31 @@ Add targeted new tasks to address discovered gaps. Use when the existing plan is
 
 Use `manage_task` with action "add" to create focused tasks. Each new task must have description, value, and acceptance criteria. If adding tasks, consider whether any existing tasks can be descoped to compensate.
 
+#### rollback
+Roll back the codebase to a known-good git checkpoint and re-approach the reverted tasks differently. Use when recent changes have made things worse — compounding regressions, cascading failures, or architectural wrong turns where fixing forward is more expensive than reverting.
+
+**When rollback is the right choice:**
+- 3+ tasks completed since last checkpoint, most introducing regressions
+- Value score has dropped since last checkpoint (recent work destroyed value)
+- Each fix attempt breaks something else (codebase is in an inconsistent state)
+- An architectural wrong turn was taken (wrong framework, wrong data model, wrong approach)
+
+**How to use it:**
+1. Identify the checkpoint to roll back to from `{GIT_CHECKPOINTS}` — choose the most recent checkpoint that predates the damage
+2. Identify which tasks will be reverted (completed after that checkpoint)
+3. Describe how those tasks should be re-approached differently after rollback
+4. Report via `report_course_correction` with `action: "rollback"` and include:
+   - `rollback_to_checkpoint`: the checkpoint label to roll back to
+   - `tasks_to_restructure`: how the reverted tasks should be changed before re-execution
+
+**The orchestrator handles the actual git reset and state synchronization.** You just diagnose and decide.
+
+**Rules:**
+- Do NOT roll back past the pre-loop checkpoint (plan structure depends on it)
+- Do NOT roll back to a previous epic's checkpoint (epic boundaries are hard barriers)
+- ALWAYS explain why fix-forward is worse than rollback — rollback is a strong action
+- ALWAYS describe how reverted tasks will be re-approached differently — rolling back and retrying the same approach is pointless
+
 #### regenerate_tests
 The verification suite is wrong — tests are testing the wrong things, using the wrong approach, or have become stale. Invalidate all verifications and regenerate from scratch.
 
@@ -105,8 +132,10 @@ Apply your plan changes using `manage_task` tool calls, then declare the correct
 
 ```
 {
-  "action": "restructure | descope | new_tasks | regenerate_tests | escalate",
-  "reason": "brief explanation of what was wrong and what was changed"
+  "action": "restructure | descope | new_tasks | rollback | regenerate_tests | escalate",
+  "reason": "brief explanation of what was wrong and what was changed",
+  "rollback_to_checkpoint": "(rollback only) checkpoint label to revert to",
+  "tasks_to_restructure": "(rollback only) how reverted tasks should be re-approached"
 }
 ```
 

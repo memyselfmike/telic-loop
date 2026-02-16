@@ -166,6 +166,7 @@ loop-v3/
 ├── discovery.py                 # Context Discovery — derive sprint context
 ├── decision.py                  # Decision engine: "what should I do next?"
 ├── claude.py                    # Anthropic SDK wrapper, model routing
+├── git.py                       # Git operations: branching, commits, safety, rollback
 ├── tools.py                     # Tool implementations + structured output handlers
 ├── render.py                    # Generate markdown artifacts from structured state
 ├── phases/
@@ -501,6 +502,67 @@ class ProcessMonitorState:
         "error_triage": "individual",
     })
     strategy_history: list[dict] = field(default_factory=list)
+
+@dataclass
+class GitCheckpoint:
+    """A known-good git commit that the loop can roll back to."""
+    commit_hash: str
+    timestamp: str
+    label: str                      # "task:{task_id}", "qc_pass", "pre_loop_complete", "epic:{epic_id}"
+    tasks_completed: list[str]      # task IDs completed at this point
+    verifications_passing: list[str] # verification IDs passing at this point
+    value_score: float              # VRC value score at this point (0.0 if pre-VRC)
+
+@dataclass
+class GitState:
+    """
+    Git operations state. Tracks branch, commits, checkpoints, and rollback history.
+
+    The loop uses git as a safety net:
+    - Feature branch created at sprint start (never works on protected branches)
+    - Atomic commit after each task completion
+    - Checkpoints recorded after each QC pass (known-good states)
+    - Rollback to checkpoint available during course correction
+    """
+    branch_name: str = ""                   # e.g. "telic-loop/sprint-name-20260216-143022"
+    original_branch: str = ""               # branch we started from (to return to)
+    had_stashed_changes: bool = False        # did we stash uncommitted work?
+    stash_ref: str = ""                     # git stash reference if stashed
+
+    # Checkpoint tracking
+    checkpoints: list[GitCheckpoint] = field(default_factory=list)
+    last_commit_hash: str = ""              # most recent commit by the loop
+
+    # Rollback tracking
+    rollbacks: list[dict] = field(default_factory=list)  # [{from_hash, to_hash, reason, iteration, tasks_reverted}]
+
+    # Safety
+    sensitive_patterns: list[str] = field(default_factory=lambda: [
+        ".env", ".env.*", "*.pem", "*.key", "*secret*",
+        "*credential*", "*password*", "*.p12", "*.pfx",
+    ])
+    protected_branches: list[str] = field(default_factory=lambda: [
+        "main", "master", "develop", "production", "staging",
+    ])
+
+    @property
+    def latest_checkpoint(self) -> GitCheckpoint | None:
+        return self.checkpoints[-1] if self.checkpoints else None
+
+    def checkpoint_for_task(self, task_id: str) -> GitCheckpoint | None:
+        """Find the most recent checkpoint where this task was completed."""
+        for cp in reversed(self.checkpoints):
+            if task_id in cp.tasks_completed:
+                return cp
+        return None
+
+    def best_rollback_target(self, failed_task_ids: list[str]) -> GitCheckpoint | None:
+        """Find the best checkpoint to roll back to — the most recent one
+        that predates ALL of the failed tasks."""
+        for cp in reversed(self.checkpoints):
+            if not any(tid in cp.tasks_completed for tid in failed_task_ids):
+                return cp
+        return None
 ```
 
 ### LoopState (the single source of truth)
@@ -542,6 +604,9 @@ class LoopState:
 
     # Process Monitor
     process_monitor: ProcessMonitorState = field(default_factory=ProcessMonitorState)
+
+    # Git operations
+    git: GitState = field(default_factory=GitState)
 
     # Epic tracking (multi_epic visions only; empty for single_run)
     vision_complexity: str = "single_run"   # "single_run" | "multi_epic"
@@ -808,6 +873,159 @@ JSON state is the single source of truth, but humans and LLM agents benefit from
 ```
 
 **Critical rule**: Agents READ these files for context. Agents NEVER WRITE to them. All mutations go through structured tools → state → rendered on demand.
+
+---
+
+## Git Operations
+
+Git is the loop's safety net and audit trail. Every change is tracked, every known-good state is checkpointed, and the loop can roll back when fixing forward is more expensive than reverting.
+
+### Branch Management
+
+At sprint start (before any work):
+
+1. **Detect current branch** — if on a protected branch (main, master, develop, production, staging), refuse to work there
+2. **Stash uncommitted changes** — `git stash push -m "telic-loop-auto-stash-{timestamp}"` preserves any in-progress work
+3. **Create feature branch** — `telic-loop/{sprint}-{timestamp}` from current HEAD
+4. **Record in state** — `state.git.branch_name`, `state.git.original_branch`, `state.git.had_stashed_changes`
+
+### Safe Commits
+
+The loop commits after every task completion and at key phase boundaries. Commits use **selective staging** — never `git add -A`.
+
+**Staging rules:**
+- Stage modified tracked files: `git add -u`
+- Stage new files only from safe directories (derived from `SprintContext` — e.g., `src/`, `tests/`, sprint directory)
+- **Sensitive file scan before commit**: check staged files against `state.git.sensitive_patterns`. If any match, unstage them and log a warning. Never commit `.env`, credentials, keys, or secrets
+- **Auto-maintain `.gitignore`**: ensure common sensitive patterns are present
+
+**Commit format:**
+```
+telic-loop({sprint}): {task_id} - {description}
+
+Co-Authored-By: Telic-Loop <telic-loop@automated>
+```
+
+**Commit triggers:**
+
+| When | Message Format | Creates Checkpoint? |
+|------|---------------|-------------------|
+| Pre-loop complete | `telic-loop({sprint}): Pre-loop complete — plan ready` | Yes |
+| After task execution | `telic-loop({sprint}): {task_id} — {task_name}` | No (wait for QC) |
+| After QC pass (all passing) | `telic-loop({sprint}): QC pass — all verifications green` | **Yes** |
+| After service fix | `telic-loop({sprint}): Fixed services` | No |
+| After course correction | `telic-loop({sprint}): Course correction — {action}` | Yes |
+| After rollback | `telic-loop({sprint}): Rollback to {checkpoint_label}` | Yes (new baseline) |
+| Exit gate pass | `telic-loop({sprint}): Exit gate passed — value verified` | Yes |
+| Delivery complete | `telic-loop({sprint}): Delivery — {value_score:.0%} value` | Yes |
+
+### Checkpoints (Known-Good States)
+
+A **checkpoint** is a commit hash where the codebase is in a known-good state — all QC checks that existed at that point were passing. Checkpoints are the rollback targets.
+
+Checkpoints are recorded in `state.git.checkpoints` as `GitCheckpoint` objects containing:
+- The commit hash
+- Which tasks were completed
+- Which verifications were passing
+- The VRC value score at that point
+
+**Checkpoint creation rules:**
+- Created after every **QC pass** where all existing verifications are green
+- Created after **pre-loop completion** (clean starting point)
+- Created after **course correction** (new baseline after restructuring)
+- Created after **successful rollback** (the rollback target becomes the new baseline)
+- NOT created after task execution alone (task may have introduced regressions not yet caught)
+
+### Rollback (Course Correction Strategy)
+
+When the course corrector determines that recent changes have made things worse — compounding regressions, cascading failures, architectural wrong turns — rolling back to a known-good checkpoint is often faster than trying to fix forward through the damage.
+
+**When rollback is the right choice:**
+
+| Signal | Why Rollback Wins |
+|--------|------------------|
+| 3+ tasks completed since last checkpoint, all introducing regressions | Undoing 3 broken commits is faster than debugging their interactions |
+| Architectural wrong turn (e.g., wrong framework choice, wrong data model) | The foundation is wrong; fixing individual symptoms won't help |
+| Cascading failures where each fix breaks something else | The codebase has drifted into an inconsistent state |
+| Value score has dropped since last checkpoint | Recent work destroyed more value than it created |
+
+**Rollback process:**
+
+1. **Course Corrector diagnoses rollback** — identifies the checkpoint to roll back to and the tasks to revert, reports via `report_course_correction` with `action: "rollback"`
+2. **Orchestrator validates** — checkpoint exists, commit hash is valid, tasks to revert are identified
+3. **Git reset** — `git reset --hard {checkpoint_hash}` reverts the working tree
+4. **State synchronization** — critical step:
+   - Tasks completed after the checkpoint are reset to `"pending"` (with `retry_count` preserved so the loop knows they were attempted)
+   - Verifications are reset to match the checkpoint's known-passing set
+   - VRC history is preserved (rollback is visible in the value trajectory)
+   - A `rollback` entry is appended to `state.git.rollbacks` with full context
+   - Loop state is saved to disk
+5. **Commit the rollback** — create a new commit recording the rollback itself (so the history is auditable)
+6. **Re-plan** — the course corrector restructures the reverted tasks (split them, change approach, add research, etc.) before re-executing
+
+**State synchronization detail:**
+
+```python
+def execute_rollback(state: LoopState, checkpoint: GitCheckpoint, reason: str):
+    """Roll back git and synchronize loop state."""
+    # 1. Git reset
+    subprocess.run(["git", "reset", "--hard", checkpoint.commit_hash], check=True)
+
+    # 2. Identify reverted tasks
+    completed_task_ids = {t.task_id for t in state.tasks.values() if t.status == "done"}
+    checkpoint_task_ids = set(checkpoint.tasks_completed)
+    reverted_task_ids = completed_task_ids - checkpoint_task_ids
+
+    # 3. Reset reverted tasks to pending (preserve retry_count)
+    for task_id in reverted_task_ids:
+        task = state.tasks[task_id]
+        task.status = "pending"
+        task.completed_at = ""
+        task.files_created = []
+        task.files_modified = []
+        task.completion_notes = f"Rolled back at iteration {state.iteration}: {reason}"
+        # retry_count preserved — loop knows this task was attempted before
+
+    # 4. Reset verifications to checkpoint state
+    for vid, v in state.verifications.items():
+        if vid in checkpoint.verifications_passing:
+            v.status = "passed"
+        else:
+            v.status = "pending"
+            v.failures = []
+
+    # 5. Update regression baseline
+    state.regression_baseline = set(checkpoint.verifications_passing)
+
+    # 6. Record rollback
+    state.git.rollbacks.append({
+        "from_hash": state.git.last_commit_hash,
+        "to_hash": checkpoint.commit_hash,
+        "to_label": checkpoint.label,
+        "reason": reason,
+        "iteration": state.iteration,
+        "tasks_reverted": list(reverted_task_ids),
+    })
+
+    # 7. Update git state
+    state.git.last_commit_hash = checkpoint.commit_hash
+
+    # 8. Commit the rollback (new commit on top)
+    git_commit(state, f"Rollback to {checkpoint.label}: {reason}")
+
+    # 9. Save state
+    state.save(config.state_file)
+```
+
+**Safety constraints:**
+- Cannot roll back past the pre-loop checkpoint (plan structure depends on it)
+- Cannot roll back to a checkpoint from a previous epic (epic boundaries are hard barriers)
+- Maximum rollbacks per sprint: configurable (default 3) — repeated rollback suggests the plan itself is wrong, not the execution
+- Rollback preserves `retry_count` so the loop doesn't infinitely retry the same tasks with the same approach — the course corrector must restructure them
+
+### Non-Software Deliverables
+
+For non-software deliverables (documents, configs), git operations still apply — document drafts are committed, checkpoints track known-good states, and rollback reverts to a previous draft. The same safety rules apply (no sensitive files, feature branch isolation).
 
 ---
 
