@@ -535,7 +535,7 @@ def do_critical_eval(config: LoopConfig, state: LoopState, claude: Claude) -> bo
 
     if new_tasks > 0:
         print(f"  Critical evaluation: {new_tasks} issues found")
-        git_commit(f"loop-v3({config.sprint}): Critical eval — {new_tasks} issues")
+        git_commit(config, state, f"telic-loop({config.sprint}): Critical eval — {new_tasks} issues")
     else:
         print(f"  Critical evaluation: deliverable meets experience bar")
 

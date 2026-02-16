@@ -166,6 +166,7 @@ def do_course_correct(config: LoopConfig, state: LoopState, claude: Claude) -> b
         PLAN=render_plan_markdown(state),
         TASK_SUMMARY=build_task_summary(state),
         VRC_HISTORY=format_vrc_history(state),
+        GIT_CHECKPOINTS=format_git_checkpoints(state),
         STUCK_REASON=format_stuck_reason(state),
     )
 
@@ -181,21 +182,48 @@ def do_course_correct(config: LoopConfig, state: LoopState, claude: Claude) -> b
             state.iterations_without_progress = 0
             state.invalidate_tests()
             render_plan_snapshot(config, state)
-            git_commit(f"loop-v3({config.sprint}): Course correction — restructured")
+            git_commit(config, state, f"telic-loop({config.sprint}): Course correction — restructured")
             return True
         case "descope":
             render_plan_snapshot(config, state)
-            git_commit(f"loop-v3({config.sprint}): Descoped items")
+            git_commit(config, state, f"telic-loop({config.sprint}): Descoped items")
             return True
         case "new_tasks":
             render_plan_snapshot(config, state)
-            git_commit(f"loop-v3({config.sprint}): CC — added new tasks")
+            git_commit(config, state, f"telic-loop({config.sprint}): CC — added new tasks")
+            return True
+        case "rollback":
+            label = correction.get("rollback_to_checkpoint", "")
+            if not label:
+                print("  ROLLBACK: No checkpoint label provided")
+                return False
+            # Find checkpoint by label
+            checkpoint = next((cp for cp in state.git.checkpoints if cp.label == label), None)
+            if not checkpoint:
+                print(f"  ROLLBACK: Checkpoint '{label}' not found")
+                return False
+            # Enforce max rollbacks per sprint
+            if len(state.git.rollbacks) >= config.max_rollbacks_per_sprint:
+                print(f"  ROLLBACK: Max rollbacks ({config.max_rollbacks_per_sprint}) exhausted — forcing descope")
+                return False
+            # Execute rollback (see Architecture § Git Operations for full spec)
+            execute_rollback(config, state, checkpoint, correction["reason"])
+            # Check service health after rollback (services may be orphaned)
+            if state.context.services:
+                check_and_fix_services(config, state)
+            render_plan_snapshot(config, state)
             return True
         case "regenerate_tests":
             state.invalidate_tests()
             return True
         case "escalate":
             print(f"\n  ESCALATION: {correction['reason']}")
+            # Set pause so the decision engine picks up INTERACTIVE_PAUSE
+            state.pause = PauseState(
+                reason=f"Escalation: {correction['reason']}",
+                instructions=correction["reason"],
+                requested_at=datetime.now().isoformat(),
+            )
             return False
 
     return False
@@ -211,6 +239,22 @@ def format_vrc_history(state: LoopState) -> str:
             f"[Iter {vrc.iteration}] {vrc.value_score:.0%} value | "
             f"{vrc.deliverables_verified}/{vrc.deliverables_total} | "
             f"{vrc.recommendation}: {vrc.summary}"
+        )
+    return "\n".join(lines)
+
+
+def format_git_checkpoints(state: LoopState) -> str:
+    """Format git checkpoints for course correction agent context."""
+    if not state.git.checkpoints:
+        return "No checkpoints yet."
+    lines = []
+    for cp in state.git.checkpoints:
+        lines.append(
+            f"[{cp.label}] {cp.timestamp} | "
+            f"hash: {cp.commit_hash[:8]} | "
+            f"{len(cp.tasks_completed)} tasks done | "
+            f"{len(cp.verifications_passing)} verifications passing | "
+            f"value: {cp.value_score:.0%}"
         )
     return "\n".join(lines)
 
@@ -361,7 +405,7 @@ def do_exit_gate(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
         return False
 
     print("  EXIT GATE PASSED — value verified")
-    git_commit(f"loop-v3({config.sprint}): Exit gate passed — value verified")
+    git_commit(config, state, f"telic-loop({config.sprint}): Exit gate passed — value verified")
     return True
 ```
 
@@ -487,7 +531,7 @@ def generate_delivery_report(config, state):
         if t.status == "descoped":
             lines.append(f"  Reason: {t.blocked_reason}")
     (config.sprint_dir / "DELIVERY_REPORT.md").write_text("\n".join(lines))
-    git_commit(f"loop-v3({config.sprint}): Delivery complete" +
+    git_commit(config, state, f"telic-loop({config.sprint}): Delivery complete" +
                (f" — {vrc.value_score:.0%} value" if vrc else ""))
 ```
 
@@ -691,8 +735,10 @@ def assess_interaction_coherence(config: LoopConfig, state: LoopState) -> dict:
 ### report_course_correction
 ```python
 {"name": "report_course_correction", "input_schema": {"properties": {
-    "action": {"type": "string", "enum": ["restructure","descope","new_tasks","regenerate_tests","escalate"]},
+    "action": {"type": "string", "enum": ["restructure","descope","new_tasks","rollback","regenerate_tests","escalate"]},
     "reason": {"type": "string"},
+    "rollback_to_checkpoint": {"type": "string", "description": "(rollback only) checkpoint label to revert to"},
+    "tasks_to_restructure": {"type": "string", "description": "(rollback only) how reverted tasks should be re-approached"},
 }, "required": ["action", "reason"]}}
 ```
 
