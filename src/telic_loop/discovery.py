@@ -69,6 +69,7 @@ def critique_prd(
         print("\n  Resuming PRD critique (was researching)...")
         critique = state.agent_results.get("critique", {})
         research = _research_prd_rejection(config, state, claude, critique)
+        ref = state.prd_refinement  # Re-bind after researcher session
         if ref.rounds:
             ref.rounds[-1].research_results = research
         _present_prd_rejection(critique, research=research or None)
@@ -101,6 +102,8 @@ def critique_prd(
             SPRINT_DIR=str(config.sprint_dir),
         )
         session.send(prompt)
+        # Re-bind ref — _sync_state in send() replaces state fields
+        ref = state.prd_refinement
 
         critique = state.agent_results.get("critique", {})
         verdict = critique.get("verdict", "APPROVE")
@@ -125,6 +128,8 @@ def critique_prd(
         ref.status = "researching"
         state.save(config.state_file)
         research = _research_prd_rejection(config, state, claude, critique)
+        # Re-bind ref after researcher session
+        ref = state.prd_refinement
         ref.rounds[-1].research_results = research
 
         _present_prd_rejection(critique, research=research or None)
@@ -169,6 +174,7 @@ def refine_vision(
             if i.get("severity") == "hard"
         ]
         research = _research_vision_issues(config, state, claude, hard_issues)
+        ref = state.vision_refinement  # Re-bind after researcher session
         if ref.rounds:
             ref.rounds[-1].research_results = research
         _present_vision_brief(validation, research=research or None)
@@ -214,6 +220,8 @@ def refine_vision(
             SPRINT_DIR=str(config.sprint_dir),
         )
         session.send(prompt)
+        # Re-bind ref — _sync_state in send() replaces state fields
+        ref = state.vision_refinement
 
         validation = state.agent_results.get("vision_validation", {})
         verdict = validation.get("verdict", "PASS")
@@ -242,6 +250,8 @@ def refine_vision(
             ref.status = "researching"
             state.save(config.state_file)
             research = _research_vision_issues(config, state, claude, hard_issues)
+            # Re-bind ref after researcher session
+            ref = state.vision_refinement
             ref.rounds[-1].research_results = research
 
         _present_vision_brief(validation, research=research)

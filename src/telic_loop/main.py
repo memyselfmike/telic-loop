@@ -45,7 +45,8 @@ def run_value_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None
         Action.INTERACTIVE_PAUSE: do_interactive_pause,
     }
 
-    for iteration in range(1, config.max_loop_iterations + 1):
+    start_iter = max(state.iteration + 1, 1)
+    for iteration in range(start_iter, start_iter + config.max_loop_iterations):
         state.iteration = iteration
 
         # Budget check

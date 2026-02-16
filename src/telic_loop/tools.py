@@ -836,6 +836,20 @@ def handle_manage_task(input_data: dict, state: LoopState, task_source: str = "a
     return f"Unknown action: {action}"
 
 
+def _normalize_paths(paths: list[str], sprint_prefix: str) -> list[str]:
+    """Ensure file paths include the sprint directory prefix."""
+    result = []
+    for p in paths:
+        if not p:
+            continue
+        # Skip absolute paths and paths already under sprints/
+        if Path(p).is_absolute() or p.startswith("sprints/"):
+            result.append(p)
+        else:
+            result.append(sprint_prefix + p)
+    return result
+
+
 def handle_task_complete(input_data: dict, state: LoopState, **_: Any) -> str:
     task_id = input_data["task_id"]
     task = state.tasks.get(task_id)
@@ -843,8 +857,10 @@ def handle_task_complete(input_data: dict, state: LoopState, **_: Any) -> str:
         return f"Task {task_id} not found"
     task.status = "done"
     task.completed_at = datetime.now().isoformat()
-    task.files_created = input_data.get("files_created", [])
-    task.files_modified = input_data.get("files_modified", [])
+    # Normalize file paths: ensure sprint dir prefix is present
+    sprint_prefix = f"sprints/{state.sprint}/"
+    task.files_created = _normalize_paths(input_data.get("files_created", []), sprint_prefix)
+    task.files_modified = _normalize_paths(input_data.get("files_modified", []), sprint_prefix)
     task.completion_notes = input_data.get("completion_notes", "")
     return f"Task {task_id} marked complete"
 
@@ -876,15 +892,36 @@ def handle_triage(input_data: dict, state: LoopState, **_: Any) -> str:
 
 def handle_vrc(input_data: dict, state: LoopState, **_: Any) -> str:
     from .state import VRCSnapshot
+
+    # Normalize value_score to 0.0-1.0 (agents sometimes use 0-10 or 0-100)
+    score = float(input_data.get("value_score", 0.0))
+    if score > 1.0:
+        score = score / 100.0 if score > 10.0 else score / 10.0
+
+    # Normalize recommendation to valid enum values
+    _RECOMMENDATION_MAP = {
+        "proceed": "CONTINUE",
+        "conditional_pass": "SHIP_READY",
+    }
+    rec = input_data.get("recommendation", "CONTINUE")
+    rec = _RECOMMENDATION_MAP.get(rec.lower(), rec.upper()) if isinstance(rec, str) else "CONTINUE"
+    if rec not in ("CONTINUE", "COURSE_CORRECT", "DESCOPE", "SHIP_READY"):
+        rec = "CONTINUE"
+
+    # Normalize gaps: ensure each entry is a dict, not a bare string
+    gaps = input_data.get("gaps", [])
+    if gaps and isinstance(gaps[0], str):
+        gaps = [{"description": g, "severity": "degraded"} for g in gaps]
+
     snapshot = VRCSnapshot(
         iteration=state.iteration,
         timestamp=datetime.now().isoformat(),
         deliverables_total=input_data.get("deliverables_total", 0),
         deliverables_verified=input_data.get("deliverables_verified", 0),
         deliverables_blocked=input_data.get("deliverables_blocked", 0),
-        value_score=input_data.get("value_score", 0.0),
-        gaps=input_data.get("gaps", []),
-        recommendation=input_data.get("recommendation", "CONTINUE"),
+        value_score=score,
+        gaps=gaps,
+        recommendation=rec,
         summary=input_data.get("summary", ""),
     )
     state.vrc_history.append(snapshot)
