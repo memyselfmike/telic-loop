@@ -9,9 +9,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from .claude import AgentRole
-
 if TYPE_CHECKING:
+    from .claude import AgentRole
     from .state import LoopState
 
 

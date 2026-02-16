@@ -205,10 +205,11 @@ def _format_metrics_dashboard(pm: ProcessMonitorState) -> str:
         top_churn = sorted(pm.churn_counts.items(), key=lambda x: -x[1])[:5]
         lines.append(f"Task churn (top 5): {', '.join(f'{k}={v}' for k, v in top_churn)}")
     if pm.error_hashes:
-        top_errors = sorted(pm.error_hashes.items(), key=lambda x: -x[1]['count'])[:3]
+        top_errors = sorted(pm.error_hashes.items(), key=lambda x: -x[1]["count"])[:3]
+        error_parts = [f"{k}({v['count']}x)" for k, v in top_errors]
         lines.append(
             f"Recurring errors: {len(pm.error_hashes)} unique, "
-            f"top: {', '.join(f'{k}({v[\"count\"]}x)' for k, v in top_errors)}"
+            f"top: {', '.join(error_parts)}"
         )
     if pm.file_touches:
         hotspots = sorted(pm.file_touches.items(), key=lambda x: -x[1])[:5]

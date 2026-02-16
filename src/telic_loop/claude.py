@@ -1,38 +1,49 @@
-"""Anthropic SDK wrapper: Claude class, ClaudeSession, AgentRole model routing."""
+"""Claude Code SDK wrapper: Claude class, ClaudeSession, AgentRole model routing."""
 
 from __future__ import annotations
 
-import time
+import asyncio
+import os
 from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import anthropic
-from anthropic import APIConnectionError, APIStatusError, APITimeoutError
+from claude_code_sdk import (
+    AssistantMessage,
+    ClaudeCodeOptions,
+    ResultMessage,
+    TextBlock,
+    query,
+)
+from claude_code_sdk._errors import CLIConnectionError
 
 if TYPE_CHECKING:
     from .config import LoopConfig
     from .state import LoopState
 
-STREAMING_THRESHOLD = 21333
+# Claude Code built-in tool sets (per role)
+_FULL_TOOLS = ["Bash", "Read", "Write", "Edit", "Glob", "Grep"]
+_READONLY_TOOLS = ["Read", "Glob", "Grep", "Bash"]
+_RESEARCH_TOOLS = ["Bash", "Read", "Glob", "Grep", "WebSearch", "WebFetch"]
+_MINIMAL_TOOLS = ["Bash"]  # Need Bash for tool CLI
 
-CONTEXT_LIMITS = {
-    "claude-opus-4-6": 200_000,
-    "claude-sonnet-4-5-20250929": 200_000,
-    "claude-haiku-4-5-20251001": 200_000,
+_TOOL_SETS: dict[str, list[str]] = {
+    "full": _FULL_TOOLS,
+    "readonly": _READONLY_TOOLS,
+    "research": _RESEARCH_TOOLS,
+    "minimal": _MINIMAL_TOOLS,
 }
-CONTEXT_WARN_PCT = 0.80
 
 
 class AgentRole(Enum):
-    """(model_config_attr, max_turns, thinking_effort, max_tokens)"""
-    REASONER   = ("model_reasoning",  40, "max",  32768)
-    EVALUATOR  = ("model_reasoning",  40, "high", 32768)
-    RESEARCHER = ("model_reasoning",  30, "high", 16384)
-    BUILDER    = ("model_execution",  60, None,   16384)
-    FIXER      = ("model_execution",  25, None,   16384)
-    QC         = ("model_execution",  30, None,   16384)
-    CLASSIFIER = ("model_triage",      5, None,    4096)
+    """(model_config_attr, max_turns, tool_set_key)"""
+    REASONER   = ("model_reasoning",  40, "full")
+    EVALUATOR  = ("model_reasoning",  40, "readonly")
+    RESEARCHER = ("model_reasoning",  30, "research")
+    BUILDER    = ("model_execution",  60, "full")
+    FIXER      = ("model_execution",  25, "full")
+    QC         = ("model_execution",  30, "full")
+    CLASSIFIER = ("model_triage",      5, "minimal")
 
 
 def load_prompt(name: str) -> str:
@@ -40,171 +51,141 @@ def load_prompt(name: str) -> str:
     return (Path(__file__).parent / "prompts" / f"{name}.md").read_text()
 
 
+def _tool_cli_instructions(state_file: Path) -> str:
+    """Generate system prompt section for tool CLI usage."""
+    from .tools import ALL_STRUCTURED_SCHEMAS
+
+    lines = [
+        "\n## Structured Tool CLI",
+        "",
+        "To call structured tools (task management, reporting, etc.), use Bash:",
+        f"  python -m telic_loop.tool_cli --state-file {state_file} <tool_name> '<json_input>'",
+        "",
+        "Available structured tools:",
+    ]
+    for schema in ALL_STRUCTURED_SCHEMAS:
+        name = schema["name"]
+        desc = schema["description"]
+        required = schema["input_schema"].get("required", [])
+        props = list(schema["input_schema"].get("properties", {}).keys())
+        lines.append(f"  - **{name}**: {desc}")
+        lines.append(f"    Required: {', '.join(required)}")
+        lines.append(f"    All fields: {', '.join(props)}")
+    lines.append("")
+    lines.append("Tool calls return JSON with {ok: true, result: ...} on success or {error: ...} on failure.")
+    lines.append("IMPORTANT: Always pass valid JSON as the second argument. Quote properly for your shell.")
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Claude factory + session
+# ---------------------------------------------------------------------------
+
 class Claude:
-    """Factory for creating sessions with model routing."""
+    """Factory for creating sessions with model routing via Claude Code SDK."""
 
     def __init__(self, config: LoopConfig, state: LoopState):
         self.config = config
-        self.client = anthropic.Anthropic()
-        self.beta_headers = ["web-fetch-2025-09-10"]
         self.state = state
 
     def session(self, role: AgentRole, system_extra: str = "") -> ClaudeSession:
-        from .tools import get_tools_for_role
-
-        model_attr, max_turns, thinking_effort, max_tokens = role.value
+        model_attr, max_turns, tools_set = role.value
+        model = getattr(self.config, model_attr)
         system = load_prompt("system") + ("\n" + system_extra if system_extra else "")
-        tools = get_tools_for_role(role)
-        has_provider_tools = any(
-            t.get("type", "").startswith("web_fetch") or t.get("type", "").startswith("web_search")
-            for t in tools
-        )
+        system += _tool_cli_instructions(self.config.state_file)
+        builtin_tools = list(_TOOL_SETS.get(tools_set, _FULL_TOOLS))
+
         return ClaudeSession(
-            client=self.client,
-            model=getattr(self.config, model_attr),
+            model=model,
             system=system,
             max_turns=max_turns,
-            thinking_effort=thinking_effort,
-            max_tokens=max_tokens,
-            tools=tools,
+            builtin_tools=builtin_tools,
             state=self.state,
-            betas=self.beta_headers if has_provider_tools else None,
+            config=self.config,
         )
 
 
 class ClaudeSession:
-    """Multi-turn conversation with tool execution."""
+    """Single-prompt session using Claude Code SDK."""
 
     def __init__(
         self,
-        client: anthropic.Anthropic,
         model: str,
         system: str,
         max_turns: int = 30,
-        thinking_effort: str | None = None,
-        max_tokens: int = 16384,
-        tools: list[dict] | None = None,
+        builtin_tools: list[str] | None = None,
         state: LoopState | None = None,
-        betas: list[str] | None = None,
+        config: LoopConfig | None = None,
     ):
-        self.client = client
         self.model = model
         self.system = system
-        self.messages: list[dict] = []
         self.max_turns = max_turns
-        self.thinking_effort = thinking_effort
-        self.max_tokens = max_tokens
-        self.tools = tools or []
+        self.builtin_tools = builtin_tools or []
         self.state = state
-        self.betas = betas
-        self.use_streaming = max_tokens > STREAMING_THRESHOLD
-        self.total_input_tokens = 0
-        self.total_output_tokens = 0
-        self.context_limit = CONTEXT_LIMITS.get(model, 200_000)
+        self.config = config
 
     def send(self, user_message: str, task_source: str = "agent") -> str:
-        """Send message, execute tools in loop, return final text."""
-        from .tools import execute_tool
+        """Send a prompt to Claude Code, let SDK handle tool execution, return final text."""
+        # Save state before query so tool CLI can access it
+        if self.state and self.config:
+            self.state._current_task_source = task_source  # type: ignore[attr-defined]
+            self.state.save(self.config.state_file)
 
-        self.messages.append({"role": "user", "content": user_message})
+        result = asyncio.run(self._send_async(user_message))
 
-        for _turn in range(self.max_turns):
-            if self.total_input_tokens > self.context_limit * CONTEXT_WARN_PCT:
-                self._truncate_context()
+        # Reload state after query (tool CLI may have modified it)
+        if self.state and self.config and self.config.state_file.exists():
+            from .state import LoopState
+            updated = LoopState.load(self.config.state_file)
+            # Merge updated fields back into the in-memory state
+            _sync_state(self.state, updated)
 
-            kwargs: dict = dict(
-                model=self.model,
-                max_tokens=self.max_tokens,
-                system=self.system,
-                messages=self.messages,
-                tools=self.tools,
-            )
-            if self.betas:
-                kwargs["betas"] = self.betas
-            if self.thinking_effort:
-                kwargs["thinking"] = {"type": "adaptive"}
-                kwargs["output_config"] = {"effort": self.thinking_effort}
+        return result
 
-            api = self.client.beta.messages if self.betas else self.client.messages
-            response = self._api_call_with_retry(api, kwargs)
+    async def _send_async(self, user_message: str) -> str:
+        # Allow nested Claude Code sessions (e.g. launched from Claude Code)
+        os.environ.pop("CLAUDECODE", None)
 
-            self.total_input_tokens += response.usage.input_tokens
-            self.total_output_tokens += response.usage.output_tokens
-            if self.state:
-                self.state.total_tokens_used += (
-                    response.usage.input_tokens + response.usage.output_tokens
-                )
-
-            self.messages.append({"role": "assistant", "content": response.content})
-
-            if response.stop_reason == "pause_turn":
-                continue
-
-            # Process tool_use blocks BEFORE checking end_turn
-            tool_results = []
-            for block in response.content:
-                if block.type == "tool_use":
-                    result = execute_tool(
-                        block.name, block.input, self.state,
-                        task_source=task_source,
-                    )
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": block.id,
-                        "content": result,
-                    })
-
-            if tool_results:
-                self.messages.append({"role": "user", "content": tool_results})
-            elif response.stop_reason == "end_turn":
-                return self._extract_text(response)
-
-        raise RuntimeError(f"Agent exceeded max_turns ({self.max_turns})")
-
-    def _send_streaming(self, api=None, **kwargs):
-        target = api or self.client.messages
-        with target.stream(**kwargs) as stream:
-            return stream.get_final_message()
-
-    def _extract_text(self, response) -> str:
-        return "\n".join(b.text for b in response.content if hasattr(b, "text"))
-
-    def _api_call_with_retry(self, api, kwargs, max_retries: int = 3):
-        for attempt in range(max_retries + 1):
-            try:
-                if self.use_streaming:
-                    return self._send_streaming(api=api, **kwargs)
-                else:
-                    return api.create(**kwargs)
-            except (APITimeoutError, APIConnectionError) as e:
-                if attempt == max_retries:
-                    raise
-                wait = 2 ** attempt
-                print(f"  API transient error (attempt {attempt + 1}/{max_retries + 1}): {e}")
-                print(f"  Retrying in {wait}s...")
-                time.sleep(wait)
-            except APIStatusError as e:
-                if e.status_code in (429, 529) and attempt < max_retries:
-                    retry_after = int(e.response.headers.get("retry-after", 2 ** attempt))
-                    print(f"  API {e.status_code} (attempt {attempt + 1}/{max_retries + 1})")
-                    print(f"  Retrying in {retry_after}s...")
-                    time.sleep(retry_after)
-                else:
-                    raise
-        raise RuntimeError("Retry loop exited without returning or raising")
-
-    def _truncate_context(self) -> None:
-        if len(self.messages) <= 6:
-            return
-        preserved_start = self.messages[:1]
-        preserved_end = self.messages[-4:]
-        removed_count = len(self.messages) - 5
-        summary = {
-            "role": "user",
-            "content": f"[{removed_count} earlier messages truncated to stay within context window]",
-        }
-        self.messages = preserved_start + [summary] + preserved_end
-        print(
-            f"  CONTEXT MANAGEMENT: truncated {removed_count} messages "
-            f"(token usage at {self.total_input_tokens:,})"
+        options = ClaudeCodeOptions(
+            model=self.model,
+            system_prompt=self.system,
+            allowed_tools=list(self.builtin_tools),
+            permission_mode="bypassPermissions",
+            max_turns=self.max_turns,
         )
+
+        text_parts: list[str] = []
+
+        try:
+            async for message in query(prompt=user_message, options=options):
+                if isinstance(message, AssistantMessage):
+                    for block in message.content:
+                        if isinstance(block, TextBlock):
+                            text_parts.append(block.text)
+                elif isinstance(message, ResultMessage):
+                    if message.usage and self.state:
+                        inp = message.usage.get("input_tokens", 0)
+                        out = message.usage.get("output_tokens", 0)
+                        self.state.total_tokens_used += inp + out
+                    if message.is_error:
+                        raise RuntimeError(f"Claude Code SDK error: {message.result}")
+        except ExceptionGroup as eg:
+            # Filter out non-fatal transport cleanup errors
+            real = [e for e in eg.exceptions if not isinstance(e, CLIConnectionError)]
+            if real:
+                raise ExceptionGroup("Claude SDK errors", real) from eg
+
+        return "\n".join(text_parts)
+
+
+def _sync_state(target: LoopState, source: LoopState) -> None:
+    """Copy all dataclass fields from source (disk) back to target (memory).
+
+    Preserves token count from the in-memory state (updated by SDK usage tracking)
+    since the tool CLI doesn't know about API-level token consumption.
+    """
+    from dataclasses import fields
+    saved_tokens = target.total_tokens_used
+    for f in fields(source):
+        setattr(target, f.name, getattr(source, f.name))
+    target.total_tokens_used = saved_tokens

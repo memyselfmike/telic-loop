@@ -392,10 +392,7 @@ class LoopState:
             data_class=cls,
             data=data,
             config=Config(
-                type_hooks={
-                    set: lambda x: set(x) if isinstance(x, list) else x,
-                },
-                cast=[Literal],
+                cast=[Literal, set],
                 strict=False,
             ),
         )
