@@ -388,6 +388,11 @@ class LoopState:
     def load(cls, path: Path) -> LoopState:
         from dacite import Config, from_dict
         data = json.loads(path.read_text())
+        # Normalize VRC gaps: agents sometimes report strings instead of dicts
+        for vrc in data.get("vrc_history", []):
+            gaps = vrc.get("gaps", [])
+            if gaps and isinstance(gaps[0], str):
+                vrc["gaps"] = [{"description": g, "severity": "degraded"} for g in gaps]
         return from_dict(
             data_class=cls,
             data=data,

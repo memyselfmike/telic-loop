@@ -43,7 +43,7 @@ def render_plan_markdown(state: LoopState) -> str:
 def render_plan_snapshot(config: LoopConfig, state: LoopState) -> None:
     """Re-render the plan markdown from structured state."""
     config.plan_file.parent.mkdir(parents=True, exist_ok=True)
-    config.plan_file.write_text(render_plan_markdown(state))
+    config.plan_file.write_text(render_plan_markdown(state), encoding="utf-8")
 
 
 def render_value_checklist(config: LoopConfig, state: LoopState) -> None:
@@ -74,7 +74,7 @@ def render_value_checklist(config: LoopConfig, state: LoopState) -> None:
         lines.append(f"- {status_icon} {v.verification_id} ({v.category})")
 
     config.value_checklist.parent.mkdir(parents=True, exist_ok=True)
-    config.value_checklist.write_text("\n".join(lines))
+    config.value_checklist.write_text("\n".join(lines), encoding="utf-8")
 
 
 def generate_delivery_report(config: LoopConfig, state: LoopState) -> None:
@@ -110,7 +110,7 @@ def generate_delivery_report(config: LoopConfig, state: LoopState) -> None:
 
     report_path = config.sprint_dir / "DELIVERY_REPORT.md"
     report_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.write_text("\n".join(lines))
+    report_path.write_text("\n".join(lines), encoding="utf-8")
 
     git_commit(
         config, state,
