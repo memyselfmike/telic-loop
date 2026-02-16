@@ -13,13 +13,14 @@ sys.stderr.reconfigure(encoding='utf-8')
 
 from telic_loop.claude import Claude
 from telic_loop.config import LoopConfig
-from telic_loop.git import ensure_gitignore, setup_sprint_branch
+from telic_loop.git import ensure_gitignore
 from telic_loop.state import LoopState
 
 
 def main():
-    sprint = "temp-calc"
-    sprint_dir = Path("sprints/temp-calc")
+    # Default sprint or take from CLI
+    sprint = sys.argv[1] if len(sys.argv) > 1 else "temp-calc"
+    sprint_dir = Path(f"sprints/{sprint}")
 
     config = LoopConfig(
         sprint=sprint,
@@ -46,9 +47,6 @@ def main():
     # Auto-maintain .gitignore
     ensure_gitignore(config.sprint_dir)
 
-    # Setup git branch (skip for e2e test to keep things simple)
-    # setup_sprint_branch(config, state)
-
     # Run phases
     if state.phase == "pre_loop":
         from telic_loop.phases.preloop import run_preloop
@@ -72,7 +70,7 @@ def main():
     print(f"  Iterations: {state.iteration}")
     print(f"  Tasks: {len(state.tasks)}")
     for tid, task in state.tasks.items():
-        print(f"    {tid}: [{task.status}] {task.description[:60]}")
+        print(f"    {tid}: [{task.status}] {task.description[:80]}")
     print(f"  VRC snapshots: {len(state.vrc_history)}")
     if state.latest_vrc:
         vrc = state.latest_vrc
@@ -80,25 +78,27 @@ def main():
     print(f"  Tokens used: {state.total_tokens_used:,}")
     print(f"  Value delivered: {state.value_delivered}")
 
-    # Check if the output exists
-    temp_calc = sprint_dir / "temp_calc.py"
-    if temp_calc.exists():
-        print(f"\n  temp_calc.py EXISTS ({temp_calc.stat().st_size} bytes)")
-        # Try running the acceptance tests
+    # Check deliverables
+    index_html = sprint_dir / "index.html"
+    if index_html.exists():
+        print(f"\n  index.html EXISTS ({index_html.stat().st_size} bytes)")
+
+    test_files = list(sprint_dir.glob("test_*.py"))
+    if test_files:
+        print(f"  Test files: {[f.name for f in test_files]}")
         import subprocess
-        tests = [
-            (["python", str(temp_calc), "100", "C", "F"], "212"),
-            (["python", str(temp_calc), "32", "F", "C"], "0"),
-            (["python", str(temp_calc), "0", "K", "C"], "-273.15"),
-        ]
-        for cmd, expected in tests:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-            output = result.stdout.strip()
-            passed = expected in output
-            mark = "PASS" if passed else "FAIL"
-            print(f"  [{mark}] {' '.join(cmd[-3:])} -> {output} (expected {expected})")
-    else:
-        print(f"\n  temp_calc.py NOT FOUND")
+        for tf in test_files:
+            result = subprocess.run(
+                ["python", "-m", "pytest", str(tf), "-v", "--timeout=30"],
+                capture_output=True, text=True, timeout=120,
+                cwd=str(sprint_dir),
+            )
+            print(f"\n  pytest {tf.name}:")
+            for line in result.stdout.splitlines()[-15:]:
+                print(f"    {line}")
+            if result.returncode != 0 and result.stderr:
+                for line in result.stderr.splitlines()[-5:]:
+                    print(f"    STDERR: {line}")
 
     state.save(config.state_file)
 
