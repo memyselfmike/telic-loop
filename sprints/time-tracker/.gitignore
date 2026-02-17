@@ -1,0 +1,19 @@
+
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+__pycache__/
+*.pyc
+*.pyo
+.loop_state.json.tmp
+.loop.lock
+.rollback_wal
+
+# Database files (never commit local data)
+data/
+*.db
+*.sqlite
+*.sqlite3

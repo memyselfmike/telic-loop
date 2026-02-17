@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Freelancer Time Tracker</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <!-- Loading overlay -->
+  <div id="loading-overlay" class="loading-overlay" aria-live="polite">
+    <div class="spinner"></div>
+    <span>Loading…</span>
+  </div>
+
+  <!-- Toast notifications -->
+  <div id="toast-container" class="toast-container" aria-live="assertive"></div>
+
+  <!-- App layout -->
+  <div class="app-layout">
+
+    <!-- Sidebar (desktop >=1024px) -->
+    <nav class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+      <div class="sidebar-header">
+        <span class="sidebar-logo">⏱</span>
+        <span class="sidebar-title">Time Tracker</span>
+      </div>
+      <ul class="sidebar-nav" role="tablist">
+        <li>
+          <button class="nav-item active" data-tab="timer" role="tab" aria-selected="true" aria-controls="view-timer">
+            <span class="nav-icon">▶</span>
+            <span class="nav-label">Timer</span>
+          </button>
+        </li>
+        <li>
+          <button class="nav-item" data-tab="weekly" role="tab" aria-selected="false" aria-controls="view-weekly">
+            <span class="nav-icon">📅</span>
+            <span class="nav-label">Weekly</span>
+          </button>
+        </li>
+        <li>
+          <button class="nav-item" data-tab="projects" role="tab" aria-selected="false" aria-controls="view-projects">
+            <span class="nav-icon">📁</span>
+            <span class="nav-label">Projects</span>
+          </button>
+        </li>
+        <li>
+          <button class="nav-item" data-tab="reports" role="tab" aria-selected="false" aria-controls="view-reports">
+            <span class="nav-icon">📊</span>
+            <span class="nav-label">Reports</span>
+          </button>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- Main content area -->
+    <div class="main-wrapper">
+
+      <!-- Top tabs (tablet 768-1023px) -->
+      <nav class="top-tabs" role="navigation" aria-label="Main navigation">
+        <div class="top-tabs-header">
+          <span class="sidebar-logo">⏱</span>
+          <span class="sidebar-title">Time Tracker</span>
+        </div>
+        <div class="top-tabs-nav" role="tablist">
+          <button class="tab-btn active" data-tab="timer" role="tab" aria-selected="true">▶ Timer</button>
+          <button class="tab-btn" data-tab="weekly" role="tab" aria-selected="false">📅 Weekly</button>
+          <button class="tab-btn" data-tab="projects" role="tab" aria-selected="false">📁 Projects</button>
+          <button class="tab-btn" data-tab="reports" role="tab" aria-selected="false">📊 Reports</button>
+        </div>
+      </nav>
+
+      <!-- Views -->
+      <main class="main-content">
+
+        <!-- Timer View -->
+        <div id="view-timer" class="view active" role="tabpanel" aria-label="Timer">
+          <div class="view-header">
+            <h1 class="view-title">Timer</h1>
+          </div>
+
+          <!-- Active Timer Card -->
+          <section class="card timer-card" aria-label="Active timer">
+            <div class="timer-controls">
+              <div class="timer-project-row">
+                <div class="form-group" style="flex:1">
+                  <label for="timer-project" class="form-label">Project</label>
+                  <select id="timer-project" class="form-select">
+                    <option value="">— Select a project —</option>
+                  </select>
+                </div>
+                <div class="form-group" style="flex:2">
+                  <label for="timer-description" class="form-label">Description (optional)</label>
+                  <input id="timer-description" type="text" class="form-input" placeholder="What are you working on?" />
+                </div>
+              </div>
+              <div class="timer-display-row">
+                <div class="timer-display" id="timer-display" aria-live="polite">00:00:00</div>
+                <button id="timer-btn" class="btn btn-start" onclick="App.timerToggle()">
+                  Start
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- Today's Entries -->
+          <section class="card" aria-label="Today's entries">
+            <div class="section-header">
+              <h2 class="section-title">Today's Entries</h2>
+              <button class="btn btn-secondary btn-sm" onclick="App.openManualEntryModal()">+ Add Manual Entry</button>
+            </div>
+            <div id="today-entries-list" class="entries-list">
+              <div class="empty-state">No entries today. Start the timer to begin tracking!</div>
+            </div>
+          </section>
+
+          <!-- Today's Summary -->
+          <section class="card" aria-label="Today's summary">
+            <h2 class="section-title">Today's Summary</h2>
+            <div id="today-summary" class="summary-grid">
+              <div class="summary-total">
+                <span class="summary-label">Total Today</span>
+                <span class="summary-value" id="today-total">0:00</span>
+              </div>
+              <div id="today-project-breakdown" class="project-breakdown"></div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Weekly View -->
+        <div id="view-weekly" class="view" role="tabpanel" aria-label="Weekly" hidden>
+          <div class="view-header">
+            <h1 class="view-title">Weekly View</h1>
+            <div class="week-nav">
+              <button class="btn btn-secondary btn-sm" onclick="App.weekPrev()">← Prev</button>
+              <button class="btn btn-secondary btn-sm" onclick="App.weekToday()">This Week</button>
+              <button class="btn btn-secondary btn-sm" onclick="App.weekNext()">Next →</button>
+            </div>
+          </div>
+          <div class="week-range-label" id="week-range-label"></div>
+
+          <!-- Week grid -->
+          <div class="card" style="padding:0; overflow-x:auto;">
+            <div class="week-grid" id="week-grid">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <!-- Week project summary -->
+          <section class="card" aria-label="Weekly project summary">
+            <h2 class="section-title">Project Summary</h2>
+            <div id="week-summary-table" class="week-summary-table"></div>
+          </section>
+        </div>
+
+        <!-- Projects View -->
+        <div id="view-projects" class="view" role="tabpanel" aria-label="Projects" hidden>
+          <div class="view-header">
+            <h1 class="view-title">Projects</h1>
+            <button class="btn btn-primary btn-sm" onclick="App.openProjectModal()">+ New Project</button>
+          </div>
+
+          <!-- Active / Archived tabs -->
+          <div class="subtabs">
+            <button class="subtab active" data-subtab="active" onclick="App.setProjectsSubtab('active')">Active</button>
+            <button class="subtab" data-subtab="archived" onclick="App.setProjectsSubtab('archived')">Archived</button>
+          </div>
+
+          <div id="projects-list" class="projects-grid">
+            <div class="empty-state">No projects yet. Create your first project!</div>
+          </div>
+        </div>
+
+        <!-- Reports View -->
+        <div id="view-reports" class="view" role="tabpanel" aria-label="Reports" hidden>
+          <div class="view-header">
+            <h1 class="view-title">Reports</h1>
+          </div>
+
+          <section class="card" aria-label="Timesheet generator">
+            <h2 class="section-title">Timesheet Generator</h2>
+            <div class="report-filters">
+              <div class="report-presets">
+                <button class="btn btn-secondary btn-sm" onclick="App.reportPreset('this-week')">This Week</button>
+                <button class="btn btn-secondary btn-sm" onclick="App.reportPreset('last-week')">Last Week</button>
+                <button class="btn btn-secondary btn-sm" onclick="App.reportPreset('this-month')">This Month</button>
+                <button class="btn btn-secondary btn-sm" onclick="App.reportPreset('last-month')">Last Month</button>
+              </div>
+              <div class="report-date-row">
+                <div class="form-group">
+                  <label for="report-from" class="form-label">From</label>
+                  <input id="report-from" type="date" class="form-input" />
+                </div>
+                <div class="form-group">
+                  <label for="report-to" class="form-label">To</label>
+                  <input id="report-to" type="date" class="form-input" />
+                </div>
+                <div class="form-group">
+                  <label for="report-project" class="form-label">Project</label>
+                  <select id="report-project" class="form-select">
+                    <option value="">All Projects</option>
+                  </select>
+                </div>
+                <div class="form-group form-group-action">
+                  <button class="btn btn-primary" onclick="App.generateReport()">Generate</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div id="report-output" class="report-output" hidden>
+            <section class="card" aria-label="Timesheet results">
+              <div class="section-header">
+                <h2 class="section-title">Timesheet</h2>
+                <button class="btn btn-secondary btn-sm" onclick="App.exportCSV()">Export CSV</button>
+              </div>
+              <div id="report-content"></div>
+            </section>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Manual Entry Modal -->
+  <div id="modal-overlay" class="modal-overlay" hidden onclick="App.closeModal(event)">
+    <div class="modal" id="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modal-title">Add Entry</h2>
+        <button class="modal-close" onclick="App.closeModal()" aria-label="Close modal">✕</button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        <!-- Dynamic content injected by JS -->
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
