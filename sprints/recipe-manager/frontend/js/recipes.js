@@ -222,6 +222,10 @@ async function openRecipeDetail(recipeId, onMutated) {
     );
 
   const body = el('div', {},
+    // Category badge row
+    el('div', { style: { marginBottom: '0.75rem' } },
+      buildCategoryBadge(recipe.category),
+    ),
     // Stats bar
     el('div', { className: 'recipe-stats' },
       el('div', { className: 'stat-item' },
@@ -255,6 +259,10 @@ async function openRecipeDetail(recipeId, onMutated) {
     el('div', { className: 'instructions-list' }, ...stepEls),
     // Actions
     el('div', { className: 'd-flex gap-sm', style: { marginTop: '1.5rem' } },
+      el('button', {
+        className: 'btn btn-ghost',
+        onClick: () => closeModal(),
+      }, '← Back'),
       el('button', {
         className: 'btn btn-secondary',
         onClick: () => openRecipeForm(recipe, () => { closeModal(); onMutated(); }),
