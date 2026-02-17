@@ -90,6 +90,9 @@ def critique_prd(
             raise SystemExit("User quit during PRD refinement.")
         # action == "revised" — fall through to re-critique
 
+    auto_amendment_rounds = 0
+    MAX_AUTO_AMENDMENTS = 2
+
     while True:
         ref.status = "running"
         ref.current_round += 1
@@ -118,13 +121,30 @@ def critique_prd(
             soft_issues=[],
         ))
 
-        if verdict != "REJECT":
+        # --- APPROVE: done ---
+        if verdict == "APPROVE":
             ref.status = "done"
             ref.consensus_reason = critique.get("reason", "")
             state.save(config.state_file)
             return critique
 
-        # REJECT — research alternatives, then present
+        # --- AMEND / DESCOPE: auto-apply changes, then re-critique ---
+        if verdict in ("AMEND", "DESCOPE"):
+            auto_amendment_rounds += 1
+
+            if auto_amendment_rounds <= MAX_AUTO_AMENDMENTS:
+                _apply_prd_changes(config, state, claude, critique)
+                ref = state.prd_refinement  # Re-bind after builder session
+                ref.rounds[-1].human_action = f"auto_{verdict.lower()}"
+                state.save(config.state_file)
+                print(f"  PRD {verdict} applied — re-running critique...")
+                continue  # Loop back for re-critique
+
+            # Safety cap exceeded — fall through to interactive human loop
+            print(f"\n  PRD received {auto_amendment_rounds} consecutive "
+                  f"AMEND/DESCOPE verdicts — requesting human review.")
+
+        # --- REJECT (or AMEND/DESCOPE past safety cap): interactive loop ---
         ref.status = "researching"
         state.save(config.state_file)
         research = _research_prd_rejection(config, state, claude, critique)
@@ -143,6 +163,7 @@ def critique_prd(
 
         # action == "revised" — loop back to re-critique
         ref.rounds[-1].human_action = "revised"
+        auto_amendment_rounds = 0  # Reset after human intervention
         print(f"\n  Re-running PRD critique (round {ref.current_round + 1})...")
 
 
@@ -239,6 +260,10 @@ def refine_vision(
         ))
 
         if verdict == "PASS":
+            if soft_issues:
+                _present_vision_pass_with_notes(validation)
+                ref.acknowledged_soft_issues = [i.get("id", "") for i in soft_issues]
+                ref.rounds[-1].human_action = "auto_acknowledged"
             ref.status = "done"
             ref.consensus_reason = validation.get("reason", "")
             state.save(config.state_file)
@@ -378,6 +403,54 @@ def _research_prd_rejection(
         return {}
 
 
+def _apply_prd_changes(
+    config: "LoopConfig", state: "LoopState", claude: "Claude",
+    critique: dict,
+) -> None:
+    """Spawn BUILDER session to apply AMEND/DESCOPE changes to PRD.md.
+
+    Uses BUILDER (not REASONER) because it needs file-write tools to edit
+    PRD.md directly. The agent is constrained to apply ONLY the listed
+    changes — no additions, removals, or other modifications.
+    """
+    from .claude import AgentRole
+
+    verdict = critique.get("verdict", "AMEND")
+    prd_path = config.prd_file
+
+    # Build the change list from the critique
+    if verdict == "AMEND":
+        changes = critique.get("amendments", [])
+        change_type = "amendments"
+    else:  # DESCOPE
+        changes = critique.get("descope_suggestions", [])
+        change_type = "descope suggestions"
+
+    if not changes:
+        print(f"  No {change_type} found in critique — skipping auto-apply.")
+        return
+
+    change_lines = "\n".join(f"  {i}. {c}" for i, c in enumerate(changes, 1))
+
+    print(f"  Applying {len(changes)} {change_type} to {prd_path}...")
+
+    session = claude.session(
+        AgentRole.BUILDER,
+        system_extra=(
+            "Apply ONLY these specific changes to the PRD. "
+            "Do not add, remove, or modify anything else. "
+            "Preserve the document's existing structure and formatting."
+        ),
+    )
+    session.send(
+        f"Apply the following {change_type} to the PRD at {prd_path}:\n\n"
+        f"{change_lines}\n\n"
+        f"Read the PRD first, then make ONLY the listed changes."
+    )
+
+    print(f"  {verdict} changes applied to PRD.")
+
+
 # ---------------------------------------------------------------------------
 # Interactive refinement helpers
 # ---------------------------------------------------------------------------
@@ -444,6 +517,46 @@ def _present_vision_brief(validation: dict, research: dict | None = None) -> Non
                 print(f"    - {src}")
 
     # Overall reason
+    reason = validation.get("reason", "")
+    if reason:
+        print(f"\n  Summary: {reason}")
+
+    print()
+
+
+def _present_vision_pass_with_notes(validation: dict) -> None:
+    """Print soft issues from a PASS verdict for human awareness (non-blocking)."""
+    print("\n" + "=" * 60)
+    print("  VISION VALIDATION — PASS (with notes)")
+    print("=" * 60)
+
+    # Dimensions (compact)
+    dims = validation.get("dimensions", {})
+    if dims:
+        print("\n  Dimensions:")
+        for key, label in _DIMENSION_LABELS.items():
+            score = dims.get(key, "?")
+            print(f"    {label:24s} {score}")
+
+    # Strengths (compact)
+    strengths = validation.get("strengths", [])
+    if strengths:
+        print("\n  Strengths:")
+        for s in strengths:
+            print(f"    + {s}")
+
+    # Soft issues as "notes for awareness"
+    soft_issues = [
+        i for i in validation.get("issues", [])
+        if i.get("severity") == "soft"
+    ]
+    if soft_issues:
+        print("\n  Notes for awareness:")
+        for i in soft_issues:
+            print(f"    ~ [{i.get('category', '?')}] {i.get('description', '')}")
+            if i.get("suggested_revision"):
+                print(f"      Suggestion: {i['suggested_revision']}")
+
     reason = validation.get("reason", "")
     if reason:
         print(f"\n  Summary: {reason}")
