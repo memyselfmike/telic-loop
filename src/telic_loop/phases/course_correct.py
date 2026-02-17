@@ -19,6 +19,7 @@ def do_course_correct(config: LoopConfig, state: LoopState, claude: Claude) -> b
     from ..git import check_and_fix_services, execute_rollback, git_commit
     from ..render import render_plan_snapshot
     from ..state import PauseState
+    from .process_monitor import format_code_health
     from .vrc import build_task_summary, format_latest_vrc
 
     session = claude.session(
@@ -39,6 +40,7 @@ def do_course_correct(config: LoopConfig, state: LoopState, claude: Claude) -> b
         VRC_HISTORY=_format_vrc_history(state),
         GIT_CHECKPOINTS=_format_git_checkpoints(state),
         STUCK_REASON=_format_stuck_reason(state),
+        CODE_HEALTH=format_code_health(state),
     )
 
     state.agent_results.pop("course_correction", None)

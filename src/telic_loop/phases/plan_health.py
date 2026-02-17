@@ -19,6 +19,7 @@ def maybe_run_plan_health_check(
     """Check plan quality when mid-loop task count exceeds threshold."""
     from ..claude import AgentRole, load_prompt
     from ..render import render_plan_markdown
+    from .process_monitor import format_code_health
 
     should_run = (
         force
@@ -65,6 +66,7 @@ def maybe_run_plan_health_check(
         PLAN=render_plan_markdown(state),
         EXISTING_TASKS=existing_summary,
         NEW_TASKS=delta_summary,
+        CODE_HEALTH=format_code_health(state),
     )
     session.send(prompt)
 

@@ -13,6 +13,7 @@ The value loop is stuck. Something fundamental is preventing progress. Your job 
 - **VRC History** (recent snapshots): {VRC_HISTORY}
 - **Git Checkpoints** (known-good states): {GIT_CHECKPOINTS}
 - **Stuck Reason**: {STUCK_REASON}
+- **Code Health**: {CODE_HEALTH}
 
 ## The Core Principle
 
@@ -40,6 +41,7 @@ Examine the evidence. Do not guess. The data tells you what is wrong.
 | **Knowledge gap** | Errors reference unknown APIs, undocumented behavior, or version mismatches | The loop needs external research before it can proceed |
 | **Architectural mismatch** | Many tasks fail in the same files or the same integration points | The plan assumes an architecture that does not match reality |
 | **Compounding regressions** | Value score has dropped since last checkpoint, each fix breaks something else | Recent changes have poisoned the codebase — rollback to last known-good state |
+| **Monolithic files / code concentration** | Code health warnings show 500+ line files, rapid growth, or single-file concentration | The builder is dumping everything into one file instead of using proper module structure — split via restructure |
 
 Name the pattern explicitly. Cite specific task IDs, verification IDs, or VRC snapshots as evidence.
 

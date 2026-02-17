@@ -15,6 +15,9 @@ New tasks have been added to the plan during execution (from VRC gaps, course co
 ### Mid-Loop Tasks (to review)
 {NEW_TASKS}
 
+### Code Health Metrics
+{CODE_HEALTH}
+
 ## The Core Principle
 
 > **"Quality gates ran once at the start. The plan has mutated since then. The mutations need their own quality check — lighter than full gates, focused on what drifts."**
@@ -68,6 +71,21 @@ Are any pending tasks no longer relevant given what has been completed?
 - A task whose blocked_reason has been resolved but status was not updated
 
 **Action**: Remove stale tasks via `manage_task` (action: "remove") or update status via modify.
+
+### 6. Code Health / SOLID Violations
+
+Review the Code Health Metrics above (if present). Check for:
+
+- **Monolithic files** (500+ lines): Suggest splitting into focused modules. A single file handling routing, business logic, and data access is a SOLID violation.
+- **Rapid growth** (150+ lines in one iteration): A file growing that fast is likely accumulating responsibilities. Flag for the builder to refactor.
+- **Code concentration** (one file > 50% of codebase): The project has a single point of failure. Suggest extracting concerns into separate modules.
+
+**Action**: If code health warnings are present, add a targeted refactoring task via `manage_task` (action: "add") with:
+- description: which file(s) to split and what concerns to extract
+- value: "Reduce monolithic file risk — improve maintainability and reduce merge conflicts"
+- acceptance: specific size targets (e.g., "no file exceeds 400 lines after split")
+
+Do NOT add refactoring tasks if no code health warnings are present. Do NOT add refactoring tasks for files that are naturally large (e.g., generated code, test fixtures, configuration).
 
 ## Process
 

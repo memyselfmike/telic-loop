@@ -5,12 +5,25 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..claude import Claude
     from ..config import LoopConfig
     from ..state import LoopState, ProcessMonitorState
+
+_SOURCE_EXTENSIONS: set[str] = {
+    ".py", ".js", ".ts", ".jsx", ".tsx", ".vue", ".svelte",
+    ".html", ".css", ".scss", ".less",
+    ".java", ".kt", ".go", ".rs", ".c", ".cpp", ".h",
+    ".rb", ".php", ".sh", ".sql",
+}
+
+_SKIP_DIRS: set[str] = {
+    ".", "node_modules", "__pycache__", ".venv", "venv",
+    ".git", ".tox", "dist", "build", ".next", ".nuxt",
+}
 
 
 def update_process_metrics(state: LoopState, action: str, made_progress: bool) -> None:
@@ -57,6 +70,91 @@ def update_process_metrics(state: LoopState, action: str, made_progress: bool) -
         if task.status == "done":
             for f in task.files_created + task.files_modified:
                 pm.file_touches[f] = pm.file_touches.get(f, 0) + 1
+
+
+def scan_file_line_counts(state: LoopState, config: LoopConfig) -> None:
+    """Scan sprint directory for source files and compute line counts + health warnings."""
+    pm = state.process_monitor
+    sprint_dir = Path(config.sprint_dir)
+
+    if not sprint_dir.is_dir():
+        return
+
+    # Rotate: current → prev
+    pm.file_line_counts_prev = dict(pm.file_line_counts)
+    pm.file_line_counts = {}
+
+    for path in sprint_dir.rglob("*"):
+        if not path.is_file():
+            continue
+        if path.suffix not in _SOURCE_EXTENSIONS:
+            continue
+        # Skip hidden dirs and known junk
+        parts = path.relative_to(sprint_dir).parts
+        if any(p.startswith(".") or p in _SKIP_DIRS for p in parts[:-1]):
+            continue
+        try:
+            line_count = len(path.read_text(encoding="utf-8", errors="replace").splitlines())
+        except OSError:
+            continue
+        rel = str(path.relative_to(sprint_dir)).replace("\\", "/")
+        pm.file_line_counts[rel] = line_count
+
+    # Generate warnings
+    pm.code_health_warnings = []
+    total_lines = sum(pm.file_line_counts.values()) or 1
+
+    for rel, lines in pm.file_line_counts.items():
+        prev = pm.file_line_counts_prev.get(rel, 0)
+        growth = lines - prev
+
+        if lines >= 500:
+            pm.code_health_warnings.append(
+                f"MONOLITH: {rel} is {lines} lines (threshold: 500)"
+            )
+        if prev > 0 and growth >= 150:
+            pm.code_health_warnings.append(
+                f"RAPID_GROWTH: {rel} grew +{growth} lines since last scan "
+                f"({prev} → {lines})"
+            )
+        if lines / total_lines >= 0.50:
+            pm.code_health_warnings.append(
+                f"CONCENTRATION: {rel} holds {lines / total_lines:.0%} of total code "
+                f"({lines}/{total_lines} lines)"
+            )
+
+
+def format_code_health(state: LoopState) -> str:
+    """Format code health metrics for prompt injection. Returns empty string if no data."""
+    pm = state.process_monitor
+
+    if not pm.file_line_counts:
+        return ""
+
+    total_lines = sum(pm.file_line_counts.values())
+    file_count = len(pm.file_line_counts)
+
+    # Top 10 files by size with deltas
+    ranked = sorted(pm.file_line_counts.items(), key=lambda x: -x[1])[:10]
+    file_table = []
+    for rel, lines in ranked:
+        prev = pm.file_line_counts_prev.get(rel, 0)
+        delta = lines - prev
+        delta_str = f" (+{delta})" if delta > 0 else (f" ({delta})" if delta < 0 else "")
+        file_table.append(f"  {lines:>5} lines{delta_str}  {rel}")
+
+    sections = [
+        f"Code Health: {file_count} source files, {total_lines} total lines",
+        "Top files by size:",
+        "\n".join(file_table),
+    ]
+
+    if pm.code_health_warnings:
+        sections.append("Warnings:")
+        for w in pm.code_health_warnings:
+            sections.append(f"  ⚠ {w}")
+
+    return "\n".join(sections)
 
 
 def evaluate_process_triggers(state: LoopState, config: LoopConfig) -> str:
@@ -108,6 +206,13 @@ def evaluate_process_triggers(state: LoopState, config: LoopConfig) -> str:
         if max_touches > iteration * (config.pm_file_hotspot_pct / 100):
             triggers.append(("file_hotspot", "YELLOW"))
 
+    # Code health: monolithic files or rapid growth
+    if pm.code_health_warnings:
+        monolith_count = sum(1 for w in pm.code_health_warnings if w.startswith("MONOLITH"))
+        growth_count = sum(1 for w in pm.code_health_warnings if w.startswith("RAPID_GROWTH"))
+        if monolith_count >= 3 or growth_count >= 2:
+            triggers.append(("code_health", "YELLOW"))
+
     if any(level == "RED" for _, level in triggers):
         return "RED"
     if any(level == "YELLOW" for _, level in triggers):
@@ -126,6 +231,12 @@ def maybe_run_strategy_reasoner(
 
     # Layer 0: metrics
     update_process_metrics(state, action=action, made_progress=made_progress)
+    scan_file_line_counts(state, config)
+
+    if pm.code_health_warnings:
+        print(f"\n  CODE HEALTH — {len(pm.code_health_warnings)} warning(s):")
+        for w in pm.code_health_warnings[:5]:
+            print(f"    ⚠ {w}")
 
     # Layer 1: triggers
     new_status = evaluate_process_triggers(state, config)
@@ -216,6 +327,13 @@ def _format_metrics_dashboard(pm: ProcessMonitorState) -> str:
     if pm.file_touches:
         hotspots = sorted(pm.file_touches.items(), key=lambda x: -x[1])[:5]
         lines.append(f"File hotspots: {', '.join(f'{k}({v}x)' for k, v in hotspots)}")
+    if pm.file_line_counts:
+        total = sum(pm.file_line_counts.values())
+        lines.append(f"Source files: {len(pm.file_line_counts)}, total lines: {total}")
+        top5 = sorted(pm.file_line_counts.items(), key=lambda x: -x[1])[:5]
+        lines.append(f"Largest files: {', '.join(f'{k}({v}L)' for k, v in top5)}")
+    if pm.code_health_warnings:
+        lines.append(f"Code health warnings: {len(pm.code_health_warnings)}")
     return "\n".join(lines)
 
 

@@ -165,6 +165,9 @@ class ProcessMonitorState:
     churn_counts: dict[str, int] = field(default_factory=dict)
     error_hashes: dict[str, dict] = field(default_factory=dict)
     file_touches: dict[str, int] = field(default_factory=dict)
+    file_line_counts: dict[str, int] = field(default_factory=dict)
+    file_line_counts_prev: dict[str, int] = field(default_factory=dict)
+    code_health_warnings: list[str] = field(default_factory=list)
     status: str = "GREEN"
     last_strategy_change_iteration: int = 0
     current_strategy: dict = field(default_factory=lambda: {
