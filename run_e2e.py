@@ -31,6 +31,7 @@ def main():
         max_loop_iterations=20,  # Keep it bounded for testing
         max_fix_attempts=3,
         token_budget=0,  # Unlimited for now
+        epic_feedback_timeout_minutes=10,  # 10min break between epics
     )
 
     # Ensure sprint dir exists
@@ -62,8 +63,12 @@ def main():
             sys.exit(1)
 
     if state.phase == "value_loop":
-        from telic_loop.main import run_value_loop
-        run_value_loop(config, state, claude)
+        if state.vision_complexity == "multi_epic" and state.epics:
+            from telic_loop.phases.epic import run_epic_loop
+            run_epic_loop(config, state, claude)
+        else:
+            from telic_loop.main import run_value_loop
+            run_value_loop(config, state, claude)
 
     # Report results
     print("\n" + "=" * 60)

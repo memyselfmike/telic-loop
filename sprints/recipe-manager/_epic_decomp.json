@@ -1,0 +1,118 @@
+{
+  "epic_count": 3,
+  "epics": [
+    {
+      "epic_id": "epic_1",
+      "title": "Recipe Collection -- Create, Browse, and Find Recipes",
+      "value_statement": "User can create recipes with ingredients, browse their collection as cards, and filter/search to find what they want to cook",
+      "deliverables": [
+        "FastAPI backend with SQLite database (schema auto-created on startup, foreign keys enabled)",
+        "Recipe CRUD API endpoints (GET list, GET detail, POST create, PUT update, DELETE) with query filters (category, tag, search)",
+        "Ingredients sub-resource stored per recipe with grocery section classification",
+        "SPA shell with hash-based routing and dark theme (nav bar with three tabs, Recipes active by default)",
+        "Recipe collection view: card grid with title, category badge, prep+cook time, tag chips",
+        "Recipe detail view with full info, edit button, delete button",
+        "Recipe create/edit form with dynamic ingredient rows (add/remove)",
+        "Filter bar: search input, category dropdown, tag filter -- all combinable",
+        "5 sample seed recipes pre-loaded on first startup to mitigate cold start problem"
+      ],
+      "completion_criteria": [
+        "API tests pass: create recipe with ingredients, retrieve it, update it, delete it -- all return correct HTTP status codes",
+        "Filter tests pass: filter by category returns only matching recipes, search by ingredient name returns matching recipes, combined filters work",
+        "Frontend loads in browser at localhost:8000 showing recipe card grid",
+        "User can complete full recipe lifecycle: create -> view in collection -> open detail -> edit -> see changes -> delete -> gone from collection",
+        "Search for an ingredient name (e.g. chicken) returns recipes containing that ingredient",
+        "Dark theme renders correctly at 1024px and 768px widths",
+        "Database persists across server restarts (stop and start uvicorn, recipes still there)"
+      ],
+      "depends_on": [],
+      "detail_level": "full",
+      "key_risks": [
+        "Vanilla JS SPA routing and state management complexity -- risk of exceeding the 1500-line kill criterion before feature logic",
+        "Dynamic ingredient form rows in vanilla JS can be fiddly (add/remove/reorder without a framework)",
+        "Combined filter query logic in SQL (category AND tag AND search simultaneously) needs careful WHERE clause construction"
+      ],
+      "task_sketch": [
+        "Set up project structure, requirements.txt (fastapi, uvicorn), and backend entry point with static file mounting",
+        "Create database.py with SQLite connection, schema creation (recipes, ingredients tables), and foreign key enforcement",
+        "Define Pydantic models for recipe request/response including nested ingredients",
+        "Implement recipe CRUD API routes (create, read, update, delete) with ingredient sub-resource handling",
+        "Implement recipe list endpoint with category, tag, and search query filters (combined WHERE clauses)",
+        "Write pytest integration tests for all recipe API endpoints and filter combinations",
+        "Build SPA shell: index.html, hash router in app.js, nav bar, dark theme CSS",
+        "Build recipe collection view: card grid, filter bar (search, category dropdown, tag filter)",
+        "Build recipe detail view with edit/delete actions",
+        "Build recipe create/edit form modal with dynamic ingredient row management",
+        "Add 5 sample seed recipes inserted on first database initialization",
+        "End-to-end verification: full recipe lifecycle through the UI"
+      ],
+      "estimated_task_count": 12
+    },
+    {
+      "epic_id": "epic_2",
+      "title": "Weekly Meal Planner -- Plan the Week with Recipes",
+      "value_statement": "User can see a 7-day meal grid, assign recipes from their collection to any breakfast/lunch/dinner/snack slot, navigate between weeks, and see daily time estimates",
+      "deliverables": [
+        "Meal plan API endpoints (GET week, PUT assign/upsert, DELETE clear slot) with recipe title and time in response",
+        "meal_plans database table with unique constraint on (week_start, day_of_week, meal_slot)",
+        "Weekly planner view: 7-column x 4-row grid showing Mon-Sun with meal slots",
+        "Recipe picker modal: searchable list from recipe collection for assigning to slots",
+        "Slot interactions: click to assign, click assigned recipe for view/swap/clear options",
+        "Week navigation: previous/next arrows and This Week button",
+        "Day summary row showing total prep+cook time per day",
+        "Cascading delete: removing a recipe from the collection removes it from all meal plan slots"
+      ],
+      "completion_criteria": [
+        "API tests pass: assign recipe to slot, retrieve week shows assignment, clear slot, upsert replaces previous assignment",
+        "Cascading delete test: delete a recipe used in a meal plan -- meal plan slot is cleared",
+        "Frontend planner grid renders 7 days x 4 slots with correct day labels",
+        "User can assign a recipe to Monday dinner, see it appear, navigate to next week (empty), navigate back (still there)",
+        "Day time summary correctly sums prep+cook times of all assigned recipes for that day",
+        "Meal plan persists across page reloads"
+      ],
+      "depends_on": ["epic_1"],
+      "detail_level": "moderate",
+      "key_risks": [
+        "Grid layout responsiveness at 768px tablet width -- 7 columns may need to collapse or scroll",
+        "Recipe picker interaction (search + select + assign to specific slot) must feel fast -- more than 3 clicks is a kill criterion",
+        "Week navigation date math (ISO week boundaries, always-Monday start) must be reliable"
+      ]
+    },
+    {
+      "epic_id": "epic_3",
+      "title": "Shopping List -- Generate, Check Off, and Shop",
+      "value_statement": "User can generate an aggregated shopping list from the week meal plan with merged ingredients and unit normalization, check off items while shopping, and add manual items",
+      "deliverables": [
+        "Shopping list generation endpoint: aggregates ingredients across all planned meals for a week",
+        "Unit normalization engine: merges compatible units (tsp to tbsp to cup, oz to lb, count equivalents), keeps incompatible units separate",
+        "shopping_lists and shopping_items database tables",
+        "Shopping list view: items grouped by grocery section with section headers",
+        "Check/uncheck items (checked items show strikethrough, move to bottom)",
+        "Add manual items not from recipes",
+        "Remove items already at home",
+        "Generate new list replaces existing one with confirmation prompt",
+        "Item count summary display (total items, checked count)",
+        "Persistence: list survives browser close and server restart"
+      ],
+      "completion_criteria": [
+        "Unit normalization tests: 2 cups + 1 cup = 3 cups, 2 tsp + 1 tsp = 1 tbsp, 8 oz + 8 oz = 1 lb",
+        "Aggregation test: two recipes using chicken breast are merged into one line with summed quantity",
+        "Incompatible units kept separate: 2 cups flour + 100g flour = two lines",
+        "API tests: generate list, check item, add manual item, remove item -- all correct",
+        "Frontend shows grouped items by section with correct quantities after generation",
+        "Check off items, close browser, reopen -- checked state persists",
+        "Generate new list when one exists shows confirmation, replacing clears old items",
+        "Unit normalization passes on at least 80% of common recipe ingredients (kill criterion threshold)"
+      ],
+      "depends_on": ["epic_1", "epic_2"],
+      "detail_level": "moderate",
+      "key_risks": [
+        "Unit normalization is the hardest technical challenge -- edge cases with fractional quantities, mixed units, and uncommonly spelled units",
+        "Grocery section classification heuristics may misclassify items (is tofu produce or pantry?)",
+        "Shopping list state management: checked state must persist independently from regeneration"
+      ]
+    }
+  ],
+  "vision_too_large": false,
+  "rationale": "The Vision has a natural 3-epic causal chain: Recipes feed the Meal Planner, which feeds the Shopping List. Each epic delivers complete end-to-end value -- after Epic 1 the user has a working recipe manager, after Epic 2 they can plan their week, after Epic 3 they have the full collect-plan-shop workflow. Infrastructure (FastAPI, SQLite, SPA shell, dark theme) is established in Epic 1 alongside its first value deliverable rather than in a separate foundation epic. The PRD acceptance criteria already align to these three boundaries. Three epics is sufficient -- the scope is well-constrained (single-user, no auth, no framework, SQLite only) and each epic has 8-12 tasks, well within a single loop run."
+}
