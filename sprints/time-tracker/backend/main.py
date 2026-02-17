@@ -23,6 +23,7 @@ from fastapi.staticfiles import StaticFiles
 from backend.database import init_db
 from backend.routes.entries import router as entries_router
 from backend.routes.projects import router as projects_router
+from backend.routes.reports import router as reports_router
 
 # ---------------------------------------------------------------------------
 # App factory
@@ -50,6 +51,9 @@ def create_app() -> FastAPI:
 
     # Timer and time entry endpoints
     application.include_router(entries_router)
+
+    # Reports and CSV export endpoints
+    application.include_router(reports_router)
 
     # ------------------------------------------------------------------
     # Static file serving — mounts the frontend/ directory at root
