@@ -27,7 +27,7 @@ No manual configuration. No babysitting. No post-loop debugging.
 | **PRD** | The specific requirements that make the outcome real |
 | **Task** | A unit of work that moves toward the outcome |
 | **Quality Control** | Automated checks that the deliverable works correctly |
-| **Critical Evaluation** | A separate agent that *uses* the deliverable as a real user would |
+| **Critical Evaluation** | A separate agent that *uses* the deliverable as a real user would — opens a browser for web apps |
 | **VRC** | Vision Reality Check — continuous pulse on value delivery |
 
 ## Architecture
@@ -79,7 +79,7 @@ The builder never grades its own work. QC checks correctness. Critical evaluatio
 2. **Aggressive Pre-Qualification** — Validates work is achievable before executing
 3. **Decision-Driven Delivery** — State-based decisions, not rigid phases
 4. **Separate QC** — Builder never grades own work
-5. **Critical Evaluation** — Uses deliverable as real user, pursues excellence not just correctness
+5. **Critical Evaluation** — Uses deliverable as real user (opens browser for web apps via Playwright MCP), pursues excellence not just correctness
 6. **VRC Heartbeat** — Continuous value tracking every iteration
 7. **Interactive Pause** — Pauses for genuine human-only actions, resumes autonomously
 8. **Course Correction** — Self-diagnoses stuck states, changes strategy or rolls back
@@ -107,7 +107,7 @@ telic-loop/
 │   ├── state.py             # LoopState + dataclasses
 │   ├── discovery.py         # Context Discovery
 │   ├── decision.py          # Decision engine
-│   ├── claude.py            # Anthropic SDK wrapper
+│   ├── claude.py            # Claude Agent SDK wrapper (MCP + browser eval)
 │   ├── git.py               # Git ops: branching, commits, safety, rollback
 │   ├── tools.py             # Tool implementations
 │   ├── render.py            # Markdown generation from state
@@ -120,7 +120,7 @@ telic-loop/
 │   │   ├── course_correct.py
 │   │   ├── exit_gate.py
 │   │   └── ...
-│   └── prompts/             # Reasoning templates (29 prompts)
+│   └── prompts/             # Reasoning templates (30 prompts)
 ├── docs/                    # V3 planning & architecture docs
 ├── reference/v2/            # V2 implementation (reference)
 ├── pyproject.toml
@@ -130,12 +130,13 @@ telic-loop/
 ## Requirements
 
 - Python >= 3.11
-- `anthropic` SDK >= 0.40.0
-- `ANTHROPIC_API_KEY` environment variable (or `~/.anthropic/config`)
+- `claude-agent-sdk` >= 0.1.37 (wraps `claude` CLI subprocess)
+- Claude Code CLI installed and authenticated (Max subscription or API key)
+- Node.js (for browser-based critical evaluation via `@playwright/mcp`)
 
 ## Status
 
-**Pre-implementation.** Architecture, PRD, and implementation plans are complete. Phase 1 implementation is next.
+**Phase 3 complete.** All three implementation phases are live and tested end-to-end. The system autonomously delivers value from Vision + PRD through interactive pre-loop refinement, multi-agent execution, browser-based critical evaluation, and verified exit gate.
 
 ## Documentation
 

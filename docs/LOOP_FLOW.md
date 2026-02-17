@@ -172,7 +172,7 @@ flowchart TD
         PostQC -- yes --> QCCheckpoint["GIT: Checkpoint<br/>'QC pass — all green'"]
         QCCheckpoint --> DecisionEngine
 
-        CriticalEval["CRITICAL EVAL (Opus)<br/>Use deliverable as real user<br/>Judge experience quality"]
+        CriticalEval["CRITICAL EVAL (Opus)<br/>Use deliverable as real user<br/>Browser eval for web apps<br/>(Playwright MCP)"]
 
         CoherenceEval["COHERENCE EVAL<br/>Quick: structural (no LLM)<br/>Full: 7 dimensions (Opus)"]
 
@@ -350,7 +350,7 @@ When rolling back to a checkpoint:
 | Fix | FIXER | Sonnet | file tools |
 | VRC (quick) | CLASSIFIER | Haiku | `report_vrc` |
 | VRC (full) | REASONER | Opus | `report_vrc`, `manage_task` |
-| Critical Eval | EVALUATOR | Opus | `report_eval_finding` (read-only tools) |
+| Critical Eval | EVALUATOR | Opus | `report_eval_finding` (read-only tools + Playwright MCP for web apps) |
 | Course Correct | REASONER | Opus | `manage_task`, `report_course_correction` |
 | Research | RESEARCHER | Opus | `report_research` + web_search + web_fetch |
 | Interactive Pause | REASONER | Opus | `request_human_action` |

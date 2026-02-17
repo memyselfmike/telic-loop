@@ -165,7 +165,7 @@ loop-v3/
 ├── state.py                     # LoopState, TaskState, VerificationState, VRCSnapshot
 ├── discovery.py                 # Context Discovery — derive sprint context
 ├── decision.py                  # Decision engine: "what should I do next?"
-├── claude.py                    # Anthropic SDK wrapper, model routing
+├── claude.py                    # Claude Agent SDK wrapper, model routing, MCP plumbing
 ├── git.py                       # Git operations: branching, commits, safety, rollback
 ├── tools.py                     # Tool implementations + structured output handlers
 ├── render.py                    # Generate markdown artifacts from structured state
@@ -205,6 +205,7 @@ loop-v3/
 │   ├── execute.md               # Task execution (Builder agent)
 │   ├── generate_verifications.md # QC script generation
 │   ├── critical_eval.md         # Critical evaluation (be the user)
+│   ├── critical_eval_browser.md # Browser evaluation instructions (Playwright MCP)
 │   ├── triage.md                # Failure root cause grouping
 │   ├── fix.md                   # Fix agent with error context
 │   ├── course_correct.md        # Re-planning / descoping
@@ -255,6 +256,10 @@ class LoopConfig:
 
     # Plan health (mid-loop quality validation)
     plan_health_after_n_tasks: int = 5
+
+    # Browser evaluation (Critical Evaluator)
+    browser_eval_headless: bool = False       # False = headed (dev), True = headless (CI)
+    browser_eval_viewport: str = "1280x720"   # Playwright viewport size
 
     # Epic feedback (multi_epic visions only)
     epic_feedback_timeout_minutes: int = 30  # 0 = wait forever, else auto-proceed after N min
@@ -665,70 +670,66 @@ class LoopState:
 
 ```python
 class AgentRole(Enum):
-    """
-    (model_config_attr, max_turns, thinking_effort, max_tokens)
-
-    thinking_effort controls adaptive thinking (Opus 4.6+):
-      "max"  → deep reasoning (planning, critique, course correction)
-      "high" → strong reasoning (evaluation, research)
-      None   → thinking disabled (Sonnet/Haiku execution roles)
-
-    If max_tokens > 21333, session MUST use streaming.
-    """
-    REASONER   = ("model_reasoning",  40,  "max",    32768)
-    EVALUATOR  = ("model_reasoning",  40,  "high",   32768)
-    RESEARCHER = ("model_reasoning",  30,  "high",   16384)
-    BUILDER    = ("model_execution",  60,  None,     16384)
-    FIXER      = ("model_execution",  25,  None,     16384)
-    QC         = ("model_execution",  30,  None,     16384)
-    CLASSIFIER = ("model_triage",      5,  None,      4096)
+    """(model_config_attr, max_turns, tool_set_key)"""
+    REASONER   = ("model_reasoning",  40, "full")
+    EVALUATOR  = ("model_reasoning",  40, "readonly")
+    RESEARCHER = ("model_reasoning",  30, "research")
+    BUILDER    = ("model_execution",  60, "full")
+    FIXER      = ("model_execution",  25, "full")
+    QC         = ("model_execution",  30, "full")
+    CLASSIFIER = ("model_triage",      5, "minimal")
 ```
 
 ### Claude Class
 
-```python
-STREAMING_THRESHOLD = 21333  # API requires streaming above this
+Uses **Claude Agent SDK** (`claude-agent-sdk>=0.1.37`) which wraps the `claude` CLI subprocess. Authentication is handled automatically (Max subscription via OAuth or API key).
 
+```python
 class Claude:
-    """Factory for creating sessions with model routing."""
+    """Factory for creating sessions with model routing via Claude Code SDK."""
 
     def __init__(self, config: LoopConfig, state: LoopState):
         self.config = config
-        self.client = anthropic.Anthropic()  # auto-detects auth from environment
-        self.beta_headers = ["web-fetch-2025-09-10"]
         self.state = state
 
-    def session(self, role: AgentRole, system_extra: str = "") -> ClaudeSession:
-        """Create a session. Model, turns, thinking, tokens derived from role."""
-        model_attr, max_turns, thinking_effort, max_tokens = role.value
-        system = load_prompt("system") + ("\n" + system_extra if system_extra else "")
-        tools = get_tools_for_role(role)
-        has_provider_tools = any(t.get("type", "").startswith("web_fetch") for t in tools)
+    def session(
+        self,
+        role: AgentRole,
+        system_extra: str = "",
+        mcp_servers: dict | None = None,
+        extra_tools: list[str] | None = None,
+    ) -> ClaudeSession:
+        model_attr, max_turns, tools_set = role.value
+        model = getattr(self.config, model_attr)
+        system = load_prompt("system", SPRINT_DIR=str(self.config.sprint_dir))
+        if system_extra:
+            system += "\n" + system_extra
+        system += _tool_cli_instructions(self.config.state_file)
+        builtin_tools = list(_TOOL_SETS.get(tools_set, _FULL_TOOLS))
+        if extra_tools:
+            builtin_tools.extend(extra_tools)
+
         return ClaudeSession(
-            client=self.client,
-            model=getattr(self.config, model_attr),
+            model=model,
             system=system,
             max_turns=max_turns,
-            thinking_effort=thinking_effort,
-            max_tokens=max_tokens,
-            tools=tools,
+            builtin_tools=builtin_tools,
             state=self.state,
-            betas=self.beta_headers if has_provider_tools else None,
+            config=self.config,
+            mcp_servers=mcp_servers,
         )
 ```
 
 ### ClaudeSession
 
-Multi-turn conversation with tool execution. Key behaviors:
-- **Adaptive thinking**: When `thinking_effort` is set, passes `thinking={"type": "adaptive"}` + `output_config={"effort": thinking_effort}` to the API
-- **Streaming**: Automatically enabled when `max_tokens > STREAMING_THRESHOLD` (21333)
-- **Beta namespace**: When `betas` is set, uses `client.beta.messages` instead of `client.messages`. The `betas` list is passed ONLY to `client.beta.messages.create(betas=...)` — do NOT also pass it as a header or kwarg to the non-beta endpoint
-- **Provider tools**: `web_search` and `web_fetch` are server-side — results appear inline in `response.content`, NOT routed through `execute_tool()`
-- **pause_turn**: When `response.stop_reason == "pause_turn"`, re-send conversation as-is (server-side tool loop hit its limit)
-- **Token tracking**: Accumulates into `self.state.total_tokens_used` for budget tracking
-- **task_source**: Provenance label for tasks created via `manage_task` — set by orchestrator, not agent
-
-Full implementation: see Phase 1 Plan §3.
+Single-prompt session using Claude Agent SDK. Key behaviors:
+- **SDK subprocess**: Each `send()` spawns a `claude` CLI process via `claude_agent_sdk.query()`
+- **MCP servers**: Passed through `ClaudeAgentOptions.mcp_servers` — enables Playwright MCP for browser evaluation
+- **Large buffer**: `max_buffer_size=10MB` handles Playwright screenshots (base64-encoded images in JSON messages)
+- **Streaming mode**: Prompts > 30K chars use stdin JSON instead of CLI args (Windows CreateProcess 32K limit)
+- **State sync**: After each query, reloads state from disk (tool CLI may have modified it), preserves `total_tokens_used` from memory
+- **Token tracking**: Accumulates `input_tokens + output_tokens` from `ResultMessage.usage`
+- **task_source**: Provenance label for tasks created via tool CLI — set by orchestrator, not agent
 
 ---
 
@@ -783,17 +784,16 @@ Full JSON schemas: see each Phase Plan.
 ### Tool Role Mapping
 
 ```python
-def get_tools_for_role(role: AgentRole) -> list[dict]:
-    """Return execution + provider tools appropriate for this role.
-    Structured output tools are added separately per-prompt by the orchestrator.
-    Note: CLASSIFIER gets no execution tools but DOES get structured output tools
-    (report_triage, report_vrc, report_coherence) — those are injected by the
-    orchestrator when calling claude.session(), not returned here."""
-    match role:
-        case AgentRole.RESEARCHER:  return EXECUTION_TOOLS + PROVIDER_TOOLS
-        case AgentRole.EVALUATOR:   return READ_ONLY_TOOLS  # inspect but not modify
-        case AgentRole.CLASSIFIER:  return []                # no filesystem tools; structured output tools injected per-prompt
-        case _:                     return EXECUTION_TOOLS    # full filesystem
+# Built-in tool sets by role
+_FULL_TOOLS = ["Bash", "Read", "Write", "Edit", "Glob", "Grep"]
+_READONLY_TOOLS = ["Read", "Glob", "Grep", "Bash"]
+_RESEARCH_TOOLS = ["Bash", "Read", "Glob", "Grep", "WebSearch", "WebFetch"]
+_MINIMAL_TOOLS = ["Bash"]  # Need Bash for tool CLI
+
+# EVALUATOR gets readonly tools by default.
+# For web app deliverables, Playwright MCP tools are conditionally injected
+# via extra_tools parameter (15 browser_* tools from @playwright/mcp).
+# See critical_eval.py: _needs_browser_eval() predicate.
 ```
 
 ### Task Mutation Guardrails (Layer 1 — deterministic, zero LLM cost)
@@ -1098,6 +1098,7 @@ For non-software deliverables (documents, configs), git operations still apply �
 | `exit_gate.md` | Opus (REASONER) | `report_vrc`, `manage_task` | 2 |
 | `vision_validate.md` | Opus (REASONER, 5 sessions) | `report_vision_validation` (PASS/NEEDS_REVISION, issues with HARD/SOFT severity) | 3 |
 | `critical_eval.md` | Opus (EVALUATOR) | `report_eval_finding`, `manage_task` | 3 |
+| `critical_eval_browser.md` | Opus (EVALUATOR) | Playwright MCP tools (conditional) | 3 |
 | `research.md` | Opus (RESEARCHER) | `report_research` + provider tools | 3 |
 | `process_monitor.md` | Opus (REASONER) | `report_strategy_change` | 3 |
 | `epic_decompose.md` | Opus (REASONER) | `report_epic_decomposition` | 3 |

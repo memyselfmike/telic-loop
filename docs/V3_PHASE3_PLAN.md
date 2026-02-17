@@ -485,43 +485,79 @@ def _prd_prompt_loop(config, state, ref, critique, alternatives) -> dict | None:
 
 ## 2. Critical Evaluation
 
-Replaces Phase 2 stub. Evaluator agent (Opus, read-only tools) uses the deliverable as a real user.
+Replaces Phase 2 stub. Evaluator agent (Opus) uses the deliverable as a real user. For web app deliverables, the evaluator gets **Playwright MCP browser tools** injected conditionally — it opens a real browser, navigates the UI, takes screenshots, and interacts with the application.
+
+### Browser Evaluation (Web Apps)
+
+The `_needs_browser_eval()` predicate gates browser tool injection on:
+- Node.js available in the environment
+- `deliverable_type == "software"`
+- `project_type` in `("web_app", "web_application", "spa", "pwa")`
+
+When active, `@playwright/mcp` is launched with `--caps vision` (for screenshot-based visual evaluation) and the evaluator receives 15 `mcp__playwright__browser_*` tools in addition to its read-only tools. Non-web deliverables get the existing readonly evaluation unchanged.
 
 ```python
+def _needs_browser_eval(state: LoopState) -> bool:
+    ctx = state.context
+    has_node = any(
+        "node" in t or "npx" in t
+        for t in ctx.environment.get("tools_found", [])
+    )
+    return (
+        has_node
+        and ctx.deliverable_type == "software"
+        and ctx.project_type in ("web_app", "web_application", "spa", "pwa")
+    )
+
+def _build_playwright_config(config: LoopConfig) -> dict:
+    args = [
+        "@playwright/mcp",
+        "--caps", "vision",
+        "--viewport-size", config.browser_eval_viewport,
+    ]
+    if config.browser_eval_headless:
+        args.append("--headless")
+    return {"playwright": {"command": "npx", "args": args}}
+
 def do_critical_eval(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
     """
     Critical evaluation. Separate Opus agent USES the deliverable as a real user.
 
-    NOT running tests. NOT checking code. An agent EXPERIENCING the deliverable:
-    - Does it make sense? Intuitive?
-    - Data flows correctly end-to-end?
-    - Would a real user figure this out without docs?
-    - Delivers the EXPERIENCE promised by the Vision?
+    For web apps: opens a real browser via Playwright MCP, navigates the UI,
+    takes screenshots (visual evaluation), and interacts with elements.
+    For non-web deliverables: uses read-only file tools only.
     """
     state.tasks_since_last_critical_eval = 0
 
-    session = claude.session(AgentRole.EVALUATOR,
+    # Conditionally inject browser tools for web app deliverables
+    use_browser = _needs_browser_eval(state)
+    mcp_servers = _build_playwright_config(config) if use_browser else None
+    extra_tools = list(PLAYWRIGHT_MCP_TOOLS) if use_browser else None
+
+    session = claude.session(
+        AgentRole.EVALUATOR,
         system_extra="You are a demanding critical evaluator. USE the deliverable "
         "as the intended user would. Navigate the UI. Read the document. Run the tool. "
-        "Report everything: what works, what's confusing, what's missing."
+        "Report everything: what works, what's confusing, what's missing.",
+        mcp_servers=mcp_servers,
+        extra_tools=extra_tools,
     )
 
-    # Get recently completed tasks (since last critical eval)
-    recent_tasks = [t for t in state.tasks.values()
-                    if t.status == "done" and t.completed_at]
-    recent_tasks.sort(key=lambda t: t.completed_at, reverse=True)
-    completed_summary = "\n".join(
-        f"  [{t.task_id}] {t.description}\n"
-        f"    Value: {t.value}\n    Files: {', '.join(t.files_created + t.files_modified)}"
-        for t in recent_tasks[:10]
-    )
+    # Browser section conditionally injected into prompt
+    browser_section = ""
+    if use_browser:
+        browser_section = load_prompt("critical_eval_browser",
+            SPRINT_DIR=str(config.sprint_dir),
+            SERVICES_JSON=json.dumps(state.context.services, indent=2),
+        )
 
-    prompt = load_prompt("critical_eval").format(
+    prompt = load_prompt("critical_eval",
         SPRINT=config.sprint,
         SPRINT_DIR=str(config.sprint_dir),
         SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),
         COMPLETED_TASKS=completed_summary,
         VISION=config.vision_file.read_text(),
+        BROWSER_SECTION=browser_section,
     )
 
     response = session.send(prompt)
@@ -546,7 +582,7 @@ def do_critical_eval(config: LoopConfig, state: LoopState, claude: Claude) -> bo
 
 | Type | What the Evaluator Does |
 |------|------------------------|
-| `web_app` | Opens browser, navigates UI, completes workflows |
+| `web_app` | **Opens browser via Playwright MCP**, navigates UI, takes screenshots, completes workflows |
 | `cli` | Runs tool with realistic inputs, evaluates output |
 | `api` | Exercises endpoints as consuming app |
 | `library` | Writes example code using the library |
@@ -1253,11 +1289,16 @@ def do_full_coherence_eval(config: LoopConfig, state: LoopState, claude: Claude)
 - [ ] Test: round history preserved in state after multi-round refinement
 
 ### Critical Evaluation
-- [ ] Implement `phases/critical_eval.py` — do_critical_eval (replace stub)
-- [ ] Create prompt: `critical_eval.md` (Evaluator agent — be the user)
-- [ ] Add report_eval_finding structured tool schema + handle_eval_finding
-- [ ] Wire into value loop (every N tasks + all-pass trigger)
-- [ ] Verify Evaluator gets read-only tools only
+- [x] Implement `phases/critical_eval.py` — do_critical_eval with conditional browser injection
+- [x] Create prompt: `critical_eval.md` (Evaluator agent — be the user, with `{BROWSER_SECTION}` placeholder)
+- [x] Create prompt: `critical_eval_browser.md` (Playwright MCP browser evaluation instructions)
+- [x] Add `_needs_browser_eval()` predicate + `_build_playwright_config()` helper
+- [x] Add report_eval_finding structured tool schema + handle_eval_finding
+- [x] Wire into value loop (every N tasks + all-pass trigger)
+- [x] Verify Evaluator gets read-only tools by default, Playwright MCP tools for web apps
+- [x] Add `browser_eval_headless` and `browser_eval_viewport` to LoopConfig
+- [x] Add `PLAYWRIGHT_MCP_TOOLS` constant + `mcp_servers`/`extra_tools` plumbing in `claude.py`
+- [x] E2E test: smart-dash sprint — evaluator opened browser, took 20+ screenshots, found 4 UX issues
 
 ### External Research
 - [ ] Implement `phases/research.py` — do_research (replace stub)
