@@ -140,15 +140,20 @@ JSON is the single source of truth. Agents never edit markdown plan files — th
 │                                                         │
 │  After each epic's exit gate passes:                    │
 │                                                         │
-│  1. Generate curated epic summary (what was delivered,  │
+│  1. Coherence eval (if enabled at epic boundary)        │
+│  2. Critical eval — adversarial quality gate on epic    │
+│  3. Generate curated epic summary (what was delivered,  │
 │     how it maps to vision, what comes next)             │
-│  2. Present to human: Proceed / Adjust / Stop           │
-│  3. Timeout auto-proceed (configurable, default 30 min) │
+│  4. Present to human: Proceed / Adjust / Stop           │
+│  5. Timeout auto-proceed (configurable, default 30 min) │
 │                                                         │
 │  PROCEED → refine next epic, begin its value loop       │
 │  ADJUST  → re-plan next epic with human's context       │
 │  STOP    → ship completed epics, generate final report  │
 │  TIMEOUT → auto-proceed (loop keeps delivering)         │
+│                                                         │
+│  Critical eval at epic boundary catches cross-feature   │
+│  bugs before starting the next epic.                    │
 │                                                         │
 │  For single_run visions: this step is skipped entirely. │
 └─────────────────────────────────────────────────────────┘
@@ -1099,6 +1104,17 @@ For non-software deliverables (documents, configs), git operations still apply �
 | `vision_validate.md` | Opus (REASONER, 5 sessions) | `report_vision_validation` (PASS/NEEDS_REVISION, issues with HARD/SOFT severity) | 3 |
 | `critical_eval.md` | Opus (EVALUATOR) | `report_eval_finding`, `manage_task` | 3 |
 | `critical_eval_browser.md` | Opus (EVALUATOR) | Playwright MCP tools (conditional) | 3 |
+
+**Critical Eval triggers:**
+- P8 in value loop (every N tasks, configurable via `critical_eval_interval`)
+- At epic boundaries (after coherence eval, before feedback checkpoint)
+- As final step of exit gate
+
+**Critical Eval scope:**
+- Adversarial quality gatekeeper — tests ALL Value Proofs from `SprintContext.value_proofs`
+- Full-scope: evaluates all done tasks, not just recent ones
+- Epic-scoped when in multi-epic mode (focuses on current epic's deliverables)
+- Browser eval: mandatory route discovery → data lifecycle → cross-view verification
 | `research.md` | Opus (RESEARCHER) | `report_research` + provider tools | 3 |
 | `process_monitor.md` | Opus (REASONER) | `report_strategy_change` | 3 |
 | `epic_decompose.md` | Opus (REASONER) | `report_epic_decomposition` | 3 |

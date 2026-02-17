@@ -61,28 +61,50 @@ def do_critical_eval(config: LoopConfig, state: LoopState, claude: Claude) -> bo
     session = claude.session(
         AgentRole.EVALUATOR,
         system_extra=(
-            "You are a demanding critical evaluator. USE the deliverable "
-            "as the intended user would. Navigate the UI. Read the document. "
-            "Run the tool. Report everything: what works, what's confusing, "
-            "what's missing."
+            "You are an ADVERSARIAL quality gatekeeper. Your job is to BREAK things, "
+            "find every gap, and ensure NOTHING ships that doesn't meet the Vision's "
+            "promises. Test EVERY view, EVERY workflow, EVERY edge case. You are the "
+            "last line of defense before the user sees this. Be thorough. Be relentless."
         ),
         mcp_servers=mcp_servers,
         extra_tools=extra_tools,
     )
 
-    # Get recently completed tasks
-    recent_tasks = [t for t in state.tasks.values() if t.status == "done" and t.completed_at]
-    recent_tasks.sort(key=lambda t: t.completed_at, reverse=True)
-    completed_summary = "\n".join(
-        f"  [{t.task_id}] {t.description}\n"
-        f"    Value: {t.value}\n"
-        f"    Files: {', '.join(t.files_created + t.files_modified)}"
-        for t in recent_tasks[:10]
+    # All completed tasks (full scope, not just recent)
+    all_done = [t for t in state.tasks.values() if t.status == "done"]
+    done_summary = "\n".join(
+        f"  [{t.task_id}] {t.description}"
+        for t in all_done
     )
+
+    # Pending/in-progress tasks for context
+    pending_summary = "\n".join(
+        f"  [{t.task_id}] ({t.status}) {t.description}"
+        for t in state.tasks.values() if t.status != "done"
+    )
+
+    # Value proofs as explicit test checklist
+    value_proofs = "\n".join(
+        f"  {i+1}. {proof}"
+        for i, proof in enumerate(state.context.value_proofs)
+    )
+
+    # Epic scope for multi-epic sprints
+    epic_scope = ""
+    if (state.vision_complexity == "multi_epic"
+            and state.epics
+            and state.current_epic_index < len(state.epics)):
+        epic = state.epics[state.current_epic_index]
+        epic_scope = (
+            f"Current Epic: {epic.title}\n"
+            f"Value: {epic.value_statement}\n"
+            f"Deliverables: {', '.join(epic.deliverables)}\n"
+            f"Completion Criteria:\n"
+            + "\n".join(f"  - {c}" for c in epic.completion_criteria)
+        )
 
     # Build browser-specific prompt section (empty string if not a web app)
     browser_section = ""
-    services_json = ""
     if use_browser:
         browser_section = load_prompt(
             "critical_eval_browser",
@@ -95,8 +117,11 @@ def do_critical_eval(config: LoopConfig, state: LoopState, claude: Claude) -> bo
         SPRINT=config.sprint,
         SPRINT_DIR=str(config.sprint_dir),
         SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),
-        COMPLETED_TASKS=completed_summary,
         VISION=config.vision_file.read_text() if config.vision_file.exists() else "",
+        VALUE_PROOFS=value_proofs,
+        DONE_TASKS=done_summary,
+        PENDING_TASKS=pending_summary,
+        EPIC_SCOPE=epic_scope,
         BROWSER_SECTION=browser_section,
     )
 

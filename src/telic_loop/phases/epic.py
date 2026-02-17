@@ -54,6 +54,11 @@ def run_epic_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
         if config.coherence_full_at_epic_boundary:
             do_full_coherence_eval(config, state, claude)
 
+        # Critical evaluation at epic boundary
+        from .critical_eval import do_critical_eval
+        print(f"  Running critical evaluation for completed epic: {epic.title}")
+        do_critical_eval(config, state, claude)
+
         # Epic feedback checkpoint (skip for last epic)
         if i < len(state.epics) - 1:
             response = epic_feedback_checkpoint(config, state, claude, epic)

@@ -172,7 +172,7 @@ flowchart TD
         PostQC -- yes --> QCCheckpoint["GIT: Checkpoint<br/>'QC pass — all green'"]
         QCCheckpoint --> DecisionEngine
 
-        CriticalEval["CRITICAL EVAL (Opus)<br/>Use deliverable as real user<br/>Browser eval for web apps<br/>(Playwright MCP)"]
+        CriticalEval["CRITICAL EVAL (Opus)<br/>Adversarial quality gatekeeper<br/>Tests ALL Value Proofs<br/>Browser eval for web apps<br/>(Playwright MCP)"]
 
         CoherenceEval["COHERENCE EVAL<br/>Quick: structural (no LLM)<br/>Full: 7 dimensions (Opus)"]
 
@@ -220,8 +220,10 @@ flowchart TD
     %% ============================================================
     ExitLoop --> IsMultiEpic{Multi-epic?}
 
-    subgraph EPICFEEDBACK["EPIC FEEDBACK CHECKPOINT (Phase 3)"]
-        EpicSummary["Generate curated<br/>epic summary"]
+    subgraph EPICFEEDBACK["EPIC BOUNDARY EVAL + FEEDBACK (Phase 3)"]
+        EpicCoherence["Coherence eval<br/>(if enabled)"]
+        EpicCoherence --> EpicCritEval["CRITICAL EVAL<br/>Adversarial eval of<br/>completed epic"]
+        EpicCritEval --> EpicSummary["Generate curated<br/>epic summary"]
         EpicSummary --> PresentEpic["Present to human:<br/>Proceed / Adjust / Stop"]
         PresentEpic --> EpicResponse{Response?}
         EpicResponse -- Proceed --> NextEpic["Refine next epic →<br/>begin its value loop"]
@@ -231,7 +233,7 @@ flowchart TD
         EpicResponse -- "Timeout<br/>(30 min)" --> NextEpic
     end
 
-    IsMultiEpic -- "yes, more epics" --> EpicSummary
+    IsMultiEpic -- "yes, more epics" --> EpicCoherence
     IsMultiEpic -- no --> FinalReport
     NextEpic --> DecisionEngine
 
@@ -350,7 +352,7 @@ When rolling back to a checkpoint:
 | Fix | FIXER | Sonnet | file tools |
 | VRC (quick) | CLASSIFIER | Haiku | `report_vrc` |
 | VRC (full) | REASONER | Opus | `report_vrc`, `manage_task` |
-| Critical Eval | EVALUATOR | Opus | `report_eval_finding` (read-only tools + Playwright MCP for web apps) |
+| Critical Eval | EVALUATOR | Opus | `report_eval_finding` (adversarial gatekeeper, tests ALL Value Proofs, read-only + Playwright MCP for web apps) |
 | Course Correct | REASONER | Opus | `manage_task`, `report_course_correction` |
 | Research | RESEARCHER | Opus | `report_research` + web_search + web_fetch |
 | Interactive Pause | REASONER | Opus | `request_human_action` |
