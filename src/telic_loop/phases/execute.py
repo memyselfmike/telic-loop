@@ -71,6 +71,9 @@ def do_execute(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
         task.retry_count += 1
         return False
 
+    # Re-fetch task from state — _sync_state reloaded from disk after session,
+    # so the old local `task` reference is stale
+    task = state.tasks.get(task.task_id, task)
     completed = task.status == "done"  # set by report_task_complete handler
 
     if not completed:
