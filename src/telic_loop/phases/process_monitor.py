@@ -50,7 +50,9 @@ def update_process_metrics(state: LoopState, action: str, made_progress: bool) -
                 if _hash_error(f.stderr or f.stdout or "unknown") == h
             ])
 
-    # File touch tracking
+    # File touch tracking — rebuild from scratch each time to stay correct.
+    # Count how many distinct done tasks touched each file (not per-iteration).
+    pm.file_touches = {}
     for task in state.tasks.values():
         if task.status == "done":
             for f in task.files_created + task.files_modified:

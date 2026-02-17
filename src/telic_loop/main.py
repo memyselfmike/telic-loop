@@ -13,7 +13,11 @@ from .render import generate_delivery_report, render_value_checklist
 from .state import LoopState
 
 
-def run_value_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
+def run_value_loop(
+    config: LoopConfig, state: LoopState, claude: Claude,
+    *,
+    inside_epic_loop: bool = False,
+) -> None:
     """The Value Loop: iterate until value is delivered or budget exhausted."""
     from .phases.coherence import quick_coherence_check
     from .phases.course_correct import do_course_correct
@@ -78,7 +82,10 @@ def run_value_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None
         if action == Action.EXIT_GATE:
             exit_passed = do_exit_gate(config, state, claude)
             if exit_passed:
-                generate_delivery_report(config, state)
+                if not inside_epic_loop:
+                    # Only generate delivery report for single-run sprints.
+                    # Epic loop generates its own report after all epics complete.
+                    generate_delivery_report(config, state)
                 print("\n  VALUE DELIVERED — exit gate passed")
                 state.save(config.state_file)
                 return

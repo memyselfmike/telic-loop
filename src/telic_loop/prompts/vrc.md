@@ -26,6 +26,7 @@ You are running in **{IS_FULL_VRC}** mode.
 
 ### Vision
 {VISION}
+{EPIC_SCOPE}
 
 ### Current Plan
 {PLAN}

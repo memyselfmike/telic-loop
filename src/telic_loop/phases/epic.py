@@ -36,8 +36,16 @@ def run_epic_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
         # Run pre-loop scoped to this epic's deliverables
         _run_epic_preloop(config, state, claude, epic)
 
+        # Reset per-epic state so each epic gets fresh QC and exit gate
+        state.exit_gate_attempts = 0
+        state.verifications = {}
+        state.verification_categories = []
+        state.tasks_since_last_critical_eval = 0
+        if "verifications_generated" in state.gates_passed:
+            state.gates_passed.remove("verifications_generated")
+
         # Run value loop for this epic
-        run_value_loop(config, state, claude)
+        run_value_loop(config, state, claude, inside_epic_loop=True)
 
         # Mark epic complete
         epic.status = "completed"
@@ -180,6 +188,9 @@ def _run_epic_preloop(
         print(f"  Running scoped context discovery for epic: {epic.title}")
         discover_context(config, claude, state)
 
+    # Track existing task IDs so we can identify newly created ones
+    existing_task_ids = set(state.tasks.keys())
+
     # Plan generation — agent creates tasks via manage_task tool calls
     print(f"  Generating tasks for epic: {epic.title}")
     session = claude.session(AgentRole.REASONER)
@@ -196,13 +207,24 @@ def _run_epic_preloop(
         task_source="plan",
     )
 
-    # Tag newly created tasks with this epic's ID
-    # (decision engine uses epic_id for scoping tasks to the current epic)
+    # Tag tasks with this epic's ID.
+    # If new tasks were created by the planner, tag only those.
+    # If no new tasks (planner reused existing plan), tag all untagged pending tasks.
+    new_task_ids = set(state.tasks.keys()) - existing_task_ids
     tagged = 0
-    for task in state.tasks.values():
-        if not task.epic_id and task.status == "pending":
+    if new_task_ids:
+        # Tag only newly created tasks
+        for tid in new_task_ids:
+            task = state.tasks[tid]
             task.epic_id = epic.epic_id
             tagged += 1
+    else:
+        # No new tasks — this epic's tasks already exist from initial planning.
+        # Tag untagged pending tasks that match this epic's deliverables.
+        for task in state.tasks.values():
+            if not task.epic_id and task.status == "pending":
+                task.epic_id = epic.epic_id
+                tagged += 1
     print(f"  Tagged {tagged} tasks with epic_id={epic.epic_id}")
 
     render_plan_snapshot(config, state)

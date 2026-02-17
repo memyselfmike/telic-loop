@@ -55,7 +55,8 @@ def do_generate_qc(config: LoopConfig, state: LoopState, claude: Claude) -> bool
                         requires=_parse_requires(script),
                     )
 
-    state.pass_gate("verifications_generated")
+    if state.verifications:
+        state.pass_gate("verifications_generated")
     return bool(state.verifications)
 
 

@@ -38,6 +38,28 @@ def run_vrc(
         if budget_pct >= 80 and not force_full:
             is_full_vrc = False
 
+    # Epic scoping: in multi-epic mode, VRC evaluates the current epic's
+    # deliverables, not the full Vision. This prevents the exit gate from
+    # passing prematurely on partial Vision delivery.
+    epic_scope = ""
+    if (state.vision_complexity == "multi_epic"
+            and state.epics
+            and state.current_epic_index < len(state.epics)):
+        epic = state.epics[state.current_epic_index]
+        epic_scope = (
+            f"\n\n## EPIC SCOPE — Evaluate ONLY this epic's deliverables:\n"
+            f"Epic {state.current_epic_index + 1}/{len(state.epics)}: {epic.title}\n"
+            f"Value: {epic.value_statement}\n"
+            f"Deliverables:\n"
+            + "\n".join(f"- {d}" for d in epic.deliverables)
+            + f"\nCompletion Criteria:\n"
+            + "\n".join(f"- {c}" for c in epic.completion_criteria)
+            + f"\n\nIMPORTANT: Score deliverables_total and deliverables_verified "
+            f"against THIS EPIC's {len(epic.deliverables)} deliverables, "
+            f"not the full Vision. Set SHIP_READY only when all of this epic's "
+            f"completion criteria are met."
+        )
+
     if is_full_vrc:
         session = claude.session(
             AgentRole.REASONER,
@@ -58,6 +80,7 @@ def run_vrc(
         PLAN=render_plan_markdown(state),
         TASK_SUMMARY=build_task_summary(state),
         PREVIOUS_VRC=format_latest_vrc(state),
+        EPIC_SCOPE=epic_scope,
     )
 
     vrc_count_before = len(state.vrc_history)
@@ -65,19 +88,35 @@ def run_vrc(
 
     # Fallback if agent didn't call report_vrc
     if len(state.vrc_history) == vrc_count_before:
-        done = len([t for t in state.tasks.values() if t.status == "done"])
-        total = len(state.tasks) or 1
-        snapshot = VRCSnapshot(
-            iteration=state.iteration,
-            timestamp=datetime.now().isoformat(),
-            deliverables_total=total,
-            deliverables_verified=done,
-            deliverables_blocked=len([t for t in state.tasks.values() if t.status == "blocked"]),
-            value_score=done / total,
-            gaps=[],
-            recommendation="CONTINUE",
-            summary=f"Fallback VRC: {done}/{total} tasks done",
-        )
+        # Use the previous VRC's deliverables baseline (Vision-based) if available,
+        # NOT task counts — task completion ≠ value delivery.
+        prev = state.vrc_history[-1] if state.vrc_history else None
+        if prev:
+            # Carry forward previous VRC scores — we can't improve on them without
+            # a real evaluation. This prevents phantom score jumps from task counting.
+            snapshot = VRCSnapshot(
+                iteration=state.iteration,
+                timestamp=datetime.now().isoformat(),
+                deliverables_total=prev.deliverables_total,
+                deliverables_verified=prev.deliverables_verified,
+                deliverables_blocked=prev.deliverables_blocked,
+                value_score=prev.value_score,
+                gaps=prev.gaps,
+                recommendation=prev.recommendation,
+                summary=f"Fallback VRC: carried forward from iteration {prev.iteration} ({prev.value_score:.0%})",
+            )
+        else:
+            snapshot = VRCSnapshot(
+                iteration=state.iteration,
+                timestamp=datetime.now().isoformat(),
+                deliverables_total=0,
+                deliverables_verified=0,
+                deliverables_blocked=0,
+                value_score=0.0,
+                gaps=[],
+                recommendation="CONTINUE",
+                summary="Fallback VRC: no previous evaluation available",
+            )
         state.vrc_history.append(snapshot)
 
     return state.vrc_history[-1]

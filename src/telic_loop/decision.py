@@ -31,9 +31,12 @@ def _scoped_tasks(state: LoopState) -> dict[str, TaskState]:
     if state.current_epic_index >= len(state.epics):
         return state.tasks
     current_epic_id = state.epics[state.current_epic_index].epic_id
+    # Only include tasks explicitly tagged with this epic's ID.
+    # Tasks with empty epic_id are unassigned and should NOT be in scope
+    # (they need to be tagged by _run_epic_preloop first).
     return {
         tid: t for tid, t in state.tasks.items()
-        if not t.epic_id or t.epic_id == current_epic_id
+        if t.epic_id == current_epic_id
     }
 
 
@@ -68,9 +71,12 @@ def decide_next_action(config: LoopConfig, state: LoopState) -> Action:
     done_count = len([t for t in scoped.values() if t.status == "done"])
     pending_tasks = [t for t in scoped.values() if t.status == "pending"]
 
-    # P3: Generate QC early
+    # P3: Generate QC when enough tasks are done to be meaningful
+    # Require at least 3 done tasks (or all tasks done) to avoid premature QC
+    # that produces nothing and wastes the generation opportunity.
+    min_for_qc = min(3, len(scoped))
     if (not state.verifications
-            and done_count >= config.generate_verifications_after
+            and done_count >= max(config.generate_verifications_after, min_for_qc)
             and state.gate_passed("plan_generated")
             and not state.gate_passed("verifications_generated")):
         return Action.GENERATE_QC
@@ -138,9 +144,14 @@ def decide_next_action(config: LoopConfig, state: LoopState) -> Action:
     if not pending_tasks:
         if state.verifications and all_pass:
             return Action.EXIT_GATE
-        if not state.verifications and state.gate_passed("verifications_generated"):
-            print("  WARNING: No verifications exist (QC generation produced nothing). Exiting with warning.")
-            return Action.EXIT_GATE
+        if not state.verifications:
+            # No verifications exist — try to generate them before exiting
+            if not state.gate_passed("verifications_generated"):
+                return Action.GENERATE_QC
+            # QC was attempted but produced nothing — allow exit gate
+            # only after sufficient tasks are done (not on first attempt)
+            if done_count >= max(3, len(scoped) // 2):
+                return Action.EXIT_GATE
 
     return Action.COURSE_CORRECT
 
