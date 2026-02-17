@@ -152,7 +152,12 @@ def decide_next_action(config: LoopConfig, state: LoopState) -> Action:
             return Action.EXIT_GATE
         if not state.verifications:
             # No verifications exist — try to generate them before exiting
-            if not state.gate_passed("verifications_generated"):
+            # But skip if QC generation has already failed twice recently
+            recent_qc_fails_p9 = sum(
+                1 for e in state.progress_log[-2:]
+                if e.get("action") == "generate_qc" and e.get("result") == "no_progress"
+            )
+            if not state.gate_passed("verifications_generated") and recent_qc_fails_p9 < 2:
                 return Action.GENERATE_QC
             # QC was attempted but produced nothing — allow exit gate
             # only after sufficient tasks are done (not on first attempt)
