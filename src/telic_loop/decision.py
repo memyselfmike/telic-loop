@@ -74,9 +74,9 @@ def decide_next_action(config: LoopConfig, state: LoopState) -> Action:
     # P3: Generate QC when enough tasks are done to be meaningful
     # Require at least 3 done tasks (or all tasks done) to avoid premature QC
     # that produces nothing and wastes the generation opportunity.
-    # Guard: if QC generation failed twice in a row, skip to let tasks execute.
-    recent_qc_fails = sum(
-        1 for e in state.progress_log[-2:]
+    # Guard: if QC generation has failed 3+ times total, stop trying.
+    total_qc_fails = sum(
+        1 for e in state.progress_log
         if e.get("action") == "generate_qc" and e.get("result") == "no_progress"
     )
     min_for_qc = min(3, len(scoped))
@@ -84,7 +84,7 @@ def decide_next_action(config: LoopConfig, state: LoopState) -> Action:
             and done_count >= max(config.generate_verifications_after, min_for_qc)
             and state.gate_passed("plan_generated")
             and not state.gate_passed("verifications_generated")
-            and recent_qc_fails < 2):
+            and total_qc_fails < 3):
         return Action.GENERATE_QC
 
     # P4: Fix failing QC
@@ -152,12 +152,8 @@ def decide_next_action(config: LoopConfig, state: LoopState) -> Action:
             return Action.EXIT_GATE
         if not state.verifications:
             # No verifications exist — try to generate them before exiting
-            # But skip if QC generation has already failed twice recently
-            recent_qc_fails_p9 = sum(
-                1 for e in state.progress_log[-2:]
-                if e.get("action") == "generate_qc" and e.get("result") == "no_progress"
-            )
-            if not state.gate_passed("verifications_generated") and recent_qc_fails_p9 < 2:
+            # But skip if QC generation has already failed 3+ times total
+            if not state.gate_passed("verifications_generated") and total_qc_fails < 3:
                 return Action.GENERATE_QC
             # QC was attempted but produced nothing — allow exit gate
             # only after sufficient tasks are done (not on first attempt)
