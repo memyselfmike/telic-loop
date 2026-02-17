@@ -973,8 +973,27 @@ def handle_course_correction(input_data: dict, state: LoopState, **_: Any) -> st
 
 
 def handle_epic_decomposition(input_data: dict, state: LoopState, **_: Any) -> str:
+    from .state import Epic
+
     state.agent_results["epic_decomposition"] = input_data
-    return f"Epic decomposition: {input_data.get('epic_count', 0)} epics"
+
+    # Create Epic objects in state.epics from the decomposition result
+    epics: list[Epic] = []
+    for epic_data in input_data.get("epics", []):
+        epic = Epic(
+            epic_id=epic_data.get("epic_id", f"epic_{len(epics) + 1}"),
+            title=epic_data.get("title", ""),
+            value_statement=epic_data.get("value_statement", ""),
+            deliverables=epic_data.get("deliverables", []),
+            completion_criteria=epic_data.get("completion_criteria", []),
+            depends_on=epic_data.get("depends_on", []),
+            detail_level=epic_data.get("detail_level", "sketch"),
+            task_sketch=epic_data.get("task_sketch", []),
+        )
+        epics.append(epic)
+    state.epics = epics
+
+    return f"Epic decomposition: {len(epics)} epics created"
 
 
 def handle_epic_summary(input_data: dict, state: LoopState, **_: Any) -> str:

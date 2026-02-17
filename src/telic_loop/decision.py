@@ -153,14 +153,20 @@ def _all_services_healthy(config: LoopConfig, state: LoopState) -> bool:
 
     for name, service in state.context.services.items():
         if "health_url" in service:
+            url = service["health_url"]
+            # Skip URLs with unresolved template variables — can't health-check them
+            if "{" in url:
+                continue
             try:
-                r = requests.get(service["health_url"], timeout=5)
+                r = requests.get(url, timeout=5)
                 if r.status_code != 200:
                     return False
-            except (requests.ConnectionError, requests.Timeout):
+            except requests.RequestException:
                 return False
         elif service.get("health_type") == "tcp":
             port = service.get("port", 0)
+            if port == 0:
+                continue  # Dynamic port not yet assigned — skip
             if not _is_port_open("localhost", port):
                 return False
     return True

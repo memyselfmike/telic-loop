@@ -603,16 +603,29 @@ def classify_vision_complexity(
         f"Classify this vision as 'single_run' or 'multi_epic'.\n\n"
         f"VISION:\n{vision_text}\n\n"
         f"PRD:\n{prd_text}\n\n"
-        f"Complexity signals (any → multi_epic):\n"
+        f"Complexity signals — if ANY ONE is true, classify as multi_epic:\n"
         f"- >3 independently valuable deliverables\n"
         f"- >15 estimated tasks\n"
         f"- >2 layers of sequential dependencies\n"
-        f"- >2 distinct technology domains\n"
-        f"- Multiple external system integrations\n\n"
+        f"- >2 distinct technology domains (e.g. backend + database + frontend)\n"
+        f"- Multiple services (e.g. API server + frontend + database)\n"
+        f"- Full-stack application (backend API + frontend SPA)\n"
+        f"- Multiple user-facing views or pages with distinct functionality\n\n"
+        f"A full-stack web application with separate backend, database, and "
+        f"frontend is ALWAYS multi_epic.\n\n"
         f"Respond with ONLY 'single_run' or 'multi_epic' on the first line."
     )
-    first_line = response.strip().split("\n")[0].strip().lower()
-    classification = "multi_epic" if "multi_epic" in first_line else "single_run"
+    # Extract classification — check all lines since SDK may include preamble
+    response_lower = response.strip().lower()
+    classification = "single_run"
+    for line in response_lower.split("\n"):
+        line = line.strip()
+        if "multi_epic" in line:
+            classification = "multi_epic"
+            break
+        if line == "single_run":
+            classification = "single_run"
+            break
     state.vision_complexity = classification
     return classification
 
