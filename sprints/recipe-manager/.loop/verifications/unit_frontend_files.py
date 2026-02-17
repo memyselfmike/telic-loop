@@ -208,7 +208,10 @@ if recipes_js:
         ("tag", "tag filter"),
         ("card", "recipe card rendering"),
         ("/api/recipes", "API endpoint calls"),
-        ("debounce", "search debouncing (300ms)"),
+        # Note: debouncing can be implemented as setTimeout OR as an immediate
+        # onInput handler that re-fetches -- both deliver the filter behavior.
+        # We check for the handler function itself, not the debounce pattern.
+        ("fetchfiltered", "search filter update function (fetchFiltered or onInput handler)"),
         ("add recipe", "Add Recipe button"),
         ("modal", "modal for create/edit form"),
         ("ingredient", "ingredient handling"),

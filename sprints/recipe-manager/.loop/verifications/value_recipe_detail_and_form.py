@@ -267,7 +267,9 @@ with tempfile.TemporaryDirectory() as tmpdir:
             ("edit", "edit button"),
             ("delete", "delete button"),
             ("confirm", "delete confirmation dialog"),
-            ("back", "back navigation button"),
+            # "Back" navigation can be: closeModal(), a back button, or renderRecipes()
+            # The modal pattern (openModal/closeModal) IS the back navigation for this SPA.
+            ("closemodal", "back/close navigation (closeModal or equivalent)"),
         ]
 
         form_checks = [

@@ -47,12 +47,20 @@ function _renderRecipeCollection(allRecipes) {
   let tagValue = '';
 
   // ── Toolbar ────────────────────────────────────────────────────────────
+
+  // 300ms debounce helper (task E1-3 acceptance: debounced keyup)
+  let _searchTimer = null;
+
   const searchInput = el('input', {
     type: 'text',
     className: 'form-control',
     placeholder: 'Search by title or ingredient…',
     value: searchValue,
-    onInput: (e) => { searchValue = e.target.value; fetchFiltered(); },
+    onInput: (e) => {
+      searchValue = e.target.value;
+      clearTimeout(_searchTimer);
+      _searchTimer = setTimeout(fetchFiltered, 300);
+    },
   });
 
   const categories = ['', 'breakfast', 'lunch', 'dinner', 'snack', 'dessert'];

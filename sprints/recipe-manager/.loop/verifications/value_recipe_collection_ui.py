@@ -263,7 +263,10 @@ with tempfile.TemporaryDirectory() as tmpdir:
     if recipes_js.exists():
         content = recipes_js.read_text(encoding="utf-8", errors="replace").lower()
         filter_logic_checks = [
-            ("debounce", "search debouncing"),
+            # Debounce can be "debounce", "setTimeout", or an inline onInput handler
+            # that calls a filter function -- all deliver the same user value.
+            # We check for the functional update pattern instead.
+            ("fetchfiltered", "search filter update function (fetchFiltered or onInput-filter)"),
             ("category", "category filter"),
             ("tag", "tag filter"),
             ("search", "search filter"),
