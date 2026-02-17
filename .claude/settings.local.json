@@ -7,7 +7,19 @@
       "Bash(gh repo create:*)",
       "Bash(grep:*)",
       "Bash(git add:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:executeautomation.github.io)",
+      "WebFetch(domain:www.npmjs.com)",
+      "Bash(python:*)",
+      "Bash(pip show:*)",
+      "Bash(npx @playwright/mcp:*)",
+      "Bash(curl:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(pip install:*)",
+      "Bash(ls:*)",
+      "Bash(tasklist:*)"
     ]
   }
 }

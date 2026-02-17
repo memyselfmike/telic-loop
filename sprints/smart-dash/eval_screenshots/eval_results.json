@@ -1,0 +1,126 @@
+{
+  "test1_empty_submit": {
+    "blocked": true,
+    "count_before": "0 tasks, 0 done",
+    "count_after": "0 tasks, 0 done",
+    "task_count": 0
+  },
+  "test2_whitespace_submit": {
+    "blocked": true,
+    "task_count": 0
+  },
+  "test3_delete_button_size": {
+    "bounding_box_w": 19.21875,
+    "bounding_box_h": 22,
+    "computed": {
+      "width": 19,
+      "height": 22,
+      "padding": "0px 4px",
+      "fontSize": "19.2px"
+    },
+    "touch_friendly_44px": false
+  },
+  "test4_pause_while_stopped": {
+    "pause_disabled_attr": "",
+    "start_disabled_attr": null,
+    "display_before": "25:00",
+    "display_after": "25:00",
+    "pause_is_disabled": true
+  },
+  "test5_line_reference": {
+    "help_text": "To enable weather: Get a free API key at openweathermap.org, then edit this HTML file and set WEATHER_API_KEY on line 83.",
+    "help_visible": true,
+    "help_says_line_83": true,
+    "actual_line_83": "</div>",
+    "actual_api_key_line": 90,
+    "reference_accurate": false
+  },
+  "test6_long_task": {
+    "text_length": 169,
+    "overflow_info": {
+      "item_scrollWidth": 342,
+      "item_clientWidth": 342,
+      "item_overflowX": false,
+      "span_scrollWidth": 278,
+      "span_clientWidth": 278,
+      "span_overflow": "visible",
+      "span_textOverflow": "clip",
+      "span_wordBreak": "normal",
+      "span_overflowWrap": "normal",
+      "widget_scrollWidth": 374,
+      "widget_clientWidth": 374,
+      "widget_overflows": false,
+      "bodyOverflow": false
+    }
+  },
+  "test7_rapid_20_tasks": {
+    "rendered_count": 20,
+    "scroll_info": {
+      "task_count": 20,
+      "list_scrollHeight": 984,
+      "list_clientHeight": 984,
+      "list_overflowY": "visible",
+      "list_maxHeight": "none",
+      "widget_scrollHeight": 1143,
+      "widget_clientHeight": 1143,
+      "widget_overflowY": "visible",
+      "widget_maxHeight": "none",
+      "body_scrollHeight": 1962,
+      "body_clientHeight": 1962,
+      "page_scrolls": false
+    }
+  },
+  "test8_pulse_animation": {
+    "has_running_class": true,
+    "opacities_sampled": [
+      0.788567,
+      0.622464,
+      0.618082,
+      0.777061,
+      0.955165,
+      0.994572,
+      0.87782,
+      0.675014
+    ],
+    "min_opacity": 0.618082,
+    "max_opacity": 0.994572,
+    "animation_visible": true
+  },
+  "test9_reset_while_running": {
+    "display_before_reset": "24:58",
+    "display_after_reset": "25:00",
+    "display_after_2s_wait": "25:00",
+    "timer_fully_stopped": true,
+    "running_class_after_reset": false,
+    "start_disabled_after_reset": null,
+    "pause_disabled_after_reset": ""
+  },
+  "test10_keyboard_accessibility": {
+    "start_button_reachable_by_tab": true,
+    "button_focus_count": 6,
+    "has_custom_focus_style": true,
+    "browser_default_outlines_removed": false,
+    "task_input_focus_styles": {
+      "outline": "rgb(224, 224, 224) none 0px",
+      "outlineStyle": "none",
+      "borderColor": "rgb(15, 52, 96)"
+    },
+    "focus_order": [
+      "A#",
+      "INPUT#task-input",
+      "BUTTON#timer-start",
+      "BUTTON#timer-reset",
+      "BODY#",
+      "A#",
+      "INPUT#task-input",
+      "BUTTON#timer-start",
+      "BUTTON#timer-reset",
+      "BODY#",
+      "A#",
+      "INPUT#task-input",
+      "BUTTON#timer-start",
+      "BUTTON#timer-reset",
+      "BODY#"
+    ]
+  }
+}

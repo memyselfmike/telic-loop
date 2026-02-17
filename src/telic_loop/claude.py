@@ -1,4 +1,4 @@
-"""Claude Code SDK wrapper: Claude class, ClaudeSession, AgentRole model routing."""
+"""Claude Agent SDK wrapper: Claude class, ClaudeSession, AgentRole model routing."""
 
 from __future__ import annotations
 
@@ -9,14 +9,14 @@ from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from claude_code_sdk import (
+from claude_agent_sdk import (
     AssistantMessage,
-    ClaudeCodeOptions,
+    CLIConnectionError,
+    ClaudeAgentOptions,
     ResultMessage,
     TextBlock,
     query,
 )
-from claude_code_sdk._errors import CLIConnectionError
 
 if TYPE_CHECKING:
     from .config import LoopConfig
@@ -191,13 +191,14 @@ class ClaudeSession:
         # Allow nested Claude Code sessions (e.g. launched from Claude Code)
         os.environ.pop("CLAUDECODE", None)
 
-        options = ClaudeCodeOptions(
+        options = ClaudeAgentOptions(
             model=self.model,
             system_prompt=self.system,
             allowed_tools=list(self.builtin_tools),
             permission_mode="bypassPermissions",
             max_turns=self.max_turns,
             mcp_servers=self.mcp_servers if self.mcp_servers else {},
+            max_buffer_size=10 * 1024 * 1024,  # 10MB — handles large prompts + screenshots
         )
 
         # Estimate CLI arg size; switch to streaming mode if too large for Windows

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quick Timer Test</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #1a1a2e; color: #e0e0e0; }
+        .test { margin: 20px 0; padding: 15px; background: #16213e; border-radius: 8px; }
+        button { padding: 8px 16px; margin: 5px; cursor: pointer; }
+        .pass { color: #4CAF50; }
+        .fail { color: #f44336; }
+    </style>
+</head>
+<body>
+    <h1>Pomodoro Timer Manual Verification</h1>
+
+    <div class="test">
+        <h2>Test 1: Initial State</h2>
+        <p>Open <a href="http://localhost:8000/index.html" target="_blank">the dashboard</a></p>
+        <p>Expected: Timer shows "25:00", mode shows "WORK", completed count shows "0"</p>
+    </div>
+
+    <div class="test">
+        <h2>Test 2: Start Button</h2>
+        <p>Click Start button, wait 3-5 seconds</p>
+        <p>Expected: Display counts down (25:00 → 24:59 → 24:58...)</p>
+    </div>
+
+    <div class="test">
+        <h2>Test 3: Pause Button</h2>
+        <p>Click Pause button while timer is running</p>
+        <p>Expected: Countdown stops at current time</p>
+    </div>
+
+    <div class="test">
+        <h2>Test 4: Resume After Pause</h2>
+        <p>Click Start again after pausing</p>
+        <p>Expected: Countdown resumes from where it stopped</p>
+    </div>
+
+    <div class="test">
+        <h2>Test 5: Reset Button</h2>
+        <p>Click Reset button (while running or paused)</p>
+        <p>Expected: Timer returns to "25:00" and stops</p>
+    </div>
+
+    <div class="test">
+        <h2>Test 6: Timer Completion (Accelerated)</h2>
+        <p><strong>Manual code edit required:</strong> Temporarily change line 480 from <code>25 * 60</code> to <code>3</code> (3 seconds)</p>
+        <p>Reload page, click Start, wait for timer to reach 00:00</p>
+        <p>Expected:
+            <ul>
+                <li>✓ Beep sound plays</li>
+                <li>✓ Mode switches to "BREAK"</li>
+                <li>✓ Display shows "05:00"</li>
+                <li>✓ Completed pomodoros: 1</li>
+                <li>✓ Timer automatically starts counting down (04:59...)</li>
+            </ul>
+        </p>
+    </div>
+
+    <div class="test">
+        <h2>Test 7: BREAK Mode Completion</h2>
+        <p>Continue from Test 6 - let the BREAK timer complete</p>
+        <p>Expected:
+            <ul>
+                <li>✓ Beep plays</li>
+                <li>✓ Mode switches back to "WORK"</li>
+                <li>✓ Display shows "00:03" (or 25:00 if using normal duration)</li>
+                <li>✓ Completed pomodoros: 1 (unchanged - only increments on WORK completion)</li>
+                <li>✓ Timer auto-starts</li>
+            </ul>
+        </p>
+    </div>
+
+    <script>
+        console.log('Manual test guide loaded');
+        console.log('Dashboard should be running at http://localhost:8000/index.html');
+    </script>
+</body>
+</html>

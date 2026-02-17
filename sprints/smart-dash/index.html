@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Developer Focus Dashboard</title>
+<style>
+:root{--bg-primary:#1a1a2e;--bg-secondary:#16213e;--text-primary:#e0e0e0;--text-secondary:#a0a0a0;--accent-primary:#0f3460;--accent-secondary:#533483;--border-color:#2a2a3e}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background-color:var(--bg-primary);color:var(--text-primary);line-height:1.6;padding:1rem;min-height:100vh}
+.dashboard{max-width:600px;margin:0 auto;display:flex;flex-direction:column;gap:1.5rem}
+header{text-align:center;padding:1rem 0;border-bottom:2px solid var(--border-color)}
+header h1{font-size:1.5rem;font-weight:600}
+.widget{background-color:var(--bg-secondary);border:1px solid var(--border-color);border-radius:8px;padding:1.25rem}
+.widget-title{font-size:1.1rem;font-weight:600;margin-bottom:.75rem;border-bottom:1px solid var(--border-color);padding-bottom:.5rem}
+.widget-content{color:var(--text-secondary)}
+#clock-widget .time{font-size:2rem;font-weight:300;color:var(--text-primary);margin-bottom:.25rem}
+#clock-widget .date{font-size:1rem}
+#weather-widget .weather-info{font-size:1.2rem}
+#task-widget input[type="text"]{width:100%;padding:.5rem;background-color:var(--bg-primary);border:1px solid var(--border-color);border-radius:4px;color:var(--text-primary);font-size:.95rem;margin-bottom:.75rem}
+#task-widget input[type="text"]:focus{outline:none;border-color:var(--accent-primary)}
+.task-list{list-style:none}
+.task-item{display:flex;align-items:center;gap:.5rem;padding:.5rem;margin-bottom:.5rem;background-color:var(--bg-primary);border-radius:4px}
+.task-item input[type="checkbox"]{cursor:pointer}
+.task-item.completed span{text-decoration:line-through;color:var(--text-secondary)}
+.task-item span{flex:1;color:var(--text-primary)}
+.task-item button{background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:1.2rem;padding:0 .25rem}
+.task-item button:hover{color:var(--text-primary)}
+.task-count{font-size:.9rem;color:var(--text-secondary);margin-top:.5rem}
+#timer-widget .timer-display{font-size:3rem;font-weight:300;text-align:center;color:var(--text-primary);margin:1rem 0}
+#timer-widget .timer-display.running{animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
+#timer-widget .timer-mode{text-align:center;font-size:1.2rem;color:var(--text-primary);margin-bottom:1rem;font-weight:600}
+#timer-widget .timer-controls{display:flex;gap:.5rem;justify-content:center;margin-bottom:1rem}
+#timer-widget button{padding:.5rem 1rem;background-color:var(--accent-primary);color:var(--text-primary);border:none;border-radius:4px;cursor:pointer;font-size:.95rem;transition:background-color .2s}
+#timer-widget button:hover{background-color:var(--accent-secondary)}
+#timer-widget button:disabled{opacity:0.5;cursor:not-allowed}
+#timer-widget button:disabled:hover{background-color:var(--accent-primary)}
+#timer-widget button#timer-start.active{background-color:#22c55e;box-shadow:0 0 8px rgba(34,197,94,0.5)}
+#timer-widget button#timer-start.active:hover{background-color:#16a34a}
+#timer-widget .timer-stats{text-align:center;font-size:.9rem;color:var(--text-secondary)}
+@media (max-width:400px){
+body{padding:.75rem}
+.widget{padding:1rem}
+#timer-widget .timer-display{font-size:2.5rem}
+}
+</style>
+</head>
+<body>
+<div class="dashboard">
+<header><h1>Focus Dashboard</h1></header>
+<div id="clock-widget" class="widget">
+<div class="widget-title">Clock</div>
+<div class="widget-content">
+<div class="time" id="clock-time">--:--:--</div>
+<div class="date" id="clock-date">Loading...</div>
+</div>
+</div>
+<div id="weather-widget" class="widget">
+<div class="widget-title">Weather</div>
+<div class="widget-content">
+<div class="weather-info" id="weather-info">Loading weather...</div>
+<div class="weather-help" id="weather-help" style="display:none;margin-top:.5rem;font-size:.85rem;color:var(--text-secondary);line-height:1.4"></div>
+</div>
+</div>
+<div id="task-widget" class="widget">
+<div class="widget-title">Tasks</div>
+<div class="widget-content">
+<input type="text" id="task-input" placeholder="Add a task and press Enter...">
+<ul class="task-list" id="task-list"></ul>
+<div class="task-count" id="task-count">0 tasks, 0 done</div>
+</div>
+</div>
+<div id="timer-widget" class="widget">
+<div class="widget-title">Pomodoro Timer</div>
+<div class="widget-content">
+<div class="timer-mode" id="timer-mode">WORK</div>
+<div class="timer-display" id="timer-display">25:00</div>
+<div class="timer-controls">
+<button id="timer-start">Start</button>
+<button id="timer-pause">Pause</button>
+<button id="timer-reset">Reset</button>
+</div>
+<div class="timer-stats" id="timer-stats">Completed pomodoros: 0</div>
+</div>
+</div>
+</div>
+<script>
+// Weather config (get free key at: https://home.openweathermap.org/users/sign_up)
+const WEATHER_CITY='London',WEATHER_API_KEY='';
+// Clock
+function updateClock(){const now=new Date(),h=String(now.getHours()).padStart(2,'0'),m=String(now.getMinutes()).padStart(2,'0'),s=String(now.getSeconds()).padStart(2,'0'),days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],months=['January','February','March','April','May','June','July','August','September','October','November','December'];document.getElementById('clock-time').textContent=`${h}:${m}:${s}`;document.getElementById('clock-date').textContent=`${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`}
+updateClock();setInterval(updateClock,1000);
+// Weather
+async function updateWeather(){const el=document.getElementById('weather-info'),helpEl=document.getElementById('weather-help');if(!WEATHER_API_KEY||WEATHER_API_KEY.trim()===''){el.textContent='Weather unavailable';helpEl.innerHTML='To enable weather: Get a free API key at <a href="https://home.openweathermap.org/users/sign_up" target="_blank" rel="noopener" style="color:var(--text-primary);text-decoration:underline">openweathermap.org</a>, then edit this HTML file and search for WEATHER_API_KEY in the &lt;script&gt; section.';helpEl.style.display='block';return}helpEl.style.display='none';try{const res=await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(WEATHER_CITY)}&units=metric&appid=${WEATHER_API_KEY}`);if(!res.ok){el.textContent='Weather unavailable';return}const data=await res.json(),temp=Math.round(data.main.temp),cond=data.weather[0].description;el.textContent=`${temp}°C, ${cond.charAt(0).toUpperCase()+cond.slice(1)}`}catch(e){el.textContent='Weather unavailable'}}
+updateWeather();setInterval(updateWeather,30*60*1000);
+// Tasks
+const TASKS_KEY='focusDashboardTasks';
+let tasks=[];
+function loadTasks(){try{const s=localStorage.getItem(TASKS_KEY);if(s){tasks=JSON.parse(s);tasks=tasks.filter(t=>typeof t.text==='string'&&typeof t.completed==='boolean')}else tasks=[]}catch(e){tasks=[]}}
+function saveTasks(){try{localStorage.setItem(TASKS_KEY,JSON.stringify(tasks))}catch(e){console.warn('Failed to save tasks')}}
+function renderTasks(){const list=document.getElementById('task-list'),count=document.getElementById('task-count');list.innerHTML='';tasks.forEach((t,i)=>{const li=document.createElement('li');li.className='task-item';if(t.completed)li.classList.add('completed');const cb=document.createElement('input');cb.type='checkbox';cb.checked=t.completed;cb.addEventListener('change',()=>toggleTask(i));const sp=document.createElement('span');sp.textContent=t.text;const btn=document.createElement('button');btn.textContent='×';btn.setAttribute('aria-label','Delete task');btn.addEventListener('click',()=>deleteTask(i));li.appendChild(cb);li.appendChild(sp);li.appendChild(btn);list.appendChild(li)});const tot=tasks.length,done=tasks.filter(t=>t.completed).length;count.textContent=`${tot} ${tot===1?'task':'tasks'}, ${done} done`}
+function addTask(text){text=text.trim();if(text==='')return;tasks.push({text,completed:false});saveTasks();renderTasks()}
+function toggleTask(i){if(i>=0&&i<tasks.length){tasks[i].completed=!tasks[i].completed;saveTasks();renderTasks()}}
+function deleteTask(i){if(i>=0&&i<tasks.length){tasks.splice(i,1);saveTasks();renderTasks()}}
+loadTasks();renderTasks();
+document.getElementById('task-input').addEventListener('keydown',e=>{if(e.key==='Enter'){addTask(e.target.value);e.target.value=''}});
+// Pomodoro Timer
+const WORK_SEC=25*60,BREAK_SEC=5*60,MODE_WORK='WORK',MODE_BREAK='BREAK';
+let mode=MODE_WORK,secRemain=WORK_SEC,intervalId=null,pomoDone=0,audioCtx=null;
+const modeEl=document.getElementById('timer-mode'),dispEl=document.getElementById('timer-display'),statsEl=document.getElementById('timer-stats'),startBtn=document.getElementById('timer-start'),pauseBtn=document.getElementById('timer-pause'),resetBtn=document.getElementById('timer-reset');
+function formatTime(s){const m=Math.floor(s/60),sec=s%60;return`${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`}
+function updateDisplay(){dispEl.textContent=formatTime(secRemain);modeEl.textContent=mode;statsEl.textContent=`Completed pomodoros: ${pomoDone}`;const isRunning=intervalId!==null;if(isRunning){dispEl.classList.add('running');startBtn.classList.add('active');startBtn.disabled=true;pauseBtn.disabled=false}else{dispEl.classList.remove('running');startBtn.classList.remove('active');startBtn.disabled=false;pauseBtn.disabled=true}}
+function playBeep(){if(!audioCtx)return;try{if(audioCtx.state==='suspended')audioCtx.resume();const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();osc.connect(gain);gain.connect(audioCtx.destination);osc.frequency.value=440;osc.type='sine';gain.gain.setValueAtTime(0.3,audioCtx.currentTime);osc.start(audioCtx.currentTime);osc.stop(audioCtx.currentTime+0.3)}catch(e){}}
+function switchMode(){if(mode===MODE_WORK){mode=MODE_BREAK;secRemain=BREAK_SEC}else{mode=MODE_WORK;secRemain=WORK_SEC}updateDisplay()}
+function tick(){if(secRemain>0){secRemain--;updateDisplay()}if(secRemain===0){if(intervalId!==null){clearInterval(intervalId);intervalId=null}playBeep();if(mode===MODE_WORK)pomoDone++;switchMode();startTimer()}}
+function startTimer(){if(audioCtx===null){try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();if(intervalId===null){intervalId=setInterval(tick,1000);updateDisplay()}}
+function pauseTimer(){if(intervalId!==null){clearInterval(intervalId);intervalId=null;updateDisplay()}}
+function resetTimer(){pauseTimer();if(mode===MODE_WORK)secRemain=WORK_SEC;else secRemain=BREAK_SEC;updateDisplay()}
+startBtn.addEventListener('click',startTimer);pauseBtn.addEventListener('click',pauseTimer);resetBtn.addEventListener('click',resetTimer);
+updateDisplay();
+console.log('Dashboard loaded - All widgets active');
+</script>
+</body>
+</html>
