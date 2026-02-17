@@ -32,10 +32,12 @@ def do_exit_gate(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
 
     # 0. Full coherence evaluation (catch cross-feature interaction issues)
     print("  Running full coherence evaluation...")
-    coherence = do_full_coherence_eval(config, state, claude)
-    if coherence and coherence.overall == "CRITICAL":
-        print("  EXIT GATE FAILED — coherence CRITICAL")
-        return False
+    coherence_has_issues = do_full_coherence_eval(config, state, claude)
+    if coherence_has_issues and state.coherence_history:
+        latest = state.coherence_history[-1]
+        if latest.overall == "CRITICAL":
+            print("  EXIT GATE FAILED — coherence CRITICAL")
+            return False
 
     # 1. Full regression sweep
     print("  Running full regression sweep...")
