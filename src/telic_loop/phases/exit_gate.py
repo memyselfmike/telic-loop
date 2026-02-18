@@ -64,13 +64,39 @@ def do_exit_gate(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
         print(f"  Gaps found: {len(fresh_vrc.gaps)}")
         for gap in fresh_vrc.gaps:
             if gap.get("suggested_task"):
-                state.add_task(TaskState(
-                    task_id=f"EG-{state.exit_gate_attempts}-{gap.get('id', 'gap')}",
-                    source="exit_gate",
-                    description=gap["suggested_task"],
-                    value=gap.get("description", ""),
-                    created_at=datetime.now().isoformat(),
-                ))
+                task_id = f"EG-{state.exit_gate_attempts}-{gap.get('id', 'gap')}"
+                if task_id not in state.tasks:
+                    state.add_task(TaskState(
+                        task_id=task_id,
+                        source="exit_gate",
+                        description=gap["suggested_task"],
+                        value=gap.get("description", ""),
+                        created_at=datetime.now().isoformat(),
+                    ))
+        return False
+
+    # 2b. Deterministic gap enforcement — don't trust SHIP_READY alone.
+    # Even if VRC says ship-ready, block if non-polish gaps remain.
+    actionable_gaps = [
+        gap for gap in fresh_vrc.gaps
+        if gap.get("severity") in ("critical", "blocking", "degraded")
+    ]
+    if actionable_gaps:
+        print(f"  EXIT GATE FAILED — {len(actionable_gaps)} unresolved gap(s) despite SHIP_READY:")
+        for gap in actionable_gaps:
+            sev = gap.get("severity", "?")
+            desc = gap.get("description", "?")
+            print(f"    [{sev}] {desc}")
+            if gap.get("suggested_task"):
+                task_id = f"EG-{state.exit_gate_attempts}-{gap.get('id', 'gap')}"
+                if task_id not in state.tasks:
+                    state.add_task(TaskState(
+                        task_id=task_id,
+                        source="exit_gate",
+                        description=gap["suggested_task"],
+                        value=gap.get("description", ""),
+                        created_at=datetime.now().isoformat(),
+                    ))
         return False
 
     # 3. Final critical evaluation

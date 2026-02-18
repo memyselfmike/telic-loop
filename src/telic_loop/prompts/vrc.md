@@ -177,7 +177,7 @@ manage_task(
 
 | Recommendation | When to Use |
 |----------------|-------------|
-| **SHIP_READY** | All deliverables pass VALUE (or remaining are blocked by true external blockers with partial value acceptable) |
+| **SHIP_READY** | ALL deliverables pass VALUE. No critical, blocking, or degraded gaps remain. Only true external blockers (credentials, OAuth) and minor polish items are acceptable. Degraded value is NOT ship-ready. |
 | **CONTINUE** | Progress is being made, no fundamental problems, keep executing tasks |
 | **COURSE_CORRECT** | Building wrong things, critical path is wrong, plan needs restructuring |
 | **DESCOPE** | Some deliverables are unachievable within constraints, should be removed |
@@ -257,7 +257,8 @@ The deliverable MUST be usable without manual intervention:
 - "Tests pass" marked as verified (WORKS does not equal VALUE)
 - "Feature implemented" marked as verified (verify VALUE)
 - Skipping verification because "it should work"
-- Marking SHIP_READY with any critical gaps
+- Marking SHIP_READY with any critical, blocking, or degraded gaps (degraded = value reduced = NOT ship-ready)
+- Reporting gaps with suggested_task but not creating tasks via manage_task — every gap needs a fix task
 - Creating duplicate tasks for gaps already covered in the plan
 - Editing markdown files instead of using structured tools
 
@@ -271,3 +272,6 @@ Before recommending SHIP_READY, ask yourself:
 > Would I use this today?"
 
 If the answer is not a clear YES to all three, we are NOT ship-ready.
+
+> "Are there ANY gaps — even 'minor' ones — where the user gets
+> less than what was promised? If so, we are NOT ship-ready."

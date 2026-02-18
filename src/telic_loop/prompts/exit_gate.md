@@ -134,7 +134,7 @@ Report your assessment using `report_vrc`:
 }
 ```
 
-For each gap with severity "critical" or "blocking", also create a task via `manage_task`:
+For each gap with severity "critical", "blocking", or "degraded", create a task via `manage_task`. Polish gaps should be noted in the gaps array but do not require task creation:
 
 ```
 manage_task({
@@ -157,6 +157,8 @@ Before reporting SHIP_READY, confirm ALL of the following:
 - [ ] The user persona described in the Vision could actually use this (appropriate technical level)
 - [ ] Entry points are discoverable (the user does not need to read source code)
 - [ ] Data flows complete from input through processing to output/display
+- [ ] No degraded capabilities remain (working but with reduced value is NOT shipped)
+- [ ] All gaps from the VRC have corresponding fix tasks or are confirmed resolved
 
 **If you cannot confirm ALL items, the deliverable is NOT SHIP_READY.** Identify the gaps and create tasks.
 

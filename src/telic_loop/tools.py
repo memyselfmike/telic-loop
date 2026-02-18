@@ -925,7 +925,51 @@ def handle_vrc(input_data: dict, state: LoopState, **_: Any) -> str:
         summary=input_data.get("summary", ""),
     )
     state.vrc_history.append(snapshot)
-    return f"VRC recorded: {snapshot.value_score:.0%} value, {snapshot.recommendation}"
+
+    # Auto-create tasks from gap suggestions immediately — don't wait for exit gate.
+    # This closes the loop: VRC identifies gap → task created → builder fixes it.
+    from .state import TaskState
+
+    created = 0
+    existing_descs = {
+        t.description for t in state.tasks.values() if t.status != "descoped"
+    }
+    for gap in gaps:
+        suggested = gap.get("suggested_task", "")
+        if not suggested:
+            continue
+        # Dedup: skip if a task with this exact description already exists
+        if suggested in existing_descs:
+            continue
+        # Polish gaps only create tasks during active loop (not when SHIP_READY)
+        severity = gap.get("severity", "degraded")
+        if severity == "polish" and rec == "SHIP_READY":
+            continue
+
+        gap_id = gap.get("id", f"gap-{created}")
+        task_id = f"VRC-{state.iteration}-{gap_id}"
+
+        # Epic-scope new tasks in multi-epic mode
+        epic_id = ""
+        if (state.vision_complexity == "multi_epic"
+                and state.epics
+                and state.current_epic_index < len(state.epics)):
+            epic_id = state.epics[state.current_epic_index].epic_id
+
+        state.tasks[task_id] = TaskState(
+            task_id=task_id,
+            source="vrc",
+            description=suggested,
+            value=gap.get("description", ""),
+            acceptance=f"Gap '{gap_id}' resolved: {gap.get('description', '')}",
+            created_at=datetime.now().isoformat(),
+            epic_id=epic_id,
+        )
+        existing_descs.add(suggested)
+        created += 1
+
+    task_msg = f", {created} task(s) created" if created else ""
+    return f"VRC recorded: {score:.0%} value ({rec}){task_msg}"
 
 
 def handle_eval_finding(input_data: dict, state: LoopState, **_: Any) -> str:
