@@ -1,0 +1,70 @@
+---
+import MobileNav from './MobileNav.tsx';
+
+const navLinks = [
+  { href: '/', label: 'Home' },
+  { href: '/how-it-works', label: 'How It Works' },
+  { href: '/services', label: 'Services' },
+  { href: '/about', label: 'About' },
+  { href: '/blog', label: 'Blog' },
+  { href: '/contact', label: 'Contact' },
+];
+
+const currentPath = Astro.url.pathname;
+---
+
+<header class="bg-brand sticky top-0 z-40 shadow-md">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16 relative">
+
+      <!-- Logo / Brand -->
+      <a
+        href="/"
+        class="flex items-center gap-2 text-white font-bold text-xl hover:text-primary-200 transition-colors"
+        aria-label="Beep2B — Home"
+      >
+        <span class="text-primary-300 text-2xl font-extrabold">B2B</span>
+        <span class="hidden sm:inline">Beep2B</span>
+      </a>
+
+      <!-- Desktop navigation -->
+      <nav aria-label="Main navigation" class="hidden md:block">
+        <ul class="flex items-center gap-1">
+          {navLinks.map((link) => {
+            const isActive =
+              link.href === '/'
+                ? currentPath === '/'
+                : currentPath.startsWith(link.href);
+            return (
+              <li>
+                <a
+                  href={link.href}
+                  aria-current={isActive ? 'page' : undefined}
+                  class={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-primary-600 text-white'
+                      : 'text-primary-100 hover:bg-primary-700 hover:text-white'
+                  }`}
+                >
+                  {link.label}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+
+      <!-- CTA button (desktop) -->
+      <a
+        href="/contact"
+        class="hidden md:inline-flex items-center px-4 py-2 bg-primary-500 hover:bg-primary-400 text-white text-sm font-semibold rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary-300"
+      >
+        Get Started
+      </a>
+
+      <!-- Mobile nav (React island) -->
+      <MobileNav client:load links={navLinks} currentPath={currentPath} />
+
+    </div>
+  </div>
+</header>
