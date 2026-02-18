@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import json
+import re
+import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .claude import Claude
@@ -27,18 +30,20 @@ def validate_inputs(config: LoopConfig) -> list[str]:
 def discover_context(config: LoopConfig, claude: Claude, state: LoopState) -> None:
     """Run Context Discovery agent to populate state.context (SprintContext).
 
-    Uses REASONER (Opus) with discover_context.md prompt. The agent examines
-    the Vision, PRD, and codebase, then calls report_discovery to populate
-    state.context with deliverable type, project type, environment, services,
-    verification strategy, and value proofs.
+    Uses REASONER (Opus) with discover_context.md prompt. Pre-computes
+    environment data (tool versions, project markers, file tree, services)
+    to reduce the number of LLM turns from ~30 to ~5.
     """
     from .claude import AgentRole, load_prompt
+
+    precomputed = _precompute_environment(config)
 
     session = claude.session(AgentRole.REASONER)
     prompt = load_prompt("discover_context",
         SPRINT=config.sprint,
         SPRINT_DIR=str(config.sprint_dir),
         PROJECT_DIR=str(config.effective_project_dir),
+        PRECOMPUTED_ENV=precomputed,
     )
     session.send(prompt)
 
@@ -47,6 +52,400 @@ def discover_context(config: LoopConfig, claude: Claude, state: LoopState) -> No
         print("  DISCOVERY needs clarification:")
         for q in state.context.unresolved_questions:
             print(f"    ? {q}")
+
+
+# ---------------------------------------------------------------------------
+# Pre-computation: gather environment data before the LLM session
+# ---------------------------------------------------------------------------
+
+def _precompute_environment(config: "LoopConfig") -> str:
+    """Pre-compute environment data to inject into the discovery prompt.
+
+    Gathers tool versions, project markers, file tree, and service indicators
+    in Python — work that would otherwise cost ~25 Opus reasoning turns.
+    """
+    try:
+        project_dir = config.effective_project_dir
+        tool_versions = _detect_tool_versions()
+        markers = _detect_project_markers(project_dir)
+        file_tree, test_files = _scan_project_files(project_dir)
+        services = _detect_services(project_dir, markers)
+        return _format_precomputed(tool_versions, markers, file_tree, test_files, services)
+    except Exception as exc:
+        return (
+            f"Pre-computation failed ({exc}). Please discover the environment "
+            "manually using the steps below."
+        )
+
+
+def _run_tool(cmd: list[str], timeout: int = 5) -> str | None:
+    """Run a command and return stdout, or None if unavailable/timed out."""
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=timeout,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+        return None
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        return None
+
+
+def _detect_tool_versions() -> dict[str, Any]:
+    """Detect installed tool versions via subprocess calls."""
+    tools: dict[str, str | None] = {}
+
+    checks = [
+        ("Python", ["python", "--version"]),
+        ("pip", ["pip", "--version"]),
+        ("Node.js", ["node", "--version"]),
+        ("npm", ["npm", "--version"]),
+        ("pnpm", ["pnpm", "--version"]),
+        ("yarn", ["yarn", "--version"]),
+        ("cargo", ["cargo", "--version"]),
+        ("Go", ["go", "version"]),
+        ("Docker", ["docker", "--version"]),
+        ("make", ["make", "--version"]),
+        ("uv", ["uv", "--version"]),
+    ]
+    for name, cmd in checks:
+        raw = _run_tool(cmd)
+        if raw:
+            # Normalize: take first line, strip common prefixes
+            first_line = raw.split("\n")[0]
+            tools[name] = first_line
+        else:
+            tools[name] = None
+
+    # pip packages — single call replaces ~10 agent turns
+    pip_packages: list[dict] = []
+    if tools.get("Python"):
+        raw = _run_tool(["pip", "list", "--format=json"], timeout=15)
+        if raw:
+            try:
+                pip_packages = json.loads(raw)
+            except json.JSONDecodeError:
+                pass
+
+    return {"tools": tools, "pip_packages": pip_packages}
+
+
+def _detect_project_markers(project_dir: Path) -> dict[str, Any]:
+    """Detect project marker files and extract key metadata."""
+    markers: dict[str, Any] = {}
+
+    # package.json
+    pkg_json = project_dir / "package.json"
+    if pkg_json.is_file():
+        try:
+            data = json.loads(pkg_json.read_text(encoding="utf-8", errors="replace"))
+            markers["package.json"] = {
+                "name": data.get("name", ""),
+                "dependencies": list(data.get("dependencies", {}).keys()),
+                "devDependencies": list(data.get("devDependencies", {}).keys()),
+                "scripts": list(data.get("scripts", {}).keys()),
+            }
+        except (json.JSONDecodeError, OSError):
+            markers["package.json"] = {"error": "found but could not parse"}
+
+    # pyproject.toml
+    pyproject = project_dir / "pyproject.toml"
+    if pyproject.is_file():
+        try:
+            import tomllib
+            data = tomllib.loads(pyproject.read_text(encoding="utf-8", errors="replace"))
+            project_section = data.get("project", {})
+            markers["pyproject.toml"] = {
+                "name": project_section.get("name", ""),
+                "dependencies": project_section.get("dependencies", []),
+                "build_system": data.get("build-system", {}).get("requires", []),
+            }
+        except Exception:
+            markers["pyproject.toml"] = {"error": "found but could not parse"}
+
+    # requirements.txt
+    reqs_txt = project_dir / "requirements.txt"
+    if reqs_txt.is_file():
+        try:
+            lines = reqs_txt.read_text(encoding="utf-8", errors="replace").splitlines()
+            pkgs = []
+            for line in lines:
+                line = line.strip()
+                if line and not line.startswith("#") and not line.startswith("-"):
+                    pkgs.append(re.split(r"[>=<!\[]", line)[0].strip())
+            markers["requirements.txt"] = {"packages": pkgs}
+        except OSError:
+            markers["requirements.txt"] = {"error": "found but could not read"}
+
+    # Cargo.toml
+    cargo = project_dir / "Cargo.toml"
+    if cargo.is_file():
+        try:
+            content = cargo.read_text(encoding="utf-8", errors="replace")
+            name_match = re.search(r'name\s*=\s*"([^"]+)"', content)
+            markers["Cargo.toml"] = {"name": name_match.group(1) if name_match else ""}
+        except OSError:
+            markers["Cargo.toml"] = {"error": "found but could not read"}
+
+    # go.mod
+    gomod = project_dir / "go.mod"
+    if gomod.is_file():
+        try:
+            content = gomod.read_text(encoding="utf-8", errors="replace")
+            mod_match = re.search(r"^module\s+(\S+)", content, re.MULTILINE)
+            markers["go.mod"] = {"module": mod_match.group(1) if mod_match else ""}
+        except OSError:
+            markers["go.mod"] = {"error": "found but could not read"}
+
+    # docker-compose.yml / .yaml
+    for name in ("docker-compose.yml", "docker-compose.yaml"):
+        compose = project_dir / name
+        if compose.is_file():
+            try:
+                content = compose.read_text(encoding="utf-8", errors="replace")
+                # Extract service names: lines indented 2-4 spaces ending with ':'
+                # that appear after a 'services:' line
+                services = []
+                in_services = False
+                for line in content.splitlines():
+                    if re.match(r"^services:\s*$", line):
+                        in_services = True
+                        continue
+                    if in_services:
+                        svc_match = re.match(r"^\s{2,4}(\w[\w-]*):\s*$", line)
+                        if svc_match:
+                            services.append(svc_match.group(1))
+                        elif re.match(r"^\S", line):
+                            in_services = False
+                markers[name] = {"services": services}
+            except OSError:
+                markers[name] = {"error": "found but could not read"}
+            break
+
+    # Simple existence checks
+    for name in ("Dockerfile", "Makefile", "CMakeLists.txt", "setup.py"):
+        if (project_dir / name).is_file():
+            markers[name] = {"exists": True}
+
+    # .env / .env.example — variable names only, NEVER values
+    for name in (".env", ".env.example"):
+        env_file = project_dir / name
+        if env_file.is_file():
+            try:
+                content = env_file.read_text(encoding="utf-8", errors="replace")
+                var_names = []
+                for line in content.splitlines():
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        var_names.append(line.split("=", 1)[0].strip())
+                markers[name] = {"vars": var_names}
+            except OSError:
+                markers[name] = {"error": "found but could not read"}
+
+    return markers
+
+
+def _scan_project_files(project_dir: Path) -> tuple[dict[str, int], list[str]]:
+    """Scan project directory for source files with line counts and test files.
+
+    Returns (file_tree, test_files) without mutating any state.
+    """
+    from .phases.process_monitor import _SOURCE_EXTENSIONS, _SKIP_DIRS
+
+    file_tree: dict[str, int] = {}
+    test_files: list[str] = []
+
+    if not project_dir.is_dir():
+        return file_tree, test_files
+
+    for path in project_dir.rglob("*"):
+        if not path.is_file():
+            continue
+        if path.suffix not in _SOURCE_EXTENSIONS:
+            continue
+        parts = path.relative_to(project_dir).parts
+        if any(p.startswith(".") or p in _SKIP_DIRS for p in parts[:-1]):
+            continue
+        try:
+            line_count = len(
+                path.read_text(encoding="utf-8", errors="replace").splitlines()
+            )
+        except OSError:
+            continue
+        rel = str(path.relative_to(project_dir)).replace("\\", "/")
+        file_tree[rel] = line_count
+
+        # Classify test files
+        stem = path.stem.lower()
+        dir_parts = {p.lower() for p in parts[:-1]}
+        if (
+            stem.startswith("test_")
+            or stem.endswith("_test")
+            or stem.endswith(".test")
+            or stem.endswith(".spec")
+            or dir_parts & {"tests", "test", "__tests__"}
+        ):
+            test_files.append(rel)
+
+    return file_tree, test_files
+
+
+def _detect_services(
+    project_dir: Path, markers: dict[str, Any],
+) -> list[str]:
+    """Infer services from config files and project markers."""
+    services: list[str] = []
+
+    # SQLite databases on disk
+    for ext in ("*.db", "*.sqlite", "*.sqlite3"):
+        for db_path in project_dir.glob(f"**/{ext}"):
+            # Skip hidden dirs
+            try:
+                parts = db_path.relative_to(project_dir).parts
+            except ValueError:
+                continue
+            if any(p.startswith(".") for p in parts[:-1]):
+                continue
+            rel = str(db_path.relative_to(project_dir)).replace("\\", "/")
+            services.append(f"SQLite: {rel} (exists on disk)")
+
+    # Docker services from compose file
+    for name in ("docker-compose.yml", "docker-compose.yaml"):
+        marker = markers.get(name)
+        if marker and "services" in marker:
+            for svc in marker["services"]:
+                services.append(f"Docker service: {svc} (from {name})")
+
+    # Environment variable hints
+    for name in (".env", ".env.example"):
+        marker = markers.get(name)
+        if marker and "vars" in marker:
+            db_hints = [
+                v for v in marker["vars"]
+                if any(kw in v.upper() for kw in (
+                    "DATABASE", "DB_", "REDIS", "MONGO", "POSTGRES",
+                    "MYSQL", "SQLITE",
+                ))
+            ]
+            if db_hints:
+                services.append(
+                    f"Environment hints ({name}): {', '.join(db_hints)}"
+                )
+
+    return services
+
+
+def _format_precomputed(
+    tool_versions: dict[str, Any],
+    markers: dict[str, Any],
+    file_tree: dict[str, int],
+    test_files: list[str],
+    services: list[str],
+) -> str:
+    """Format pre-computed data as readable text for prompt injection."""
+    sections: list[str] = []
+    sections.append(
+        "The following data was gathered automatically. You do NOT need to "
+        "re-check these items. Focus your turns on classification, verification "
+        "strategy, value proofs, and reasoning. If any data below seems wrong "
+        "or incomplete, you may verify it, but do not re-discover what is "
+        "already provided."
+    )
+
+    # Tool versions
+    lines = ["### Tool Versions"]
+    for name, version in tool_versions.get("tools", {}).items():
+        lines.append(f"  {name}: {version or 'not found'}")
+    sections.append("\n".join(lines))
+
+    # pip packages
+    pip_pkgs = tool_versions.get("pip_packages", [])
+    if pip_pkgs:
+        pkg_strs = [f"{p['name']} {p.get('version', '')}" for p in pip_pkgs[:50]]
+        lines = [f"### Python Packages ({len(pip_pkgs)} installed)"]
+        lines.append(f"  {', '.join(pkg_strs)}")
+        if len(pip_pkgs) > 50:
+            lines.append(f"  ... and {len(pip_pkgs) - 50} more")
+        sections.append("\n".join(lines))
+
+    # Project markers
+    if markers:
+        lines = ["### Project Markers"]
+        for name, data in markers.items():
+            if "error" in data:
+                lines.append(f"  {name}: {data['error']}")
+            elif "exists" in data:
+                lines.append(f"  {name}: found")
+            elif name == "package.json":
+                deps = ", ".join(data.get("dependencies", [])[:15])
+                dev_deps = ", ".join(data.get("devDependencies", [])[:10])
+                scripts = ", ".join(data.get("scripts", []))
+                parts = [f'name="{data.get("name", "")}"']
+                if deps:
+                    parts.append(f"deps=[{deps}]")
+                if dev_deps:
+                    parts.append(f"devDeps=[{dev_deps}]")
+                if scripts:
+                    parts.append(f"scripts=[{scripts}]")
+                lines.append(f"  {name}: {', '.join(parts)}")
+            elif name == "pyproject.toml":
+                deps = data.get("dependencies", [])
+                dep_names = []
+                for d in deps[:15]:
+                    dep_names.append(re.split(r"[>=<!\[]", d)[0].strip() if isinstance(d, str) else str(d))
+                parts = [f'name="{data.get("name", "")}"']
+                if dep_names:
+                    parts.append(f"deps=[{', '.join(dep_names)}]")
+                build = data.get("build_system", [])
+                if build:
+                    parts.append(f"build=[{', '.join(str(b) for b in build[:5])}]")
+                lines.append(f"  {name}: {', '.join(parts)}")
+            elif name == "requirements.txt":
+                pkgs = ", ".join(data.get("packages", [])[:20])
+                lines.append(f"  {name}: [{pkgs}]")
+            elif "services" in data:
+                svcs = ", ".join(data["services"])
+                lines.append(f"  {name}: services=[{svcs}]")
+            elif "vars" in data:
+                var_names = ", ".join(data["vars"][:20])
+                lines.append(f"  {name}: vars=[{var_names}]")
+            elif "module" in data:
+                lines.append(f"  {name}: module={data['module']}")
+            elif "name" in data:
+                lines.append(f"  {name}: name=\"{data['name']}\"")
+            else:
+                lines.append(f"  {name}: found")
+        sections.append("\n".join(lines))
+
+    # Source files
+    source_files = {k: v for k, v in file_tree.items() if k not in test_files}
+    total_lines = sum(file_tree.values())
+    if file_tree:
+        lines = [f"### Source Files ({len(source_files)} files, {total_lines:,} total lines)"]
+        # Sort by line count descending, show top 30
+        sorted_files = sorted(source_files.items(), key=lambda x: x[1], reverse=True)
+        for rel, count in sorted_files[:30]:
+            lines.append(f"  {rel:50s} {count:>5} lines")
+        if len(sorted_files) > 30:
+            lines.append(f"  ... and {len(sorted_files) - 30} more files")
+        sections.append("\n".join(lines))
+
+    # Test files
+    if test_files:
+        lines = [f"### Test Files ({len(test_files)} files)"]
+        for rel in sorted(test_files):
+            count = file_tree.get(rel, 0)
+            lines.append(f"  {rel:50s} {count:>5} lines")
+        sections.append("\n".join(lines))
+
+    # Services
+    if services:
+        lines = ["### Detected Services"]
+        for svc in services:
+            lines.append(f"  {svc}")
+        sections.append("\n".join(lines))
+
+    return "\n\n".join(sections)
 
 
 def critique_prd(
