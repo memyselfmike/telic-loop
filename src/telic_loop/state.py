@@ -373,6 +373,10 @@ class LoopState:
         self.gates_passed.add(name)
 
     def add_task(self, task: TaskState) -> None:
+        existing = self.tasks.get(task.task_id)
+        if existing and existing.status in ("done", "in_progress"):
+            # Don't overwrite completed or in-progress tasks
+            return
         self.tasks[task.task_id] = task
 
     def add_regression_pass(self, vid: str) -> None:

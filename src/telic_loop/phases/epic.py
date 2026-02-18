@@ -22,6 +22,11 @@ def run_epic_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
     from ..main import run_value_loop
 
     for i, epic in enumerate(state.epics):
+        # Skip already-completed epics on resume
+        if epic.status == "completed":
+            print(f"\n  EPIC {i + 1}/{len(state.epics)}: {epic.title} — already completed, skipping")
+            continue
+
         state.current_epic_index = i
         epic.status = "in_progress"
         print(f"\n{'=' * 60}")
@@ -29,20 +34,28 @@ def run_epic_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
         print(f"  Value: {epic.value_statement}")
         print(f"{'=' * 60}")
 
-        # Refine epic detail if needed (just-in-time decomposition)
-        if epic.detail_level == "sketch":
-            _refine_epic_detail(config, state, claude, epic)
+        # Check if this epic already has tasks (resume scenario)
+        epic_has_tasks = any(
+            t.epic_id == epic.epic_id for t in state.tasks.values()
+        )
 
-        # Run pre-loop scoped to this epic's deliverables
-        _run_epic_preloop(config, state, claude, epic)
+        if not epic_has_tasks:
+            # Refine epic detail if needed (just-in-time decomposition)
+            if epic.detail_level == "sketch":
+                _refine_epic_detail(config, state, claude, epic)
 
-        # Reset per-epic state so each epic gets fresh QC and exit gate
-        state.exit_gate_attempts = 0
-        state.verifications = {}
-        state.verification_categories = []
-        state.tasks_since_last_critical_eval = 0
-        if "verifications_generated" in state.gates_passed:
-            state.gates_passed.remove("verifications_generated")
+            # Run pre-loop scoped to this epic's deliverables
+            _run_epic_preloop(config, state, claude, epic)
+
+            # Reset per-epic state so each epic gets fresh QC and exit gate
+            state.exit_gate_attempts = 0
+            state.verifications = {}
+            state.verification_categories = []
+            state.tasks_since_last_critical_eval = 0
+            if "verifications_generated" in state.gates_passed:
+                state.gates_passed.remove("verifications_generated")
+        else:
+            print(f"  Epic already has tasks — skipping preloop (resume)")
 
         # Run value loop for this epic
         run_value_loop(config, state, claude, inside_epic_loop=True)
