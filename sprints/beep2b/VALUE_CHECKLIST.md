@@ -1,12 +1,12 @@
 # Value Checklist: beep2b
-Generated: 2026-02-18T21:38:58.992900
+Generated: 2026-02-18T21:45:30.341947
 
 ## VRC Status
 - Value Score: 75%
 - Verified: 6/8
 - Blocked: 0
 - Recommendation: CONTINUE
-- Summary: QUICK VRC iteration 21: Previous score 75% (6/8 verified). Recent actions show no_progress on iteration 21. No new tasks completed since iteration 18. Sanity project creation remains external blocker for Epic 2. All 8 Epic 1 deliverables exist and work (responsive 6-page site, Header/Footer nav, blue theme, static builds). Verification complete from iteration 18 remains valid. Recommendation: CONTINUE building Epic 2 CMS integration once Sanity credentials are available.
+- Summary: Fallback VRC: carried forward from iteration 21 (75%)
 
 ## Tasks
 - [x] **1.1**: Verify Astro project configuration: astro.config.mjs has React integration and Tailwind v4 via @tailwindcss/vite plugin, tsconfig.json extends astro/tsconfigs/strict with jsx:react-jsx, package.json has dev/build/preview scripts. Confirm npm run dev starts on port 4321 and npm run build produces dist/ with zero errors. This is brownfield verification -- all config files already exist.
@@ -32,17 +32,8 @@ Generated: 2026-02-18T21:38:58.992900
 - [ ] **3.5**: Enhance blog post page with author bio card (name, image, bio text) at bottom and Related Posts section showing 3 posts from the same category. Fetch related posts via GROQ query filtering by shared category, excluding current post. Author bio card uses author reference data already in post query.
 - [ ] **3.6**: Implement SEO across all pages. Add page-specific <title> and <meta description> to BaseLayout via props. Add Open Graph tags (og:title, og:description, og:image, og:url) and canonical URL to every page. Add Organization structured data (JSON-LD) on home page. Install @astrojs/sitemap, configure in astro.config.mjs. Create public/robots.txt allowing all crawlers with sitemap reference.
 - [ ] **3.7**: Final build verification and layout consistency check. Run npm run build and confirm exit code 0. Verify in built dist/ output: all routes generate HTML files (index.html, how-it-works/index.html, services/index.html, about/index.html, contact/index.html, blog/index.html). Check every page includes Header and Footer components. Verify Tailwind blue-800 primary color (#1e40af) is applied to headings and CTAs. Fix any build errors, missing imports, or broken component references discovered during verification.
-- [x] **VRC-3-gap-1**: Task 1.2 already covers this
-- [x] **VRC-3-gap-3**: Task 1.3 already covers this
-- [x] **VRC-3-gap-4**: Tasks 1.4 and 1.5 already cover this
-- [x] **VRC-3-gap-5**: Task 1.4 already covers this
-- [x] **VRC-3-gap-6**: Tasks 1.6 and 1.7 already cover this
-- [x] **VRC-5-gap-6**: Task 1.8 and VRC-3-gap-7 already cover this
-- [x] **VRC-5-gap-7**: Task 1.2 or 1.3 should include Inter font loading
-- [ ] **STRUCTURE-prd-conformance**: PRD files still missing: astro.config.mjs          # Astro config with React + Tailwind, tailwind.config.mjs       # Tailwind config with shadcn theme, src/layouts/BaseLayout.astro  # HTML shell, head, nav, footer, src/components/ui/               # shadcn/ui components (Button, Card, etc.), src/components/Header.astro      # Site header with navigation, src/components/Footer.astro      # Site footer with links, social, newsletter, src/components/Hero.astro        # Hero section (reusable across pages), src/components/FeatureCard.astro # Feature/benefit card, src/components/BlogCard.astro    # Blog post preview card, src/components/ContactForm.tsx   # React island — interactive form
 - [x] **VRC-15-gap-1**: Install shadcn Sheet, NavigationMenu, and Pagination components and refactor MobileNav.tsx to use Sheet instead of custom dropdown
 - [x] **VRC-15-gap-2**: Add Inter font loading via Google Fonts link in BaseLayout head and update --font-sans in globals.css to use Inter as primary font
-- [x] **VRC-15-gap-3**: Mark tasks 1.3, 1.4, 1.5, 1.6, 1.7 as complete via report_task_complete since their deliverables exist and acceptance criteria are met
 - [ ] **1.9**: Final build verification and responsive layout check. Run npm run build and confirm zero errors, dist/ contains HTML for all 6 routes (/, /how-it-works, /services, /about, /contact, /blog). Verify responsive behavior: Header desktop nav visible >1024px, hamburger <768px. Cards stack on mobile, grid on tablet/desktop. Footer consistent across pages. Blue theme applied uniformly. Fix any build warnings or layout issues.
 
 ## Verifications
