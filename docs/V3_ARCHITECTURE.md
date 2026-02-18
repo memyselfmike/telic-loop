@@ -1,6 +1,6 @@
 # Loop V3: Architecture Reference
 
-**Date**: 2026-02-15
+**Date**: 2026-02-18
 **Companion documents**: V3_PRD.md (requirements), V3_PHASE1_PLAN.md / V3_PHASE2_PLAN.md / V3_PHASE3_PLAN.md (implementation)
 **Prerequisite reading**: V3_VISION.md
 
@@ -174,6 +174,7 @@ loop-v3/
 ├── git.py                       # Git operations: branching, commits, safety, rollback
 ├── tools.py                     # Tool implementations + structured output handlers
 ├── render.py                    # Generate markdown artifacts from structured state
+├── tool_cli.py                  # CLI bridge: agents call structured tools via Bash
 ├── phases/
 │   ├── __init__.py
 │   ├── preloop.py               # Discovery, PRD critique, plan gen, quality gates, preflight
@@ -234,6 +235,7 @@ class LoopConfig:
     """How the loop behaves. The human provides this (or accepts defaults)."""
     sprint: str
     sprint_dir: Path
+    project_dir: Path | None = None  # None = same as sprint_dir
 
     # Safety valves
     max_loop_iterations: int = 200     # hard ceiling
@@ -255,16 +257,16 @@ class LoopConfig:
     critical_eval_interval: int = 3
     critical_eval_on_all_pass: bool = True
 
+    # Browser evaluation (Critical Evaluator)
+    browser_eval_headless: bool = False       # False = headed (dev), True = headless (CI)
+    browser_eval_viewport: str = "1280x720"   # Playwright viewport size
+
     # Safety limits
     max_exit_gate_attempts: int = 3
     max_course_corrections: int = 5
 
     # Plan health (mid-loop quality validation)
     plan_health_after_n_tasks: int = 5
-
-    # Browser evaluation (Critical Evaluator)
-    browser_eval_headless: bool = False       # False = headed (dev), True = headless (CI)
-    browser_eval_viewport: str = "1280x720"   # Playwright viewport size
 
     # Epic feedback (multi_epic visions only)
     epic_feedback_timeout_minutes: int = 30  # 0 = wait forever, else auto-proceed after N min
@@ -287,11 +289,31 @@ class LoopConfig:
     pm_budget_value_ratio: float = 2.0
     pm_file_hotspot_pct: float = 50
 
+    # Code health enforcement
+    code_health_monolith_threshold: int = 500   # lines — files at/above get refactoring tasks
+    code_health_max_file_lines: int = 400       # target max lines after refactoring
+    code_health_enforce_at_exit: bool = True     # hard gate: block exit if monoliths remain
+    code_health_max_function_lines: int = 50    # LONG_FUNCTION threshold
+    code_health_duplicate_min_lines: int = 8    # DUPLICATE block minimum
+    code_health_min_test_ratio: float = 0.5     # LOW_TEST_RATIO threshold
+    code_health_max_todo_count: int = 5         # TODO_DEBT threshold
+    code_health_max_duplicate_tasks: int = 5    # cap on DEDUP tasks created
+
+    # Task granularity enforcement
+    max_task_description_chars: int = 600      # reject tasks with longer descriptions
+    max_files_per_task: int = 5                # reject tasks expecting more files
+
     # Reliability
     max_task_retries: int = 3
     max_rollbacks_per_sprint: int = 3    # repeated rollback = plan is wrong, not execution
+    sdk_query_timeout_sec: int = 300     # 5 min timeout per SDK query call
+    max_crash_restarts: int = 3          # auto-restart attempts on catastrophic crash
 
     # Derived paths
+    @property
+    def effective_project_dir(self) -> Path:
+        """Where application source code lives (project_dir or sprint_dir)."""
+        return self.project_dir if self.project_dir is not None else self.sprint_dir
     @property
     def vision_file(self) -> Path: return self.sprint_dir / "VISION.md"
     @property
@@ -501,6 +523,15 @@ class ProcessMonitorState:
     churn_counts: dict[str, int] = field(default_factory=dict)   # task_id → fail-fix-fail count
     error_hashes: dict[str, dict] = field(default_factory=dict)  # hash → {count, tasks}
     file_touches: dict[str, int] = field(default_factory=dict)   # filepath → touch count
+    file_line_counts: dict[str, int] = field(default_factory=dict)       # filepath → line count (current)
+    file_line_counts_prev: dict[str, int] = field(default_factory=dict)  # filepath → line count (previous iteration)
+    code_health_warnings: list[str] = field(default_factory=list)        # formatted warning strings
+    long_functions: dict[str, list[tuple[str, int]]] = field(default_factory=dict)  # file → [(func, lines)]
+    duplicate_blocks: list[dict] = field(default_factory=list)           # [{files, lines, snippet}]
+    missing_prd_files: list[str] = field(default_factory=list)           # files in PRD not on disk
+    test_source_ratio: float = 0.0
+    todo_count: int = 0
+    debug_artifact_count: int = 0
     status: str = "GREEN"                                         # GREEN | YELLOW | RED
     last_strategy_change_iteration: int = 0
     current_strategy: dict = field(default_factory=lambda: {
@@ -643,16 +674,24 @@ class LoopState:
     # Exit gate
     exit_gate_attempts: int = 0
 
+    # Task granularity limits (populated from config at loop start)
+    max_task_description_chars: int = 600
+    max_files_per_task: int = 5
+
     # Token tracking
     total_tokens_used: int = 0
+    total_input_tokens: int = 0
+    total_output_tokens: int = 0
 
-    # Key properties and methods (implementations in Phase 1 Plan)
+    # Key properties and methods
     @property
     def latest_vrc(self) -> VRCSnapshot | None: ...
     @property
     def value_delivered(self) -> bool: ...
     def is_stuck(self, config: LoopConfig) -> bool: ...
-    def record_progress(self, action: str, result: str, made_progress: bool): ...
+    def record_progress(self, action: str, result: str, made_progress: bool,
+                        input_tokens: int = 0, output_tokens: int = 0,
+                        duration_sec: float = 0.0): ...
     def gate_passed(self, gate_name: str) -> bool: ...
     def pass_gate(self, gate_name: str): ...
     def invalidate_tests(self): ...
@@ -706,7 +745,10 @@ class Claude:
     ) -> ClaudeSession:
         model_attr, max_turns, tools_set = role.value
         model = getattr(self.config, model_attr)
-        system = load_prompt("system", SPRINT_DIR=str(self.config.sprint_dir))
+        system = load_prompt("system",
+            SPRINT_DIR=str(self.config.sprint_dir),
+            PROJECT_DIR=str(self.config.effective_project_dir),
+        )
         if system_extra:
             system += "\n" + system_extra
         system += _tool_cli_instructions(self.config.state_file)
@@ -722,6 +764,7 @@ class Claude:
             state=self.state,
             config=self.config,
             mcp_servers=mcp_servers,
+            timeout_sec=self.config.sdk_query_timeout_sec,
         )
 ```
 
@@ -732,8 +775,9 @@ Single-prompt session using Claude Agent SDK. Key behaviors:
 - **MCP servers**: Passed through `ClaudeAgentOptions.mcp_servers` — enables Playwright MCP for browser evaluation
 - **Large buffer**: `max_buffer_size=10MB` handles Playwright screenshots (base64-encoded images in JSON messages)
 - **Streaming mode**: Prompts > 30K chars use stdin JSON instead of CLI args (Windows CreateProcess 32K limit)
-- **State sync**: After each query, reloads state from disk (tool CLI may have modified it), preserves `total_tokens_used` from memory
-- **Token tracking**: Accumulates `input_tokens + output_tokens` from `ResultMessage.usage`
+- **SDK timeout**: `asyncio.timeout(config.sdk_query_timeout_sec)` wraps the async query generator — prevents infinite hangs. `TimeoutError` re-raised as `RuntimeError` for uniform handler-level catch
+- **State sync**: After each query, reloads state from disk (tool CLI may have modified it), preserves `total_tokens_used`, `total_input_tokens`, and `total_output_tokens` from memory
+- **Token tracking**: Accumulates `input_tokens` and `output_tokens` separately from `ResultMessage.usage`
 - **task_source**: Provenance label for tasks created via tool CLI — set by orchestrator, not agent
 
 ---
@@ -810,8 +854,10 @@ Every `manage_task` call passes through `validate_task_mutation()` before mutati
 - **Invalid dependencies** (CONNECT): Referenced task must exist
 - **Circular dependencies** (CONNECT): DFS cycle detection
 - **Removal safety**: Cannot remove task with dependents
+- **Description length** (GRANULARITY): Rejects tasks with descriptions > `max_task_description_chars` (default 600)
+- **File count** (GRANULARITY): Rejects tasks with `files_expected` > `max_files_per_task` (default 5)
 
-Full implementation: see Phase 1 Plan §8.
+Full implementation: see `tools.py:validate_task_mutation()`.
 
 ---
 
@@ -871,7 +917,7 @@ JSON state is the single source of truth, but humans and LLM agents benefit from
 |----------|---------------|---------------|
 | `IMPLEMENTATION_PLAN.md` | `state.tasks` | After pre-loop, quality gates, course correction |
 | `VALUE_CHECKLIST.md` | `state.vrc_history` + `state.verifications` + `state.tasks` | After each full VRC (Phase 2+) |
-| `DELIVERY_REPORT.md` | Full state | After exit gate passes or budget exhausted |
+| `DELIVERY_REPORT.md` | Full state (including per-phase token/time breakdown) | After exit gate passes or budget exhausted |
 
 **Implementation note**: `render_value_checklist(state)` maps each VRC deliverable to its verification status and task completion. Phase 1 implements `render_plan_markdown` and `generate_delivery_report`; Phase 2 adds `render_value_checklist` alongside the VRC heartbeat.
 
@@ -1075,6 +1121,61 @@ For non-software deliverables (documents, configs), git operations still apply �
 
 ---
 
+## Self-Healing and Crash Recovery
+
+The loop has three layers of resilience to recover from crashes without human intervention:
+
+### Layer 1: SDK Query Timeout
+
+Every `ClaudeSession._send_async()` call wraps the SDK `query()` async generator with `asyncio.timeout(config.sdk_query_timeout_sec)` (default 300s). When the timeout fires, `TimeoutError` is caught and re-raised as `RuntimeError`, which the handler-level catch in the value loop intercepts.
+
+### Layer 2: Handler-Level Try/Except
+
+In `run_value_loop()`, every action handler call is wrapped in try/except. On crash:
+1. Exception logged with action name
+2. Any `in_progress` tasks reset to `pending` (they weren't completed)
+3. State saved to preserve partial progress
+4. `progress = False` → decision engine sees `no_progress` → eventually triggers COURSE_CORRECT
+5. Loop continues to next iteration
+
+### Layer 3: Auto-Restart Wrapper
+
+`main()` wraps `_run_main()` with crash recovery. On catastrophic failure (corrupt state, import error, OOM):
+1. Exception caught and logged with attempt number
+2. Linear backoff: 10s, 20s, 30s between retries
+3. Max 3 attempts before giving up
+4. `SystemExit` propagated (intentional exits, including success)
+5. Lock file released in `finally` block; stale lock detection re-acquires on restart
+
+### Crash Recovery on Startup
+
+On startup, `_recover_interrupted_rollback()` checks for `.rollback_wal` file. If found, the previous rollback was interrupted and is replayed from the WAL's `to_hash`.
+
+---
+
+## Code Health Enforcement
+
+Six deterministic (zero-LLM-cost) code quality checks run by the process monitor after every iteration:
+
+| Check | Threshold | Action |
+|-------|-----------|--------|
+| MONOLITH | Files >= `code_health_monolith_threshold` (500) lines | Auto-creates REFACTOR-* tasks |
+| RAPID_GROWTH | File grew > 50% since last iteration | Warning in process monitor |
+| CONCENTRATION | > 60% of code in a single file | Warning in process monitor |
+| LONG_FUNCTION | Functions > `code_health_max_function_lines` (50) lines | Included in code health report |
+| DUPLICATE | >= `code_health_duplicate_min_lines` (8) identical lines across files | Auto-creates DEDUP-* tasks |
+| LOW_TEST_RATIO | test:source line ratio < `code_health_min_test_ratio` (0.5) | Warning in process monitor |
+
+### Enforcement Points
+
+- **Process monitor**: `scan_file_line_counts()` runs after every iteration, populates `ProcessMonitorState.code_health_warnings`
+- **Plan health check**: Code health report injected into prompt via `format_code_health()`
+- **Course correction**: Code health report available for re-planning decisions
+- **Exit gate (hard gate)**: When `code_health_enforce_at_exit` is True, shipping is blocked if any files exceed `code_health_monolith_threshold`. The exit gate deterministically checks file sizes before allowing the gate to pass.
+- **Auto-task creation**: `create_refactoring_tasks()` creates REFACTOR-* tasks for monolithic files and reopens "done" tasks if the file still exceeds the threshold
+
+---
+
 ## Prompt Index
 
 | Prompt | Model | Structured Tools | Phase |
@@ -1144,3 +1245,8 @@ For non-software deliverables (documents, configs), git operations still apply �
 | Human feedback | Vision at start only | Between-epic checkpoints (multi_epic) |
 | System coherence | Not checked | Quick (every 5 tasks) + Full (epic boundaries) |
 | Complex visions | Single monolithic run | Epic decomposition into value blocks |
+| Crash recovery | Manual restart | 3-layer self-healing (timeout + catch + auto-restart) |
+| Code health | Not monitored | 6 deterministic checks + exit gate enforcement |
+| Task sizing | Unbounded | 600 char / 5 file limits, scope fence for builders |
+| Token tracking | Aggregate only | Per-phase input/output/time breakdown |
+| Project layout | Sprint dir only | Separate project_dir + sprint_dir |
