@@ -28,7 +28,7 @@ def main():
     config = LoopConfig(
         sprint=sprint,
         sprint_dir=sprint_dir,
-        max_loop_iterations=30,  # Keep it bounded for testing
+        max_loop_iterations=40,  # Keep it bounded for testing
         max_fix_attempts=3,
         token_budget=0,  # Unlimited for now
         epic_feedback_timeout_minutes=10,  # 10min break between epics

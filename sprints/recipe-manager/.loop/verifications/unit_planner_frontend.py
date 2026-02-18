@@ -189,8 +189,14 @@ else:
     size = planner_js.stat().st_size
     print(f"  File: frontend/js/planner.js ({size} bytes)")
 
-    # Detect if it's a stub
-    is_stub = "coming soon" in content.lower() or "placeholder" in content.lower() or "stub" in content.lower()
+    # Stub detection: use unambiguous phrases only. "placeholder" is a valid HTML attribute
+    # in real implementations (e.g., placeholder: 'Search recipes...'), so exclude it.
+    # Also treat files < 3000 bytes as stubs (true implementations are much larger).
+    is_stub = (
+        "coming soon" in content.lower()
+        or "not yet implemented" in content.lower()
+        or size < 3000
+    )
 
     if is_stub:
         print(f"  STATUS: STUB — planner.js is a placeholder, full implementation pending")
