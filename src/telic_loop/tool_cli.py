@@ -31,6 +31,14 @@ def main() -> None:
     state_path = Path(args[sf_idx + 1])
     remaining = args[:sf_idx] + args[sf_idx + 2:]
 
+    # Parse optional --task-source (default "agent")
+    task_source = "agent"
+    if "--task-source" in remaining:
+        ts_idx = remaining.index("--task-source")
+        if ts_idx + 1 < len(remaining):
+            task_source = remaining[ts_idx + 1]
+            remaining = remaining[:ts_idx] + remaining[ts_idx + 2:]
+
     if len(remaining) < 2:
         print(json.dumps({"error": "Missing tool_name or json_input"}))
         sys.exit(1)
@@ -55,7 +63,7 @@ def main() -> None:
 
     # Execute tool
     from .tools import execute_tool
-    result = execute_tool(tool_name, input_data, state)
+    result = execute_tool(tool_name, input_data, state, task_source=task_source)
 
     # Save state back
     state.save(state_path)

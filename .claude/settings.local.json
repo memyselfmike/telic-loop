@@ -22,7 +22,12 @@
       "Bash(tasklist:*)",
       "Bash(git status:*)",
       "Bash(wmic process where \"name='python.exe'\" get ProcessId,CommandLine:*)",
-      "Bash(powershell -c:*)"
+      "Bash(powershell -c:*)",
+      "Bash(python3:*)",
+      "Bash(done)",
+      "Bash(find:*)",
+      "Bash(py:*)",
+      "WebFetch(domain:beep2b.com)"
     ]
   }
 }
