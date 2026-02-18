@@ -1,17 +1,13 @@
 ---
-import '../styles/global.css';
+import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<BaseLayout
+  title="Beep2B — LinkedIn Lead Generation for B2B"
+  description="Beep2B helps B2B entrepreneurs and marketers generate high-quality LinkedIn leads through the proven BEEP methodology."
+>
+  <main class="min-h-screen bg-white">
+    <h1 class="text-4xl font-bold text-blue-800 p-8">Welcome to Beep2B</h1>
+    <p class="text-lg text-slate-600 px-8">B2B LinkedIn Lead Generation Consulting</p>
+  </main>
+</BaseLayout>
