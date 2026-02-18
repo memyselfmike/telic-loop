@@ -106,7 +106,47 @@ For each task, call `manage_task` with action `"add"` and the following fields:
 
 ### Task Sizing
 
-Each task must be completable in a single agent session. If a task requires understanding more than ~5 files in depth or making changes across more than ~8 files, break it down further.
+Each task must be completable in a single agent session with a SINGLE primary concern.
+
+**Hard Limits (enforced by the system — tasks exceeding these are rejected):**
+
+- **Description**: Max 600 characters. If you need more words, the task bundles too many concerns — split it.
+- **Files**: Max 5 files in `files_expected`. If more are needed, decompose into separate tasks.
+
+**Sizing Principles:**
+
+1. **Single Concern Rule**: Each task addresses ONE primary concern. One API resource, one UI component, one data model, one integration path. If you find yourself writing "and" to connect distinct features, those are separate tasks.
+
+2. **API Rule**: Max 2 related endpoints per task (e.g., GET + POST for one resource). CRUD for a single resource = one task. CRUD for multiple resources = separate tasks.
+
+3. **Frontend Rule**: For substantial UI work (>100 lines expected), separate structure (HTML/JSX), styling (CSS), and behavior (JS logic/event handlers) into distinct tasks when each is independently verifiable.
+
+4. **Acceptance Criteria Rule**: Max 5 specific, independently-testable criteria per task. Each criterion tests ONE behavior. If you have more, the task covers too much ground.
+
+**Good vs Bad Decomposition:**
+
+BAD (bundled — 1,400 chars, 5+ concerns):
+> Implement Timer API endpoints. GET /api/timer returns current timer state.
+> POST /api/timer/start creates new timer with project_id and description.
+> POST /api/timer/stop stops the active timer and creates a time entry.
+> GET /api/entries returns time entries with date filtering and range support.
+> POST /api/entries creates a manual time entry. Auto-switch logic when starting
+> a new timer while one is running.
+
+GOOD (split into 3 focused tasks):
+> Task A: "Implement timer lifecycle API. GET /api/timer returns current timer
+> state (running or idle). POST /api/timer/start creates timer with project_id
+> and description. POST /api/timer/stop stops active timer and creates entry."
+>
+> Task B: "Implement time entries API. GET /api/entries returns entries with
+> optional date and range query params. POST /api/entries creates a manual
+> time entry with project_id, description, start_time, end_time."
+>
+> Task C: "Implement auto-switch logic. When POST /api/timer/start is called
+> with an active timer, stop the current timer (creating its entry) before
+> starting the new one. Return both the stopped entry and new timer state."
+
+Each task is <600 chars, has 1-2 endpoints, and produces independently verifiable output.
 
 ### No Orphan Tasks
 

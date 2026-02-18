@@ -34,6 +34,15 @@ Before writing any code, understand:
 3. **What already exists?** — Check `files_expected` and explore the codebase
 4. **What must exist first?** — Read the `dependencies` field (all should be complete)
 
+### Scope Fence
+
+You are implementing THIS task and ONLY this task:
+
+1. **Implement ONLY what the acceptance criteria require.** If you discover adjacent work needed, note it in `completion_notes` — the loop will create follow-up tasks.
+2. **Prefer files listed in `files_expected`.** If you must touch unlisted files for wiring or imports, keep changes to the minimum necessary.
+3. **Do NOT implement functionality that belongs to other tasks**, even if you can see stubs, TODO comments, or partially-built features in the codebase.
+4. **If your implementation grows beyond the task's scope, STOP.** Report what you have completed via `report_task_complete` and note remaining work. Partial completion of the correct scope is better than full completion of the wrong scope.
+
 ### Step 2: Assess the Codebase State
 
 Determine whether this is greenfield or brownfield work:
@@ -134,6 +143,7 @@ The bar for calling `request_human_action` is high. If you can write code to sol
 - Marking done before verifying the acceptance criteria
 - Suppressing errors instead of handling them
 - Rewriting working code instead of extending it
-- Making changes outside the scope of this task
+- Making changes outside the scope of this task — touching files not in files_expected or implementing features not in acceptance criteria
+- Implementing "while I'm here" improvements — adjacent features, extra error handling, or premature optimization beyond what acceptance criteria require
 - Committing changes (the orchestrator handles git)
 - Editing IMPLEMENTATION_PLAN.md or other rendered views

@@ -549,6 +549,23 @@ def validate_task_mutation(action: str, input_data: dict, state: LoopState) -> s
             if dep_id not in state.tasks:
                 return f"Dependency '{dep_id}' doesn't exist"
 
+        # Task granularity enforcement
+        desc = input_data.get("description", "")
+        max_desc = getattr(state, "max_task_description_chars", 600)
+        if len(desc) > max_desc:
+            return (
+                f"Description too long ({len(desc)} chars, max {max_desc}). "
+                "Split this task into smaller, focused units."
+            )
+
+        files = input_data.get("files_expected", [])
+        max_files = getattr(state, "max_files_per_task", 5)
+        if len(files) > max_files:
+            return (
+                f"Too many files_expected ({len(files)}, max {max_files}). "
+                "Split into separate tasks, each touching fewer files."
+            )
+
     elif action == "modify":
         if task_id not in state.tasks:
             return f"Task {task_id} doesn't exist"

@@ -319,6 +319,10 @@ class LoopState:
     # Exit gate
     exit_gate_attempts: int = 0
 
+    # Task granularity limits (populated from config at loop start)
+    max_task_description_chars: int = 600
+    max_files_per_task: int = 5
+
     # Token tracking
     total_tokens_used: int = 0
 

@@ -189,6 +189,10 @@ def main() -> None:
         # Recover from interrupted rollback
         _recover_interrupted_rollback(config, state)
 
+        # Sync granularity limits from config to state (readable by tool CLI)
+        state.max_task_description_chars = config.max_task_description_chars
+        state.max_files_per_task = config.max_files_per_task
+
         # Create Claude factory
         claude = Claude(config, state)
 

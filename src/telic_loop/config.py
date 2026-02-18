@@ -76,6 +76,10 @@ class LoopConfig:
     code_health_max_todo_count: int = 5         # TODO_DEBT threshold
     code_health_max_duplicate_tasks: int = 5    # cap on DEDUP tasks created
 
+    # Task granularity enforcement
+    max_task_description_chars: int = 600      # reject tasks with longer descriptions
+    max_files_per_task: int = 5                # reject tasks expecting more files
+
     # Reliability
     max_task_retries: int = 3
     max_rollbacks_per_sprint: int = 3
