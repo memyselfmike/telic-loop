@@ -28,9 +28,10 @@ const SECTION_LABELS = {
    Module State
    ============================================================ */
 
-/** @type {{ list: object|null }} */
+/** @type {{ list: object|null, inflight: Set<number> }} */
 const shoppingState = {
-  list: null,   // ShoppingListResponse from API (or null when no list exists)
+  list:     null,   // ShoppingListResponse from API (or null when no list exists)
+  inflight: new Set(), // item IDs with a pending API call (prevents double-toggle)
 };
 
 /* ============================================================
@@ -199,26 +200,34 @@ function buildSection(sectionKey, items) {
 function buildItem(item) {
   const { el } = window.App;
 
-  const qty = formatQty(item.quantity, item.unit);
+  const qty       = formatQty(item.quantity, item.unit);
+  const isPending = shoppingState.inflight.has(item.id);
 
-  const checkbox = el('input', {
+  const checkboxAttrs = {
     type:      'checkbox',
     className: 'shopping-checkbox',
     onClick:   (e) => handleToggle(item.id, e.target.checked),
-  });
+  };
+  // Disable interaction while an API call is in-flight for this item.
+  if (isPending) checkboxAttrs.disabled = 'disabled';
+
+  const checkbox = el('input', checkboxAttrs);
   // Set .checked as a DOM property (not HTML attribute) so it reflects current state.
   checkbox.checked = item.checked;
 
   const qtySpan  = el('span', { className: 'shopping-item-qty' }, qty);
   const nameSpan = el('span', { className: 'shopping-item-text' }, item.item);
 
-  const removeBtn = el('button', {
+  const removeBtnAttrs = {
     className: 'btn btn-icon shopping-item-remove',
     title:     'Remove item',
     onClick:   () => handleRemove(item.id),
-  }, '✕');
+  };
+  if (isPending) removeBtnAttrs.disabled = 'disabled';
 
-  const rowClass = 'shopping-item' + (item.checked ? ' checked' : '');
+  const removeBtn = el('button', removeBtnAttrs, '✕');
+
+  const rowClass = 'shopping-item' + (item.checked ? ' checked' : '') + (isPending ? ' pending' : '');
 
   return el('div', {
     className:        rowClass,
@@ -248,10 +257,18 @@ function formatQty(qty, unit) {
 
 /**
  * Toggle an item's checked state via PATCH, then re-render.
+ * Guards against double-toggle by tracking in-flight item IDs.
  * @param {number}  itemId
  * @param {boolean} isChecked   — The NEW intended state (from checkbox event)
  */
 async function handleToggle(itemId, isChecked) {
+  // Ignore the click if another API call for this item is already in-flight.
+  if (shoppingState.inflight.has(itemId)) return;
+
+  // Mark this item as in-flight and re-render to disable its controls.
+  shoppingState.inflight.add(itemId);
+  renderShoppingView();
+
   // The backend toggles the state; it doesn't accept the new value directly.
   // We call PATCH and let the response be the source of truth.
   try {
@@ -264,29 +281,45 @@ async function handleToggle(itemId, isChecked) {
       if (idx !== -1) {
         shoppingState.list.items[idx] = updated;
       }
-      renderShoppingView();
     }
   } catch (_) {
-    // apiFetch already showed a toast; re-render to restore checkbox state.
+    // apiFetch already showed a toast; fall through so we re-render to
+    // restore the checkbox to its server-side state.
+  } finally {
+    // Always clear the inflight lock and re-render.
+    shoppingState.inflight.delete(itemId);
     renderShoppingView();
   }
 }
 
 /**
  * Remove an item via DELETE, then re-render.
+ * Guards against double-click by tracking in-flight item IDs.
  * @param {number} itemId
  */
 async function handleRemove(itemId) {
+  // Ignore the click if another API call for this item is already in-flight.
+  if (shoppingState.inflight.has(itemId)) return;
+
+  // Mark this item as in-flight and re-render to disable its controls.
+  shoppingState.inflight.add(itemId);
+  renderShoppingView();
+
   try {
     await window.App.apiFetch(`/api/shopping/items/${itemId}`, {
       method: 'DELETE',
     });
     if (shoppingState.list) {
+      // Remove the item from local state — no need to re-fetch.
       shoppingState.list.items = shoppingState.list.items.filter(i => i.id !== itemId);
+      // Clear inflight BEFORE re-rendering (item is gone, no need to unlock it).
+      shoppingState.inflight.delete(itemId);
       renderShoppingView();
       window.App.showToast('Item removed', 'success');
     }
   } catch (_) {
-    // apiFetch showed an error toast already.
+    // apiFetch showed an error toast already.  Unlock and restore.
+    shoppingState.inflight.delete(itemId);
+    renderShoppingView();
   }
 }
