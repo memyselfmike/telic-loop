@@ -1,27 +1,505 @@
 /**
  * planner.js — Weekly Meal Planner View
  *
- * Full implementation: task E1-6 or later epic.
- * This stub renders a skeleton placeholder so navigation works without errors.
+ * Renders a 7-column (Mon–Sun) × 4-row (Breakfast, Lunch, Dinner, Snack)
+ * meal planning grid backed by GET/PUT/DELETE /api/meals.
  */
 
 'use strict';
 
+/* ============================================================
+   Constants
+   ============================================================ */
+
+const MEAL_SLOTS = ['breakfast', 'lunch', 'dinner', 'snack'];
+const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+/* ============================================================
+   Date Helpers
+   ============================================================ */
+
 /**
- * Entry point called by app.js router when the user navigates to #planner.
+ * Return the ISO date string (YYYY-MM-DD) for the Monday of the
+ * week containing the given date (or today if no date is provided).
+ * @param {Date} [from]
+ * @returns {string}
+ */
+function getWeekStart(from = new Date()) {
+  const d = new Date(from);
+  // getDay(): 0=Sun, 1=Mon … 6=Sat  →  shift so Monday=0
+  const dayOfWeek = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - dayOfWeek);
+  return toISODate(d);
+}
+
+/**
+ * Convert a Date to a YYYY-MM-DD string in local time.
+ * @param {Date} d
+ * @returns {string}
+ */
+function toISODate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * Advance a week-start ISO date by `delta` weeks.
+ * @param {string} weekStart — YYYY-MM-DD
+ * @param {number} delta — positive or negative integer
+ * @returns {string}
+ */
+function offsetWeek(weekStart, delta) {
+  const d = new Date(weekStart + 'T00:00:00');
+  d.setDate(d.getDate() + delta * 7);
+  return toISODate(d);
+}
+
+/**
+ * Format a week-start date as a human-readable range label.
+ * e.g. "Feb 16 – Feb 22, 2026"
+ * @param {string} weekStart
+ * @returns {string}
+ */
+function formatWeekLabel(weekStart) {
+  const start = new Date(weekStart + 'T00:00:00');
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+
+  const opts = { month: 'short', day: 'numeric' };
+  const startStr = start.toLocaleDateString(undefined, opts);
+  const endStr = end.toLocaleDateString(undefined, { ...opts, year: 'numeric' });
+  return `${startStr} – ${endStr}`;
+}
+
+/* ============================================================
+   Entry Point
+   ============================================================ */
+
+/**
+ * Called by app.js router when the user navigates to #planner.
+ * Renders the full weekly meal planner interface.
  */
 async function renderPlanner() {
-  const { setAppContent, buildEmptyState, el } = window.App;
+  const { setAppContent, buildLoadingState, el } = window.App;
 
-  const header = el('div', { className: 'page-header' },
-    el('h1', { className: 'page-title' }, '📅 Meal Plan'),
-  );
+  // Show loading state immediately
+  setAppContent(buildLoadingState());
 
-  const placeholder = buildEmptyState(
-    '📅',
-    'Meal Planner Coming Soon',
-    'Assign recipes to breakfast, lunch, dinner, and snack slots across the week.',
-  );
+  // Module-level state (re-created on each navigation to #planner)
+  const state = {
+    weekStart: getWeekStart(),
+    meals: [],      // MealPlanResponse[]
+    recipes: [],    // RecipeSummary[] — loaded lazily for the picker
+  };
 
-  setAppContent(el('div', {}, header, placeholder));
+  /**
+   * Main render function — rebuilds the entire view from state.
+   */
+  async function render() {
+    const { apiFetch, showToast } = window.App;
+
+    try {
+      state.meals = await apiFetch(`/api/meals?week=${encodeURIComponent(state.weekStart)}`);
+    } catch {
+      // apiFetch already showed a toast; render an empty grid so the user
+      // can still see the structure.
+      state.meals = [];
+    }
+
+    setAppContent(buildView());
+  }
+
+  /* ----------------------------------------------------------
+     View Construction
+     ---------------------------------------------------------- */
+
+  /**
+   * Build the complete planner view: header + week-nav + grid.
+   * @returns {HTMLElement}
+   */
+  function buildView() {
+    const { el } = window.App;
+    return el('div', {},
+      buildPageHeader(),
+      buildWeekNav(),
+      buildMealGrid(),
+    );
+  }
+
+  /** Page title row */
+  function buildPageHeader() {
+    const { el } = window.App;
+    return el('div', { className: 'page-header' },
+      el('h1', { className: 'page-title' }, '📅 Meal Planner'),
+    );
+  }
+
+  /** Previous / week-label / next navigation bar */
+  function buildWeekNav() {
+    const { el } = window.App;
+
+    const prevBtn = el('button', {
+      className: 'btn btn-secondary',
+      'aria-label': 'Previous week',
+      onClick: () => navigateWeek(-1),
+    }, '← Prev');
+
+    const nextBtn = el('button', {
+      className: 'btn btn-secondary',
+      'aria-label': 'Next week',
+      onClick: () => navigateWeek(1),
+    }, 'Next →');
+
+    const todayBtn = el('button', {
+      className: 'btn btn-ghost',
+      onClick: () => navigateWeekAbsolute(getWeekStart()),
+    }, 'Today');
+
+    const label = el('span', { className: 'week-label' }, formatWeekLabel(state.weekStart));
+
+    return el('div', { className: 'planner-week-nav' },
+      prevBtn,
+      todayBtn,
+      label,
+      nextBtn,
+    );
+  }
+
+  /** The scrollable meal grid container */
+  function buildMealGrid() {
+    const { el } = window.App;
+    return el('div', { className: 'meal-grid' },
+      buildMealTable(),
+    );
+  }
+
+  /**
+   * Build the full <table>:
+   *   thead: blank cell + Mon … Sun
+   *   tbody: one <tr> per meal slot + day-total summary row
+   */
+  function buildMealTable() {
+    const { el } = window.App;
+
+    // Index meals by "dayIndex-slot" for O(1) lookup
+    const mealIndex = indexMeals(state.meals);
+
+    const thead = el('thead', {},
+      buildHeaderRow(),
+    );
+
+    const tbody = el('tbody', {},
+      ...MEAL_SLOTS.map(slot => buildSlotRow(slot, mealIndex)),
+      buildTotalRow(mealIndex),
+    );
+
+    return el('table', { className: 'meal-table', role: 'grid' },
+      thead,
+      tbody,
+    );
+  }
+
+  /** thead row: empty corner cell + Mon–Sun th cells */
+  function buildHeaderRow() {
+    const { el } = window.App;
+    const cornerTh = el('th', { scope: 'col', 'aria-label': 'Meal type' }, '');
+    const dayThs = DAY_LABELS.map(label =>
+      el('th', { scope: 'col' }, label),
+    );
+    return el('tr', {}, cornerTh, ...dayThs);
+  }
+
+  /**
+   * One tbody row for a given meal slot (breakfast / lunch / dinner / snack).
+   * @param {string} slot
+   * @param {Map} mealIndex
+   */
+  function buildSlotRow(slot, mealIndex) {
+    const { el } = window.App;
+    const labelTd = el('td', { className: 'meal-row-label', scope: 'row' },
+      slot.charAt(0).toUpperCase() + slot.slice(1),
+    );
+    const cells = Array.from({ length: 7 }, (_, dayIndex) =>
+      buildMealCell(dayIndex, slot, mealIndex),
+    );
+    return el('tr', {}, labelTd, ...cells);
+  }
+
+  /**
+   * Build a single td meal cell.
+   * Empty → shows "+" add button.
+   * Filled → shows recipe title, time, and a remove button.
+   * @param {number} dayIndex — 0=Mon … 6=Sun
+   * @param {string} slot
+   * @param {Map} mealIndex
+   */
+  function buildMealCell(dayIndex, slot, mealIndex) {
+    const { el, formatTime } = window.App;
+    const key = `${dayIndex}-${slot}`;
+    const meal = mealIndex.get(key) || null;
+
+    const td = el('td', {
+      className: `meal-cell${meal ? ' has-recipe' : ''}`,
+      role: 'gridcell',
+      tabindex: '0',
+      'aria-label': meal
+        ? `${DAY_LABELS[dayIndex]} ${slot}: ${meal.recipe_title}`
+        : `${DAY_LABELS[dayIndex]} ${slot}: empty`,
+    });
+
+    if (meal) {
+      // Filled cell: recipe card
+      const removeBtn = el('button', {
+        className: 'meal-cell-remove',
+        'aria-label': `Remove ${meal.recipe_title} from ${DAY_LABELS[dayIndex]} ${slot}`,
+        onClick: async (e) => {
+          e.stopPropagation();
+          await removeMeal(meal.id);
+        },
+      }, '×');
+
+      const recipe = el('div', { className: 'meal-cell-recipe' },
+        el('div', { className: 'meal-cell-title' }, meal.recipe_title),
+        meal.total_time
+          ? el('div', { className: 'meal-cell-time' }, `⏱ ${formatTime(meal.total_time)}`)
+          : null,
+      );
+
+      td.appendChild(recipe);
+      td.appendChild(removeBtn);
+
+      // Click filled cell → open picker to replace
+      td.addEventListener('click', () => openRecipePicker(dayIndex, slot));
+      td.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openRecipePicker(dayIndex, slot);
+        }
+      });
+    } else {
+      // Empty cell: + add button
+      const addBtn = el('div', { className: 'meal-cell-add', 'aria-hidden': 'true' }, '+');
+      td.appendChild(addBtn);
+
+      td.addEventListener('click', () => openRecipePicker(dayIndex, slot));
+      td.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openRecipePicker(dayIndex, slot);
+        }
+      });
+    }
+
+    return td;
+  }
+
+  /**
+   * Build the day-total summary row at the bottom.
+   * Sums total_time across all meal slots for each day.
+   * @param {Map} mealIndex
+   */
+  function buildTotalRow(mealIndex) {
+    const { el, formatTime } = window.App;
+
+    const labelTd = el('td', { className: 'meal-row-label' }, 'Total');
+    const totalTds = Array.from({ length: 7 }, (_, dayIndex) => {
+      const dayTotal = MEAL_SLOTS.reduce((sum, slot) => {
+        const meal = mealIndex.get(`${dayIndex}-${slot}`);
+        return sum + (meal ? (meal.total_time || 0) : 0);
+      }, 0);
+      return el('td', {}, dayTotal > 0 ? formatTime(dayTotal) : '0m');
+    });
+
+    return el('tr', { className: 'day-total-row' }, labelTd, ...totalTds);
+  }
+
+  /* ----------------------------------------------------------
+     Data Helpers
+     ---------------------------------------------------------- */
+
+  /**
+   * Index an array of MealPlanResponse objects by "dayIndex-slot".
+   * The API returns day_of_week as 0–6 (Mon–Sun).
+   * @param {object[]} meals
+   * @returns {Map<string, object>}
+   */
+  function indexMeals(meals) {
+    const map = new Map();
+    for (const meal of meals) {
+      map.set(`${meal.day_of_week}-${meal.meal_slot}`, meal);
+    }
+    return map;
+  }
+
+  /* ----------------------------------------------------------
+     Navigation
+     ---------------------------------------------------------- */
+
+  async function navigateWeek(delta) {
+    state.weekStart = offsetWeek(state.weekStart, delta);
+    await render();
+  }
+
+  async function navigateWeekAbsolute(weekStart) {
+    state.weekStart = weekStart;
+    await render();
+  }
+
+  /* ----------------------------------------------------------
+     Meal CRUD
+     ---------------------------------------------------------- */
+
+  /**
+   * Delete a meal plan entry and re-render.
+   * @param {number} mealId
+   */
+  async function removeMeal(mealId) {
+    const { apiFetch, showToast } = window.App;
+    try {
+      await apiFetch(`/api/meals/${mealId}`, { method: 'DELETE' });
+      showToast('Meal removed', 'success');
+      await render();
+    } catch {
+      // apiFetch already displayed an error toast
+    }
+  }
+
+  /**
+   * Assign a recipe to a meal slot and re-render.
+   * @param {number} recipeId
+   * @param {number} dayIndex — 0=Mon … 6=Sun
+   * @param {string} slot
+   */
+  async function assignMeal(recipeId, dayIndex, slot) {
+    const { apiFetch, showToast } = window.App;
+    try {
+      await apiFetch('/api/meals', {
+        method: 'PUT',
+        body: {
+          week_start: state.weekStart,
+          day_of_week: dayIndex,
+          meal_slot: slot,
+          recipe_id: recipeId,
+        },
+      });
+      showToast('Recipe added to plan', 'success');
+      await render();
+    } catch {
+      // apiFetch already displayed an error toast
+    }
+  }
+
+  /* ----------------------------------------------------------
+     Recipe Picker Modal
+     ---------------------------------------------------------- */
+
+  /**
+   * Open a modal with a searchable list of recipes.
+   * On selection, assigns the recipe to the given slot.
+   * @param {number} dayIndex
+   * @param {string} slot
+   */
+  async function openRecipePicker(dayIndex, slot) {
+    const { apiFetch, openModal, closeModal, el, showToast } = window.App;
+
+    const dayLabel = DAY_LABELS[dayIndex];
+    const slotLabel = slot.charAt(0).toUpperCase() + slot.slice(1);
+
+    // Fetch recipes if not yet cached
+    if (state.recipes.length === 0) {
+      try {
+        state.recipes = await apiFetch('/api/recipes');
+      } catch {
+        return; // toast already shown
+      }
+    }
+
+    let filteredRecipes = [...state.recipes];
+
+    // Search input
+    const searchInput = el('input', {
+      type: 'search',
+      className: 'picker-search',
+      placeholder: 'Search recipes…',
+      'aria-label': 'Search recipes',
+    });
+
+    // Recipe list container
+    const listEl = el('ul', { className: 'picker-list', role: 'listbox' });
+
+    /** Render the filtered recipe list */
+    function renderPickerList(recipes) {
+      while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
+
+      if (recipes.length === 0) {
+        listEl.appendChild(el('li', { className: 'picker-empty' }, 'No recipes found.'));
+        return;
+      }
+
+      for (const recipe of recipes) {
+        const totalTime = (recipe.prep_time_minutes || 0) + (recipe.cook_time_minutes || 0);
+        const timeStr = totalTime ? ` · ⏱ ${window.App.formatTime(totalTime)}` : '';
+
+        const item = el('li', {
+          className: 'picker-item',
+          role: 'option',
+          tabindex: '0',
+          'aria-label': recipe.title,
+        },
+          el('span', { className: 'picker-item-title' }, recipe.title),
+          el('span', { className: 'picker-item-meta' }, `${recipe.category || ''}${timeStr}`),
+        );
+
+        const selectRecipe = async () => {
+          closeModal();
+          await assignMeal(recipe.id, dayIndex, slot);
+        };
+
+        item.addEventListener('click', selectRecipe);
+        item.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            selectRecipe();
+          }
+        });
+
+        listEl.appendChild(item);
+      }
+    }
+
+    // Initial render
+    renderPickerList(filteredRecipes);
+
+    // Live search filtering (debounced)
+    let debounceTimer = null;
+    searchInput.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        const query = searchInput.value.trim().toLowerCase();
+        filteredRecipes = query
+          ? state.recipes.filter(r =>
+              r.title.toLowerCase().includes(query) ||
+              (r.category || '').toLowerCase().includes(query) ||
+              (r.tags || '').toLowerCase().includes(query),
+            )
+          : [...state.recipes];
+        renderPickerList(filteredRecipes);
+      }, 200);
+    });
+
+    const body = el('div', {},
+      searchInput,
+      listEl,
+    );
+
+    openModal(`Add to ${dayLabel} ${slotLabel}`, body);
+  }
+
+  /* ----------------------------------------------------------
+     Boot
+     ---------------------------------------------------------- */
+
+  await render();
 }

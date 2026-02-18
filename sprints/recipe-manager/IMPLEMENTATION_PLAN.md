@@ -1,6 +1,6 @@
 # Implementation Plan (rendered from state)
 
-Generated: 2026-02-17T23:40:02.589636
+Generated: 2026-02-18T00:07:15.265690
 
 
 ## Foundation
@@ -51,6 +51,30 @@ Generated: 2026-02-17T23:40:02.589636
   - Acceptance: Add Recipe opens modal with empty form. All fields present: title, description, category dropdown, times, servings, instructions, tags. Ingredients section shows one empty row with qty/unit/item/section fields. Add Ingredient appends row. Remove (X) removes row (cant remove last). Create: fill title=Test Recipe, category=dinner, one ingredient (2, cups, rice, pantry), submit creates via POST. Modal closes, grid refreshes with new card. Edit: opens same modal pre-filled, modify title, submit via PUT updates recipe. Collection shows updated title.
   - Deps: E1-7
 
+- [ ] **E2-1**: Build the weekly meal planner grid view in planner.js: render a 7-column (Mon-Sun) x 4-row (breakfast, lunch, dinner, snack) HTML table using the existing CSS classes (.meal-table, .meal-cell, .meal-row-label, etc.). On load, calculate the current week start (Monday ISO date), call GET /api/meals?week={weekStart} to fetch assigned meals, and populate cells — empty cells show a "+" add button (.meal-cell-add), filled cells show recipe title (.meal-cell-title) and time (.meal-cell-time). Include a day header row (th per day: Mon-Sun) and a day total summary row (.day-total-row) showing total prep+cook time per column. Use window.App.el() for DOM construction and window.App.apiFetch() for API calls.
+  - Value: Enables the user to see the weekly meal grid at a glance — the core visual structure that makes meal planning possible. Without this grid, no planner interaction can happen.
+  - Acceptance: Navigating to #planner renders a 7-column x 4-row meal table. GET /api/meals is called with the current week start. Empty cells show "+" icons. The day summary row shows 0m for days with no meals. No JS errors in console.
+
+- [ ] **E2-2**: Implement week navigation controls in planner.js: add a navigation bar (.planner-week-nav) above the grid with Previous/Next week arrow buttons and a "This Week" button. Clicking Previous subtracts 7 days from the current weekStart, clicking Next adds 7 days, and "This Week" resets to the current Monday. Display the week range as a label (e.g., "Feb 16 – Feb 22, 2026") in a .week-label element. Each navigation action recalculates weekStart, calls GET /api/meals?week={newWeekStart}, and re-renders the grid cells and day totals. Persist the current weekStart in a module-level variable so re-renders maintain position.
+  - Value: Enables the user to plan ahead or review past weeks — without navigation, the planner is locked to a single week and cannot support weekly meal prep workflow.
+  - Acceptance: Clicking Previous/Next arrows changes the week label and re-fetches meal data for the new week. Clicking "This Week" returns to the current week. Grid updates correctly with each navigation. Multiple rapid clicks do not cause stale data rendering.
+  - Deps: E2-1
+
+- [ ] **E2-3**: Implement the recipe picker modal in planner.js: when the user clicks a "+" (empty cell) in the meal grid, open a modal (using window.App.openModal) titled "Pick a Recipe" containing a search input (.picker-search) and a scrollable list (.picker-list) of all recipes fetched from GET /api/recipes. Each list item (.picker-item) shows recipe title (.picker-item-title) and time + category (.picker-item-meta). The search input filters the list in real-time by title (case-insensitive substring match). Clicking a recipe item calls PUT /api/meals with {week_start, day_of_week, meal_slot, recipe_id}, closes the modal, and updates the clicked cell to show the recipe title and time without full page re-render.
+  - Value: Enables the user to assign recipes to meal slots — the primary action of the meal planner. Without the picker, slots cannot be filled and the planner is read-only.
+  - Acceptance: Clicking "+" on an empty cell opens a modal with all recipes listed. Typing in the search box filters recipes in real-time. Clicking a recipe assigns it to the slot (PUT /api/meals returns 200), the modal closes, and the cell now shows the recipe title and prep+cook time. Toast notification confirms assignment.
+  - Deps: E2-1
+
+- [ ] **E2-4**: Implement slot interactions for assigned recipe cells in planner.js: when the user clicks a cell that already has a recipe assigned, show an action popup or context menu with three options: (1) "View Recipe" — navigates to #recipes and could open recipe detail (or shows recipe info in a modal), (2) "Swap" — opens the recipe picker modal to replace the current recipe in this slot (reuses E2-3 picker, PUT /api/meals upserts), (3) "Clear" — calls DELETE /api/meals/{mealId} and updates the cell back to the empty "+" state. Additionally, show a remove button (.meal-cell-remove) on hover that directly clears the slot without the menu for quick removal. After any slot change, recalculate and update the day total row for that column.
+  - Value: Enables the user to manage and adjust their meal plan — swap recipes between slots, clear mistakes, and review recipes directly from the planner view.
+  - Acceptance: Clicking an assigned cell shows View/Swap/Clear options. "Swap" opens the picker and replaces the recipe. "Clear" removes the assignment and shows "+" again. The hover X button clears the slot. Day totals update after every slot change. DELETE returns 204 and the cell reverts to empty state.
+  - Deps: E2-3
+
+- [ ] **E2-5**: Implement copy-to-slots (meal prep) workflow in planner.js: add a "Copy to slots..." option in the assigned-recipe action menu (from E2-4). When selected, open a modal showing a checkbox grid of all 28 slots (7 days x 4 meals) where the user can select multiple target slots. Pre-check the current slot. A "Copy" button fires one PUT /api/meals call per selected slot (sequentially or with Promise.all), then refreshes the grid. This enables the PRD meal-prep scenario: same lunch Monday-Friday. Show a toast summarizing how many slots were filled (e.g., "Copied to 5 slots"). Handle errors gracefully — if some PUTs fail, report which succeeded.
+  - Value: Enables the meal prep workflow — the user assigns the same recipe to multiple day/slot combinations in one action, saving significant time versus clicking each slot individually.
+  - Acceptance: User assigns a recipe to Monday lunch, clicks it, selects "Copy to slots...", checks Tue-Fri lunch, clicks Copy. All 5 PUT calls succeed and all 5 lunch cells show the recipe. Toast confirms "Copied to 5 slots". Day totals update for each affected day.
+  - Deps: E2-4
+
 
 ## Verification
 
@@ -58,3 +82,11 @@ Generated: 2026-02-17T23:40:02.589636
   - Value: Proves the entire Epic 1 value promise end-to-end: a home cook can build, browse, search, and manage their recipe collection through a working dark-themed UI -- not just individual components passing tests in isolation
   - Acceptance: All pytest tests pass (0 failures). Verification script exits 0. Server serves frontend at localhost:8000. 5 seed recipes visible as cards with dark theme. Filter by category shows only matching. Search by ingredient works. Full CRUD lifecycle: create recipe with ingredients, view in grid, open detail, edit, see changes, delete, confirm gone. Layout renders at 1024px and 768px without horizontal scroll.
   - Deps: E1-5, E1-8, E1-9
+
+
+## Integration
+
+- [ ] **E2-6**: Verify meal plan persistence and cascade delete behavior in planner.js integration: (1) Persistence — assign recipes to several slots, navigate to #recipes and back to #planner, confirm slots still show assigned recipes (data fetched fresh from API each time). Navigate between weeks and back, confirm data persists. (2) Cascade delete — assign a recipe to a planner slot, switch to #recipes, delete that recipe, switch back to #planner, confirm the slot is now empty (the meal_plans row was cascade-deleted in SQLite). Ensure no errors occur when rendering a week that had cascade-deleted entries. (3) Day totals accuracy — assign multiple recipes to one day, verify the day total row sums prep+cook time correctly.
+  - Value: Proves the planner delivers trustworthy data — meals persist across navigation and page reloads, and cascade deletes keep the planner consistent when recipes are removed from the collection.
+  - Acceptance: Assigned meals survive navigation between tabs and between weeks. Deleting a recipe from the collection clears it from all planner slots. Day total row accurately sums total_time values for all recipes in each column. No stale data or JS errors after cascade deletes.
+  - Deps: E2-4
