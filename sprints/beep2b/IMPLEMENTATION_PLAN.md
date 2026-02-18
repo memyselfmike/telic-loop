@@ -1,33 +1,23 @@
 # Implementation Plan (rendered from state)
 
-Generated: 2026-02-18T18:56:58.397019
+Generated: 2026-02-18T21:26:57.349952
 
 
 ## Foundation
 
-- [ ] **1.1**: Initialize Astro 5 project with React integration, TypeScript, and Tailwind CSS v4. Run npm create astro, install @astrojs/react, then install tailwindcss and @tailwindcss/vite. Configure astro.config.mjs with React integration and Tailwind via vite.plugins (not @astrojs/tailwind which is deprecated for Tailwind v4). Create src/styles/globals.css with @import tailwindcss directive. Set up tsconfig.json. Verify npm run dev starts and npm run build produces dist/ output.
-  - Value: Establishes the project foundation so every subsequent page, component, and integration has a working build pipeline — without this, nothing else can begin.
-  - Acceptance: 1. npm run dev starts Astro dev server on port 4321. 2. npm run build produces dist/ folder with an index.html. 3. astro.config.mjs includes react() integration and tailwindcss() in vite.plugins array. 4. TypeScript compiles without errors. 5. globals.css has @import tailwindcss directive.
+- [ ] **1.1**: Verify Astro project configuration: astro.config.mjs has React integration and Tailwind v4 via @tailwindcss/vite plugin, tsconfig.json extends astro/tsconfigs/strict with jsx:react-jsx, package.json has dev/build/preview scripts. Confirm npm run dev starts on port 4321 and npm run build produces dist/ with zero errors. This is brownfield verification -- all config files already exist.
+  - Value: Confirms the build pipeline foundation works so every subsequent page and component can ship reliably to static HTML -- without a working build, no visitor can see the site.
+  - Acceptance: 1. npm run dev starts Astro dev server on port 4321. 2. npm run build exits 0 and produces dist/ with index.html. 3. astro.config.mjs includes react() and tailwindcss vite plugin. 4. tsconfig.json compiles without errors.
 
-- [ ] **1.2**: Set up shadcn/ui with blue B2B theme. Run npx shadcn@latest init (Astro framework). Configure CSS variables in globals.css using @theme directive for blue primary (#1e40af), slate text, white/gray backgrounds per PRD 4.1. Tailwind v4 uses CSS-based config (@theme), not tailwind.config.mjs. Install cn utility in src/lib/utils.ts. Add core shadcn components: Button, Card, Input, Textarea, Label, Badge, Separator.
-  - Value: Provides the consistent, professional UI component library that gives every page a polished B2B look — visitors see quality, not a DIY site.
-  - Acceptance: 1. globals.css has @import tailwindcss and @theme block with CSS custom properties for blue theme. 2. src/components/ui/ contains Button, Card, Input, Textarea, Label, Badge, Separator .tsx files. 3. src/lib/utils.ts exports cn() function. 4. A test page renders a Button and Card with blue theme colors. 5. npm run build succeeds. 6. No tailwind.config.mjs file needed (Tailwind v4 uses CSS-based @theme config).
+- [ ] **1.2**: Verify shadcn/ui component library and blue B2B theme. Confirm globals.css has @import tailwindcss and @theme block with primary blue #1e40af, brand colors, Inter font stack. Verify src/components/ui/ contains all 10 required components: Button, Card, Input, Textarea, Label, NavigationMenu, Sheet, Badge, Separator, Pagination. Confirm src/lib/utils.ts exports cn() utility. Verify components render with correct blue theme on ui-test page.
+  - Value: A professional, consistent UI component library gives visitors confidence in the brand -- every button, card, and form element reflects B2B quality rather than default unstyled HTML.
+  - Acceptance: 1. global.css has @theme block with --color-primary-800: #1e40af and Inter font. 2. All 10 .tsx files exist in src/components/ui/. 3. src/lib/utils.ts exports cn(). 4. Components use CSS custom properties for theming. 5. npm run build succeeds.
   - Deps: 1.1
 
-- [ ] **1.3**: Create BaseLayout.astro with HTML shell: doctype, lang, charset, viewport meta, globals.css import, Inter font stack (system font fallback), and a <slot /> for page content. Include shared head elements (favicon link, default title/description). This is the wrapper every page will use.
-  - Value: Ensures every page on the site has consistent HTML structure, styling, and head metadata — visitors experience a unified, professional site rather than disjointed pages.
-  - Acceptance: 1. src/layouts/BaseLayout.astro exists with valid HTML5 shell. 2. Imports globals.css. 3. Has <slot /> for content. 4. Default <title> and <meta description> are set. 5. index.astro uses BaseLayout and renders.
+- [ ] **1.3**: Verify BaseLayout.astro provides complete HTML shell: doctype, lang, charset, viewport meta tag, globals.css import, Inter font loading (Google Fonts or system stack), Open Graph meta tags support (og:title, og:description, og:url), canonical URL, and slot for page content. Confirm Header.astro and Footer.astro are included in the layout. Fix any missing head elements.
+  - Value: Every page gets consistent HTML structure, SEO metadata, and styling -- visitors and search engines both see a properly structured professional site.
+  - Acceptance: 1. BaseLayout.astro has valid HTML5 shell with lang, charset, viewport meta. 2. Imports global.css. 3. Has slot for content. 4. Supports title and description props for SEO. 5. Includes Header and Footer components.
   - Deps: 1.2
-
-- [ ] **1.4**: Build Header.astro with site logo/name text, desktop navigation bar linking all 6 pages (Home, How It Works, Services, About, Blog, Contact), and MobileNav.tsx React island using shadcn Sheet component for hamburger menu at <768px. Desktop nav uses horizontal links visible at >1024px. Add shadcn Sheet and NavigationMenu components if not yet installed.
-  - Value: Visitors can navigate between all pages on any device — desktop users see a clean nav bar, mobile users tap a hamburger menu. Navigation is the core site usability feature.
-  - Acceptance: 1. Header.astro renders site name and 6 navigation links on desktop. 2. MobileNav.tsx renders hamburger button that opens Sheet with all 6 links. 3. Desktop nav hidden below 768px, hamburger hidden above 1024px. 4. client:load directive on MobileNav. 5. npm run build succeeds.
-  - Deps: 1.3
-
-- [ ] **1.5**: Build Footer.astro with navigation links to all pages, social media link placeholders (LinkedIn, Twitter), copyright text with current year, and a brief company tagline. Use Tailwind for dark background section with light text. Wire Footer into BaseLayout so it appears on every page.
-  - Value: Every page has a consistent footer giving visitors secondary navigation and reinforcing the professional brand — no page feels like a dead end.
-  - Acceptance: 1. Footer.astro renders nav links, social placeholders, copyright. 2. BaseLayout includes Footer below the slot. 3. Footer visible on all pages. 4. Responsive: stacks on mobile, horizontal layout on desktop. 5. npm run build succeeds.
-  - Deps: 1.3
 
 - [ ] **2.1**: Create Sanity Studio project in sanity/ directory. Set up sanity.config.ts with project ID and dataset. Note: Sanity Studio only exposes env vars prefixed SANITY_STUDIO_ to browser code -- either hardcode project ID in config or use SANITY_STUDIO_PROJECT_ID. Create sanity.cli.ts. Add package.json with sanity and @sanity/vision dependencies. Configure npm scripts for sanity dev (port 3333). Use defineConfig from sanity, defineType/defineField for schema API. Verify npx sanity dev launches Studio UI.
   - Value: The site owner gets a content management dashboard — Sanity Studio is the tool they will use to manage all blog posts and page content without touching code.
@@ -37,14 +27,29 @@ Generated: 2026-02-18T18:56:58.397019
 
 ## Core
 
-- [ ] **1.6**: Create 5 page routes (excluding blog, handled in task 1.7) with placeholder content using BaseLayout. Home (index.astro): hero section with headline, subheadline, CTA button, 3 feature cards, testimonial placeholders, bottom CTA. How It Works: 4-step BEEP method placeholders. Services: 3 service sections. About: company story placeholder. Contact: form placeholder. All pages use BaseLayout with Header and Footer.
-  - Value: Visitors can navigate to every page and see meaningful placeholder content — the complete site structure is browsable, proving the navigation and layout system works end-to-end.
-  - Acceptance: 1. All 5 non-blog routes resolve: /, /how-it-works, /services, /about, /contact. 2. Each page uses BaseLayout with Header and Footer. 3. Each has section-appropriate placeholder content (not empty). 4. Blue theme colors applied. 5. npm run build succeeds with all routes.
+- [ ] **1.4**: Verify Header.astro and MobileNav.tsx: Header displays site logo/brand name, desktop navigation linking all 6 pages (Home, How It Works, Services, About, Blog, Contact) with active route highlighting. MobileNav.tsx is a React island (client:load) using shadcn Sheet component for hamburger menu below 768px. Desktop nav hidden on mobile, hamburger hidden on desktop. Fix any navigation issues.
+  - Value: Visitors can navigate between all pages on any device -- desktop users see clean horizontal nav, mobile users tap a hamburger menu that slides out with all page links.
+  - Acceptance: 1. Header shows logo and 6 nav links on desktop (>1024px). 2. MobileNav renders hamburger that opens Sheet with all 6 links. 3. Desktop nav hidden below 768px, hamburger hidden above md breakpoint. 4. client:load directive on MobileNav. 5. Active route highlighting works.
+  - Deps: 1.3
+
+- [ ] **1.5**: Verify Footer.astro: multi-column layout with navigation links to all pages, social media link placeholders (LinkedIn icon + URL), copyright text with dynamic year, and company tagline. Dark background with light text using Tailwind. Footer wired into BaseLayout so it appears on every page. Responsive: stacks to single column on mobile, multi-column grid on desktop.
+  - Value: Every page has a consistent footer giving visitors secondary navigation paths and social proof -- no page feels like a dead end, reinforcing the professional brand.
+  - Acceptance: 1. Footer.astro renders nav links, social placeholders, copyright with current year. 2. BaseLayout includes Footer below slot. 3. Footer visible on all pages. 4. Responsive stacking on mobile, grid on desktop. 5. npm run build succeeds.
+  - Deps: 1.3
+
+- [ ] **1.6**: Verify Home page (index.astro) placeholder content: hero section with headline, subheadline, CTA button; 6 feature cards with icons, titles, descriptions; BEEP method 4-step preview (Build, Engage, Educate, Promote); 3 testimonial cards with quotes; bottom CTA banner. Confirm page uses BaseLayout, applies blue theme consistently, and responsive grid layout works (1/2/3 columns).
+  - Value: Visitors landing on the homepage immediately see a professional marketing page that communicates value, method, and social proof -- the most critical page for first impressions.
+  - Acceptance: 1. index.astro has hero with headline and CTA. 2. Feature cards section with 3+ cards. 3. BEEP method preview with 4 steps. 4. Testimonial cards present. 5. CTA banner at bottom. Responsive grid works.
   - Deps: 1.4, 1.5
 
-- [ ] **1.7**: Create blog/[...page].astro as the blog listing page with placeholder blog card grid (BlogCard.astro component showing image placeholder, title, date, category badges, excerpt). Use getStaticPaths with paginate() returning hardcoded placeholder posts. Build responsive grid: 1 col mobile, 2 col tablet, 3 col desktop. Render prev/next pagination links from page.url.prev and page.url.next. Do NOT create a separate blog/index.astro -- the [...page].astro rest route serves /blog as page 1.
-  - Value: Visitors see a professional blog listing layout that previews content marketing posts — the card grid and pagination structure is ready for real CMS data in Epic 2.
-  - Acceptance: 1. /blog route renders a grid of placeholder BlogCards (served by [...page].astro page 1). 2. BlogCard shows image area, title, date, category Badge, excerpt. 3. Grid responsive: 1/2/3 columns. 4. Pagination links rendered (pointing to /blog/2 etc with placeholder data). 5. No blog/index.astro file exists (would conflict with [...page].astro). 6. npm run build succeeds.
+- [ ] **1.7**: Verify 4 content pages have appropriate placeholder content. How It Works: 4-step BEEP method (Build, Engage, Educate, Promote) with visual layout and descriptions. Services: 3 service sections (LinkedIn Marketing, Thought Leadership, LinkedIn Training) with benefits lists. About: company story, stats, mission, values. Contact: form placeholder with ContactForm.tsx React island (client:load). All use BaseLayout.
+  - Value: Visitors can browse every page of the site and see meaningful content that communicates what Beep2B does -- the full site structure is navigable and informative.
+  - Acceptance: 1. /how-it-works has 4 BEEP steps with descriptions. 2. /services has 3 service sections. 3. /about has company story and stats. 4. /contact has ContactForm React island with client:load. 5. All pages use BaseLayout with blue theme.
+  - Deps: 1.4, 1.5
+
+- [ ] **1.8**: Verify blog listing page (blog/[...page].astro) with placeholder content: BlogCard.astro component showing image area, title, date, category badges, excerpt. Responsive card grid (1 col mobile, 2 col tablet, 3 col desktop). Pagination via paginate() with prev/next links. Category filter nav with links to /blog/category/[slug]. Confirm no conflicting blog/index.astro exists.
+  - Value: Visitors see a professional blog listing layout ready for content marketing posts -- the card grid and pagination structure is ready for real CMS data in Epic 2.
+  - Acceptance: 1. /blog renders grid of BlogCards with placeholder data. 2. BlogCard shows image area, title, date, Badge categories, excerpt. 3. Grid responsive: 1/2/3 columns at breakpoints. 4. Pagination links present. 5. No blog/index.astro conflicts.
   - Deps: 1.4, 1.5
 
 - [ ] **2.2**: Create 4 Sanity TypeScript schemas in sanity/schemas/: post.ts (title, slug, author ref, publishedAt, categories refs, featuredImage with alt text, excerpt max 200 chars, body as Portable Text), author.ts (name, slug, image, bio), category.ts (title, slug, description), page.ts (title, slug, sections array with hero/features/testimonials/textBlock/cta object types per PRD 2.4). Create schemas/index.ts registering these 4 schemas. Task 2.2b handles the remaining 3 schemas (testimonial, siteSettings, navigation).
@@ -103,14 +108,6 @@ Generated: 2026-02-18T18:56:58.397019
   - Deps: 2.5
 
 
-## Verification
-
-- [ ] **1.8**: Verify responsive layout across all breakpoints and confirm npm run build succeeds with zero errors. Check: Header desktop nav visible >1024px, hamburger <768px. All 6 pages render with blue theme. Cards stack on mobile, grid on desktop. Footer consistent. Fix any build warnings or layout breaks found.
-  - Value: Confirms Epic 1 deliverable: a complete, responsive, navigable marketing site that builds to static HTML — this is the foundation all CMS content will be layered onto.
-  - Acceptance: 1. npm run build completes with exit code 0. 2. dist/ contains HTML for all 6 routes. 3. No TypeScript or build errors. 4. Header responsive behavior verified. 5. All pages use consistent blue theme.
-  - Deps: 1.6, 1.7
-
-
 ## Integration
 
 - [ ] **2.7**: Implement graceful empty-state handling on all CMS-dependent pages. Wrap Sanity fetch calls in try/catch. Blog listing shows No posts yet when empty. Blog post returns 404 gracefully. Category pages show empty message. Home page sections show placeholder when CMS unavailable. Ensure npm run build succeeds when SANITY_PROJECT_ID is empty or invalid.
@@ -130,3 +127,58 @@ Generated: 2026-02-18T18:56:58.397019
   - Value: The complete site is production-ready -- consistent visual quality across every page and breakpoint delivers the professional impression that converts B2B prospects.
   - Acceptance: 1. npm run build exits with code 0. 2. dist/ contains index.html for all 6+ routes. 3. Every page HTML includes Header nav links and Footer element. 4. No TypeScript or build errors in output. 5. All pages reference globals.css with blue theme CSS variables.
   - Deps: 3.5, 3.6
+
+
+## Unphased
+
+- [ ] **STRUCTURE-prd-conformance**: Create missing files from PRD directory structure: astro.config.mjs          # Astro config with React + Tailwind, tailwind.config.mjs       # Tailwind config with shadcn theme, src/layouts/BaseLayout.astro  # HTML shell, head, nav, footer, src/components/ui/               # shadcn/ui components (Button, Card, etc.), src/components/Header.astro      # Site header with navigation, src/components/Footer.astro      # Site footer with links, social, newsletter, src/components/Hero.astro        # Hero section (reusable across pages), src/components/FeatureCard.astro # Feature/benefit card, src/components/TestimonialCard.astro, src/components/BlogCard.astro    # Blog post preview card. These files are defined in the PRD but have not been created yet.
+  - Value: Ensure project structure matches PRD specification
+  - Acceptance: All files listed in PRD directory tree exist on disk.
+
+- [x] **VRC-15-gap-1**: Install shadcn Sheet, NavigationMenu, and Pagination components and refactor MobileNav.tsx to use Sheet instead of custom dropdown
+  - Value: MobileNav.tsx uses a custom toggle/dropdown instead of shadcn Sheet component -- Epic 1 specifically requires Sheet-based hamburger menu. Also NavigationMenu and Pagination shadcn components are not installed (not in src/components/ui/). Only 7 of 10 required shadcn components exist.
+  - Acceptance: Gap 'gap-1' resolved: MobileNav.tsx uses a custom toggle/dropdown instead of shadcn Sheet component -- Epic 1 specifically requires Sheet-based hamburger menu. Also NavigationMenu and Pagination shadcn components are not installed (not in src/components/ui/). Only 7 of 10 required shadcn components exist.
+
+- [x] **VRC-15-gap-2**: Add Inter font loading via Google Fonts link in BaseLayout head and update --font-sans in globals.css to use Inter as primary font
+  - Value: globals.css uses generic system font stack (ui-sans-serif, system-ui) instead of Inter font as specified in Epic 1 deliverables. No Inter font is loaded via Google Fonts or local files.
+  - Acceptance: Gap 'gap-2' resolved: globals.css uses generic system font stack (ui-sans-serif, system-ui) instead of Inter font as specified in Epic 1 deliverables. No Inter font is loaded via Google Fonts or local files.
+
+- [x] **VRC-15-gap-3**: Mark tasks 1.3, 1.4, 1.5, 1.6, 1.7 as complete via report_task_complete since their deliverables exist and acceptance criteria are met
+  - Value: Tasks 1.3 through 1.8 are all marked pending in state despite the actual files existing and build succeeding -- the builder created all files but did not report task completions through structured tools. This blocks the exit gate from recognizing progress.
+  - Acceptance: Gap 'gap-3' resolved: Tasks 1.3 through 1.8 are all marked pending in state despite the actual files existing and build succeeding -- the builder created all files but did not report task completions through structured tools. This blocks the exit gate from recognizing progress.
+
+- [x] **VRC-3-gap-1**: Task 1.2 already covers this
+  - Value: No blue color scheme (#1e40af) or custom CSS theme variables -- globals.css has only bare @import tailwindcss with no @theme block
+  - Acceptance: Gap 'gap-1' resolved: No blue color scheme (#1e40af) or custom CSS theme variables -- globals.css has only bare @import tailwindcss with no @theme block
+
+- [x] **VRC-3-gap-3**: Task 1.3 already covers this
+  - Value: No BaseLayout.astro -- no layouts directory, no shared HTML shell, no consistent page structure
+  - Acceptance: Gap 'gap-3' resolved: No BaseLayout.astro -- no layouts directory, no shared HTML shell, no consistent page structure
+
+- [x] **VRC-3-gap-4**: Tasks 1.4 and 1.5 already cover this
+  - Value: No Header.astro or Footer.astro -- zero navigation components, visitors cannot move between pages
+  - Acceptance: Gap 'gap-4' resolved: No Header.astro or Footer.astro -- zero navigation components, visitors cannot move between pages
+
+- [x] **VRC-3-gap-5**: Task 1.4 already covers this
+  - Value: No MobileNav.tsx React island -- no hamburger menu, no Sheet-based drawer for mobile navigation
+  - Acceptance: Gap 'gap-5' resolved: No MobileNav.tsx React island -- no hamburger menu, no Sheet-based drawer for mobile navigation
+
+- [x] **VRC-3-gap-6**: Tasks 1.6 and 1.7 already cover this
+  - Value: Only 1 of 6 required pages exists -- index.astro is a bare stub with just h1 Astro text, missing how-it-works, services, about, contact, blog
+  - Acceptance: Gap 'gap-6' resolved: Only 1 of 6 required pages exists -- index.astro is a bare stub with just h1 Astro text, missing how-it-works, services, about, contact, blog
+
+- [x] **VRC-5-gap-6**: Task 1.8 and VRC-3-gap-7 already cover this
+  - Value: No responsive layout -- no breakpoint-specific styling, no mobile/tablet/desktop adaptations anywhere in the codebase
+  - Acceptance: Gap 'gap-6' resolved: No responsive layout -- no breakpoint-specific styling, no mobile/tablet/desktop adaptations anywhere in the codebase
+
+- [x] **VRC-5-gap-7**: Task 1.2 or 1.3 should include Inter font loading
+  - Value: globals.css uses generic system font stack instead of Inter -- no Inter font loaded via Google Fonts or local files as specified in Epic 1 deliverables
+  - Acceptance: Gap 'gap-7' resolved: globals.css uses generic system font stack instead of Inter -- no Inter font loaded via Google Fonts or local files as specified in Epic 1 deliverables
+
+
+## Verification
+
+- [ ] **1.9**: Final build verification and responsive layout check. Run npm run build and confirm zero errors, dist/ contains HTML for all 6 routes (/, /how-it-works, /services, /about, /contact, /blog). Verify responsive behavior: Header desktop nav visible >1024px, hamburger <768px. Cards stack on mobile, grid on tablet/desktop. Footer consistent across pages. Blue theme applied uniformly. Fix any build warnings or layout issues.
+  - Value: Confirms the complete Epic 1 deliverable: a visitor can browse a responsive 6-page marketing website with professional blue design that builds to static HTML with zero errors.
+  - Acceptance: 1. npm run build exits 0 with no errors. 2. dist/ contains HTML for all 6 page routes. 3. No TypeScript compilation errors. 4. Responsive breakpoints verified. 5. Consistent blue B2B theme across all pages.
+  - Deps: 1.6, 1.7, 1.8

@@ -1,0 +1,43 @@
+---
+export interface Props {
+  /** Emoji or short icon string shown at the top of the card */
+  icon?: string;
+  /** Card heading */
+  title: string;
+  /** Card body text */
+  description: string;
+  /** Optional link href — wraps the title in an anchor when provided */
+  href?: string;
+  /** Optional highlight colour on the left border (tailwind class, e.g. "border-primary-500") */
+  accentClass?: string;
+}
+
+const {
+  icon,
+  title,
+  description,
+  href,
+  accentClass,
+} = Astro.props;
+---
+
+<div class={`bg-slate-50 rounded-xl p-6 border border-slate-200 hover:shadow-md transition-shadow${accentClass ? ` border-l-4 ${accentClass}` : ''}`}>
+  {icon && (
+    <div class="text-3xl mb-3" aria-hidden="true">{icon}</div>
+  )}
+
+  <h3 class="text-lg font-semibold text-slate-900 mb-2">
+    {href ? (
+      <a href={href} class="hover:text-primary-700 transition-colors">
+        {title}
+      </a>
+    ) : (
+      title
+    )}
+  </h3>
+
+  <p class="text-slate-600 text-sm leading-relaxed">{description}</p>
+
+  <!-- Slot for optional extra content (badges, links, etc.) -->
+  <slot />
+</div>

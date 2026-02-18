@@ -1,0 +1,101 @@
+---
+export interface Props {
+  /** Eyebrow label shown above the heading (e.g. "LinkedIn Lead Generation for B2B") */
+  eyebrow?: string;
+  /** Main heading text */
+  heading: string;
+  /** Sub-heading / description text */
+  subheading?: string;
+  /** Primary CTA button label */
+  primaryCta?: string;
+  /** Primary CTA button href */
+  primaryCtaHref?: string;
+  /** Secondary CTA button label */
+  secondaryCta?: string;
+  /** Secondary CTA button href */
+  secondaryCtaHref?: string;
+  /** Optional trust-indicator items (e.g. ["500+ clients", "22 countries"]) */
+  trustItems?: string[];
+  /** Background colour class — defaults to brand blue */
+  bgClass?: string;
+}
+
+const {
+  eyebrow,
+  heading,
+  subheading,
+  primaryCta,
+  primaryCtaHref = '/contact',
+  secondaryCta,
+  secondaryCtaHref = '/how-it-works',
+  trustItems = [],
+  bgClass = 'bg-brand',
+} = Astro.props;
+---
+
+<section class={`${bgClass} py-20 px-4`}>
+  <div class="max-w-5xl mx-auto">
+    <div class="max-w-3xl">
+
+      {eyebrow && (
+        <p class="text-primary-300 text-sm font-semibold uppercase tracking-widest mb-4">
+          {eyebrow}
+        </p>
+      )}
+
+      <h1 class="text-4xl md:text-6xl font-extrabold text-white leading-tight mb-6">
+        {heading}
+      </h1>
+
+      {subheading && (
+        <p class="text-xl text-primary-100 mb-8 max-w-2xl leading-relaxed">
+          {subheading}
+        </p>
+      )}
+
+      <!-- CTA buttons -->
+      {(primaryCta || secondaryCta) && (
+        <div class="flex flex-col sm:flex-row gap-4">
+          {primaryCta && (
+            <a
+              href={primaryCtaHref}
+              class="inline-flex items-center justify-center px-8 py-3.5 bg-white text-primary-800 font-bold rounded-md hover:bg-primary-50 transition-colors text-lg shadow"
+            >
+              {primaryCta}
+            </a>
+          )}
+          {secondaryCta && (
+            <a
+              href={secondaryCtaHref}
+              class="inline-flex items-center justify-center px-8 py-3.5 border-2 border-primary-300 text-white font-semibold rounded-md hover:bg-primary-700 transition-colors text-lg"
+            >
+              {secondaryCta}
+            </a>
+          )}
+        </div>
+      )}
+
+      <!-- Slot for custom content (e.g. extra badges, images) -->
+      <slot />
+
+      <!-- Trust indicators -->
+      {trustItems.length > 0 && (
+        <div class="mt-10 flex flex-wrap gap-6 text-primary-200 text-sm">
+          {trustItems.map((item) => (
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              {item}
+            </span>
+          ))}
+        </div>
+      )}
+
+    </div>
+  </div>
+</section>

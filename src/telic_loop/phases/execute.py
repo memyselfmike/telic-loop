@@ -17,10 +17,20 @@ if TYPE_CHECKING:
 
 
 def pick_next_task(state: LoopState) -> TaskState | None:
-    """Pick the highest-priority ready task."""
+    """Pick the highest-priority ready task, scoped to the current epic."""
     from ..state import TaskState
 
-    pending = [t for t in state.tasks.values() if t.status == "pending"]
+    # Scope to current epic if running multi-epic
+    if (state.vision_complexity == "multi_epic"
+            and state.epics
+            and state.current_epic_index < len(state.epics)):
+        epic_id = state.epics[state.current_epic_index].epic_id
+        pending = [
+            t for t in state.tasks.values()
+            if t.status == "pending" and t.epic_id == epic_id
+        ]
+    else:
+        pending = [t for t in state.tasks.values() if t.status == "pending"]
     if not pending:
         return None
 

@@ -1,0 +1,62 @@
+---
+export interface Props {
+  /** The testimonial quote text */
+  quote: string;
+  /** Client's full name or initials (e.g. "Sarah M.") */
+  name: string;
+  /** Client's role / title (e.g. "Founder, B2B SaaS") */
+  role: string;
+  /** Client's country (e.g. "UK") */
+  country?: string;
+  /** URL to the client's avatar image (optional — falls back to initials) */
+  avatarUrl?: string;
+}
+
+const {
+  quote,
+  name,
+  role,
+  country,
+  avatarUrl,
+} = Astro.props;
+
+const initial = name.charAt(0).toUpperCase();
+---
+
+<blockquote class="bg-slate-50 rounded-xl p-6 border border-slate-200 flex flex-col h-full">
+  <!-- Opening quote mark -->
+  <div class="text-primary-500 text-3xl mb-3 font-serif leading-none" aria-hidden="true">&ldquo;</div>
+
+  <!-- Quote text -->
+  <p class="text-slate-700 leading-relaxed mb-5 text-sm italic flex-1">
+    {quote}
+  </p>
+
+  <!-- Attribution -->
+  <footer class="flex items-center gap-3 border-t border-slate-200 pt-4">
+    <!-- Avatar: image or initial fallback -->
+    {avatarUrl ? (
+      <img
+        src={avatarUrl}
+        alt={name}
+        class="w-8 h-8 rounded-full object-cover flex-shrink-0"
+        loading="lazy"
+        decoding="async"
+      />
+    ) : (
+      <div
+        class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-sm flex-shrink-0"
+        aria-hidden="true"
+      >
+        {initial}
+      </div>
+    )}
+
+    <div>
+      <cite class="text-sm font-semibold text-slate-900 not-italic">{name}</cite>
+      <div class="text-xs text-slate-500">
+        {role}{country && ` · ${country}`}
+      </div>
+    </div>
+  </footer>
+</blockquote>
