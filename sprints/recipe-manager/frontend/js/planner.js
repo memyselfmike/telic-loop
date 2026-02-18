@@ -453,6 +453,21 @@ async function renderPlanner() {
       openRecipePicker(dayIndex, slot);
     });
 
+    // ── Copy to slots ────────────────────────────────────────────
+    const copyBtn = el('button', {
+      className: 'meal-cell-popup-btn',
+      role: 'menuitem',
+      'aria-label': `Copy ${meal.recipe_title} to multiple slots`,
+    },
+      el('span', { className: 'popup-icon' }, '📋'),
+      'Copy to slots…',
+    );
+    copyBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeSlotActionPopup();
+      openCopyToSlotsModal(meal, dayIndex, slot);
+    });
+
     // ── Clear ───────────────────────────────────────────────────
     const clearBtn = el('button', {
       className: 'meal-cell-popup-btn danger',
@@ -470,6 +485,7 @@ async function renderPlanner() {
 
     popup.appendChild(viewBtn);
     popup.appendChild(swapBtn);
+    popup.appendChild(copyBtn);
     popup.appendChild(clearBtn);
 
     // Attach to the cell (position: relative already set by .meal-cell)
@@ -621,6 +637,186 @@ async function renderPlanner() {
     );
 
     openModal(`Add to ${dayLabel} ${slotLabel}`, body);
+  }
+
+  /* ----------------------------------------------------------
+     Copy to Slots Modal (Meal Prep)
+     ---------------------------------------------------------- */
+
+  /**
+   * Open a modal showing a 7×4 checkbox grid of all slots for the current week.
+   * The user selects target slots and clicks "Copy" to assign the same recipe
+   * to all selected slots in one action.
+   *
+   * @param {object} meal      — MealPlanResponse for the source slot
+   * @param {number} srcDay    — 0=Mon … 6=Sun (the slot we're copying FROM)
+   * @param {string} srcSlot   — 'breakfast' | 'lunch' | 'dinner' | 'snack'
+   */
+  function openCopyToSlotsModal(meal, srcDay, srcSlot) {
+    const { el, openModal, closeModal, apiFetch, showToast } = window.App;
+
+    // Build the checkbox grid — rows = meal slots, cols = days
+    // Each checkbox represents one (dayIndex, slot) combination.
+    // We store them in a Map keyed by `dayIndex-slot` for easy lookup.
+    const checkboxMap = new Map(); // key → { checkbox, dayIndex, slot }
+
+    // Header row: blank corner + day labels
+    const headerCells = [
+      el('div', { className: 'copy-grid-corner' }, ''),
+      ...DAY_LABELS.map(d => el('div', { className: 'copy-grid-day-header' }, d)),
+    ];
+
+    // Body rows: one row per meal slot
+    const rows = MEAL_SLOTS.map(slot => {
+      const slotLabel = el('div', { className: 'copy-grid-row-label' },
+        slot.charAt(0).toUpperCase() + slot.slice(1),
+      );
+
+      const cells = DAY_LABELS.map((_, dayIndex) => {
+        const key = `${dayIndex}-${slot}`;
+        const isSource = dayIndex === srcDay && slot === srcSlot;
+
+        const checkbox = el('input', {
+          type: 'checkbox',
+          className: 'copy-slot-checkbox',
+          id: `copy-slot-${key}`,
+          'aria-label': `${DAY_LABELS[dayIndex]} ${slot}`,
+        });
+
+        // Pre-check the source slot
+        if (isSource) {
+          checkbox.checked = true;
+        }
+
+        checkboxMap.set(key, { checkbox, dayIndex, slot });
+
+        const label = el('label', {
+          className: `copy-slot-label${isSource ? ' is-source' : ''}`,
+          'for': `copy-slot-${key}`,
+          title: `${DAY_LABELS[dayIndex]} ${slot.charAt(0).toUpperCase() + slot.slice(1)}`,
+        }, checkbox);
+
+        return label;
+      });
+
+      return el('div', { className: 'copy-grid-row' }, slotLabel, ...cells);
+    });
+
+    // Select All / Clear All helpers
+    const selectAllBtn = el('button', {
+      className: 'btn btn-ghost copy-grid-action-btn',
+      type: 'button',
+    }, 'Select all');
+    selectAllBtn.addEventListener('click', () => {
+      checkboxMap.forEach(({ checkbox }) => { checkbox.checked = true; });
+    });
+
+    const clearAllBtn = el('button', {
+      className: 'btn btn-ghost copy-grid-action-btn',
+      type: 'button',
+    }, 'Clear all');
+    clearAllBtn.addEventListener('click', () => {
+      checkboxMap.forEach(({ checkbox }) => { checkbox.checked = false; });
+    });
+
+    // Copy button
+    const copyActionBtn = el('button', {
+      className: 'btn btn-primary',
+      type: 'button',
+    }, 'Copy');
+
+    copyActionBtn.addEventListener('click', async () => {
+      const targets = [];
+      checkboxMap.forEach(({ checkbox, dayIndex, slot }) => {
+        if (checkbox.checked) {
+          targets.push({ dayIndex, slot });
+        }
+      });
+
+      if (targets.length === 0) {
+        showToast('Select at least one slot to copy to.', 'warning');
+        return;
+      }
+
+      // Disable the button to prevent double-clicks
+      copyActionBtn.disabled = true;
+      copyActionBtn.textContent = 'Copying…';
+
+      closeModal();
+
+      // Fire one PUT per target slot (sequentially to avoid race conditions)
+      let succeeded = 0;
+      const failed = [];
+
+      for (const { dayIndex, slot } of targets) {
+        try {
+          await apiFetch('/api/meals', {
+            method: 'PUT',
+            body: {
+              week_start: state.weekStart,
+              day_of_week: dayIndex,
+              meal_slot: slot,
+              recipe_id: meal.recipe_id,
+            },
+          });
+          succeeded++;
+        } catch {
+          // apiFetch already shows an error toast per failure
+          failed.push(`${DAY_LABELS[dayIndex]} ${slot}`);
+        }
+      }
+
+      // Summary toast
+      if (failed.length === 0) {
+        showToast(`Copied to ${succeeded} slot${succeeded !== 1 ? 's' : ''}.`, 'success');
+      } else if (succeeded > 0) {
+        showToast(
+          `Copied to ${succeeded} slot${succeeded !== 1 ? 's' : ''}. Failed: ${failed.join(', ')}.`,
+          'warning',
+        );
+      }
+      // If all failed, error toasts from apiFetch already shown; no extra needed.
+
+      // Refresh the grid so day totals and cell content update
+      await render();
+    });
+
+    // Cancel button
+    const cancelBtn = el('button', {
+      className: 'btn btn-secondary',
+      type: 'button',
+    }, 'Cancel');
+    cancelBtn.addEventListener('click', () => closeModal());
+
+    // Assemble modal body
+    const recipeLabel = el('p', { className: 'copy-recipe-label' },
+      el('strong', {}, meal.recipe_title),
+      ' → select destination slots:',
+    );
+
+    const gridActions = el('div', { className: 'copy-grid-actions' },
+      selectAllBtn,
+      clearAllBtn,
+    );
+
+    const grid = el('div', { className: 'copy-slots-grid' },
+      el('div', { className: 'copy-grid-header' }, ...headerCells),
+      ...rows,
+    );
+
+    const footer = el('div', { className: 'copy-modal-footer' },
+      cancelBtn,
+      copyActionBtn,
+    );
+
+    const body = el('div', { className: 'copy-slots-body' },
+      recipeLabel,
+      gridActions,
+      grid,
+      footer,
+    );
+
+    openModal(`Copy "${meal.recipe_title}" to Slots`, body, { wide: false });
   }
 
   /* ----------------------------------------------------------
