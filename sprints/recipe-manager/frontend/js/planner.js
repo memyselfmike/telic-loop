@@ -270,12 +270,16 @@ async function renderPlanner() {
       td.appendChild(recipe);
       td.appendChild(removeBtn);
 
-      // Click filled cell → open picker to replace
-      td.addEventListener('click', () => openRecipePicker(dayIndex, slot));
+      // Click filled cell → show action popup (View / Swap / Clear)
+      td.addEventListener('click', (e) => {
+        // Don't re-open popup if the remove button was clicked
+        if (e.target.closest('.meal-cell-remove')) return;
+        openSlotActionPopup(td, meal, dayIndex, slot);
+      });
       td.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          openRecipePicker(dayIndex, slot);
+          openSlotActionPopup(td, meal, dayIndex, slot);
         }
       });
     } else {
@@ -388,6 +392,128 @@ async function renderPlanner() {
       await render();
     } catch {
       // apiFetch already displayed an error toast
+    }
+  }
+
+  /* ----------------------------------------------------------
+     Slot Action Popup (View Recipe / Swap / Clear)
+     ---------------------------------------------------------- */
+
+  /**
+   * Open a small action popup anchored to the given cell td.
+   * Shows three choices: View Recipe, Swap (opens picker), Clear (removes meal).
+   *
+   * Only one popup is shown at a time — clicking elsewhere dismisses it.
+   *
+   * @param {HTMLElement} cellTd — The clicked <td> element
+   * @param {object} meal — The MealPlanResponse for this slot
+   * @param {number} dayIndex — 0=Mon … 6=Sun
+   * @param {string} slot — 'breakfast' | 'lunch' | 'dinner' | 'snack'
+   */
+  function openSlotActionPopup(cellTd, meal, dayIndex, slot) {
+    const { el, navigate } = window.App;
+
+    // Dismiss any already-open popup
+    closeSlotActionPopup();
+
+    const popup = el('div', {
+      className: 'meal-cell-popup',
+      role: 'menu',
+      'aria-label': `Actions for ${meal.recipe_title}`,
+    });
+
+    // ── View Recipe ─────────────────────────────────────────────
+    const viewBtn = el('button', {
+      className: 'meal-cell-popup-btn',
+      role: 'menuitem',
+      'aria-label': `View ${meal.recipe_title}`,
+    },
+      el('span', { className: 'popup-icon' }, '👁'),
+      'View Recipe',
+    );
+    viewBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeSlotActionPopup();
+      // Navigate to #recipes view; the recipes list will display the full collection.
+      navigate('recipes');
+    });
+
+    // ── Swap ────────────────────────────────────────────────────
+    const swapBtn = el('button', {
+      className: 'meal-cell-popup-btn',
+      role: 'menuitem',
+      'aria-label': `Swap ${meal.recipe_title}`,
+    },
+      el('span', { className: 'popup-icon' }, '🔄'),
+      'Swap',
+    );
+    swapBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeSlotActionPopup();
+      openRecipePicker(dayIndex, slot);
+    });
+
+    // ── Clear ───────────────────────────────────────────────────
+    const clearBtn = el('button', {
+      className: 'meal-cell-popup-btn danger',
+      role: 'menuitem',
+      'aria-label': `Clear ${meal.recipe_title}`,
+    },
+      el('span', { className: 'popup-icon' }, '🗑'),
+      'Clear',
+    );
+    clearBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      closeSlotActionPopup();
+      await removeMeal(meal.id);
+    });
+
+    popup.appendChild(viewBtn);
+    popup.appendChild(swapBtn);
+    popup.appendChild(clearBtn);
+
+    // Attach to the cell (position: relative already set by .meal-cell)
+    cellTd.appendChild(popup);
+
+    // Store reference for cleanup
+    cellTd._actionPopup = popup;
+
+    // Dismiss on outside click (capture phase so it fires before cell click)
+    function onOutsideClick(e) {
+      if (!popup.contains(e.target) && e.target !== cellTd && !cellTd.contains(e.target)) {
+        closeSlotActionPopup();
+        document.removeEventListener('click', onOutsideClick, true);
+      }
+    }
+    // Small delay so the current click event doesn't immediately dismiss the popup
+    setTimeout(() => {
+      document.addEventListener('click', onOutsideClick, true);
+    }, 0);
+
+    // Dismiss on Escape key
+    function onEscape(e) {
+      if (e.key === 'Escape') {
+        closeSlotActionPopup();
+        document.removeEventListener('keydown', onEscape);
+        cellTd.focus();
+      }
+    }
+    document.addEventListener('keydown', onEscape);
+
+    // Focus the first button for keyboard accessibility
+    requestAnimationFrame(() => viewBtn.focus());
+  }
+
+  /**
+   * Remove the currently open slot action popup from the DOM, if any.
+   */
+  function closeSlotActionPopup() {
+    const existing = document.querySelector('.meal-cell-popup');
+    if (existing) {
+      existing.remove();
+      // Clean up the reference on the parent td
+      const parentTd = existing.closest('td');
+      if (parentTd) delete parentTd._actionPopup;
     }
   }
 

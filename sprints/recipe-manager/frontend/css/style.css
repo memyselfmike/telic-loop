@@ -825,6 +825,65 @@ textarea.form-control {
   display: flex;
 }
 
+/* ============================================================
+   Meal Cell Action Popup (View / Swap / Clear)
+   ============================================================ */
+.meal-cell-popup {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 200;
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  overflow: hidden;
+  animation: popupFadeIn var(--transition-fast) ease;
+}
+
+@keyframes popupFadeIn {
+  from { opacity: 0; transform: translate(-50%, -46%); }
+  to   { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+.meal-cell-popup-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.meal-cell-popup-btn:last-child {
+  border-bottom: none;
+}
+
+.meal-cell-popup-btn:hover {
+  background-color: var(--color-bg-hover);
+}
+
+.meal-cell-popup-btn.danger {
+  color: var(--color-danger);
+}
+
+.meal-cell-popup-btn .popup-icon {
+  font-size: 1em;
+  flex-shrink: 0;
+}
+
 .day-total-row td {
   background-color: var(--color-bg-elevated);
   padding: var(--space-xs) var(--space-sm);
