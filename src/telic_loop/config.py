@@ -83,6 +83,8 @@ class LoopConfig:
     # Reliability
     max_task_retries: int = 3
     max_rollbacks_per_sprint: int = 3
+    sdk_query_timeout_sec: int = 300       # 5 min timeout per SDK query call
+    max_crash_restarts: int = 3            # auto-restart attempts on catastrophic crash
 
     # Derived paths
     @property

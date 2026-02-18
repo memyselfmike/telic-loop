@@ -84,25 +84,34 @@ def run_value_loop(
         out_before = state.total_output_tokens
         t0 = time.perf_counter()
 
-        # Exit gate is special — it can terminate the loop
-        if action == Action.EXIT_GATE:
-            exit_passed = do_exit_gate(config, state, claude)
-            if exit_passed:
-                if not inside_epic_loop:
-                    # Only generate delivery report for single-run sprints.
-                    # Epic loop generates its own report after all epics complete.
-                    generate_delivery_report(config, state)
-                print("\n  VALUE DELIVERED — exit gate passed")
-                state.save(config.state_file)
-                return
-            progress = True
-        else:
-            handler = ACTION_HANDLERS.get(action)
-            if handler:
-                progress = handler(config, state, claude)
+        try:
+            # Exit gate is special — it can terminate the loop
+            if action == Action.EXIT_GATE:
+                exit_passed = do_exit_gate(config, state, claude)
+                if exit_passed:
+                    if not inside_epic_loop:
+                        # Only generate delivery report for single-run sprints.
+                        # Epic loop generates its own report after all epics complete.
+                        generate_delivery_report(config, state)
+                    print("\n  VALUE DELIVERED — exit gate passed")
+                    state.save(config.state_file)
+                    return
+                progress = True
             else:
-                print(f"  WARNING: No handler for action {action.value}")
-                progress = False
+                handler = ACTION_HANDLERS.get(action)
+                if handler:
+                    progress = handler(config, state, claude)
+                else:
+                    print(f"  WARNING: No handler for action {action.value}")
+                    progress = False
+        except Exception as exc:
+            print(f"\n  CRASH in {action.value}: {exc}")
+            progress = False
+            # Reset any in_progress tasks back to pending
+            for task in state.tasks.values():
+                if task.status == "in_progress":
+                    task.status = "pending"
+            state.save(config.state_file)
 
         elapsed = round(time.perf_counter() - t0, 1)
         phase_inp = state.total_input_tokens - inp_before
@@ -152,7 +161,30 @@ def run_value_loop(
 
 
 def main() -> None:
-    """CLI entry point."""
+    """CLI entry point with crash recovery."""
+    max_restarts = 3
+    for attempt in range(1, max_restarts + 1):
+        try:
+            _run_main()
+            return  # Clean exit
+        except SystemExit:
+            raise  # Propagate intentional exits
+        except Exception as exc:
+            print(f"\n{'=' * 60}")
+            print(f"  LOOP CRASHED (attempt {attempt}/{max_restarts})")
+            print(f"  Error: {exc}")
+            print(f"{'=' * 60}")
+            if attempt < max_restarts:
+                wait = 10 * attempt  # 10s, 20s, 30s backoff
+                print(f"  Restarting in {wait} seconds...")
+                time.sleep(wait)
+            else:
+                print("  Max restarts reached. Manual intervention required.")
+                sys.exit(1)
+
+
+def _run_main() -> None:
+    """Core loop logic — called by main() with crash recovery."""
     from .git import ensure_gitignore, setup_sprint_branch
 
     if len(sys.argv) < 2:

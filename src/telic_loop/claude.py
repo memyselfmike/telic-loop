@@ -148,6 +148,7 @@ class Claude:
             state=self.state,
             config=self.config,
             mcp_servers=mcp_servers,
+            timeout_sec=self.config.sdk_query_timeout_sec,
         )
 
 
@@ -163,10 +164,12 @@ class ClaudeSession:
         state: LoopState | None = None,
         config: LoopConfig | None = None,
         mcp_servers: dict | None = None,
+        timeout_sec: int = 300,
     ):
         self.model = model
         self.system = system
         self.max_turns = max_turns
+        self.timeout_sec = timeout_sec
         self.builtin_tools = builtin_tools or []
         self.state = state
         self.config = config
@@ -215,20 +218,25 @@ class ClaudeSession:
         text_parts: list[str] = []
 
         try:
-            async for message in query(prompt=prompt, options=options):
-                if isinstance(message, AssistantMessage):
-                    for block in message.content:
-                        if isinstance(block, TextBlock):
-                            text_parts.append(block.text)
-                elif isinstance(message, ResultMessage):
-                    if message.usage and self.state:
-                        inp = message.usage.get("input_tokens", 0)
-                        out = message.usage.get("output_tokens", 0)
-                        self.state.total_tokens_used += inp + out
-                        self.state.total_input_tokens += inp
-                        self.state.total_output_tokens += out
-                    if message.is_error:
-                        raise RuntimeError(f"Claude Code SDK error: {message.result}")
+            async with asyncio.timeout(self.timeout_sec):
+                async for message in query(prompt=prompt, options=options):
+                    if isinstance(message, AssistantMessage):
+                        for block in message.content:
+                            if isinstance(block, TextBlock):
+                                text_parts.append(block.text)
+                    elif isinstance(message, ResultMessage):
+                        if message.usage and self.state:
+                            inp = message.usage.get("input_tokens", 0)
+                            out = message.usage.get("output_tokens", 0)
+                            self.state.total_tokens_used += inp + out
+                            self.state.total_input_tokens += inp
+                            self.state.total_output_tokens += out
+                        if message.is_error:
+                            raise RuntimeError(f"Claude Code SDK error: {message.result}")
+        except TimeoutError:
+            raise RuntimeError(
+                f"SDK query timed out after {self.timeout_sec}s"
+            )
         except ExceptionGroup as eg:
             # Filter out non-fatal transport cleanup errors
             real = [e for e in eg.exceptions if not isinstance(e, CLIConnectionError)]
