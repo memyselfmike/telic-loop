@@ -1103,6 +1103,45 @@ textarea.form-control {
   padding: var(--space-md) 0;
   border-top: 1px solid var(--color-border);
   margin-top: var(--space-lg);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Name input takes available space; qty/unit are fixed-width */
+.shopping-add-name {
+  flex: 1 1 160px;
+  min-width: 120px;
+}
+
+.shopping-add-qty {
+  flex: 0 0 72px;
+  width: 72px;
+}
+
+.shopping-add-unit {
+  flex: 0 0 90px;
+  width: 90px;
+}
+
+.shopping-add-section {
+  flex: 0 0 140px;
+  width: 140px;
+}
+
+.shopping-add-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.shopping-add-container {
+  margin-top: var(--space-sm);
+}
+
+.shopping-add-validation {
+  display: block;
+  margin-top: var(--space-xs);
+  font-size: var(--font-size-xs);
+  color: var(--color-danger);
 }
 
 /* ============================================================

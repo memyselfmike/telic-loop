@@ -93,7 +93,12 @@ function renderShoppingView() {
     body = buildShoppingBody(list.items);
   }
 
-  setAppContent(el('div', {}, header, body));
+  // Always render the add-item row so users can attempt to add items at any time.
+  // If no list exists, a POST /api/shopping/items will return 404 and we show a
+  // toast explaining they need to generate a list first.
+  const addRow = buildAddItemRow();
+
+  setAppContent(el('div', {}, header, body, addRow));
 }
 
 /* ============================================================
@@ -321,5 +326,227 @@ async function handleRemove(itemId) {
     // apiFetch showed an error toast already.  Unlock and restore.
     shoppingState.inflight.delete(itemId);
     renderShoppingView();
+  }
+}
+
+/* ============================================================
+   Add Manual Item
+   ============================================================ */
+
+/**
+ * Build the add-item row shown below the shopping list.
+ * Contains inputs for name, quantity, unit, and grocery section, plus an Add button.
+ * Always rendered — if no list exists the submit handler shows a toast explaining
+ * the user must generate a list first.
+ * @returns {HTMLElement}
+ */
+function buildAddItemRow() {
+  const { el } = window.App;
+
+  // ── Inputs ──────────────────────────────────────────────────
+
+  const nameInput = el('input', {
+    type:        'text',
+    className:   'form-control shopping-add-name',
+    placeholder: 'Item name…',
+    'aria-label': 'Item name',
+    maxlength:   '200',
+  });
+
+  const qtyInput = el('input', {
+    type:        'number',
+    className:   'form-control shopping-add-qty',
+    value:       '1',
+    min:         '0.001',
+    step:        'any',
+    'aria-label': 'Quantity',
+  });
+
+  const unitInput = el('input', {
+    type:        'text',
+    className:   'form-control shopping-add-unit',
+    value:       'whole',
+    placeholder: 'unit',
+    'aria-label': 'Unit',
+    maxlength:   '50',
+  });
+
+  const sectionSelect = el('select', {
+    className:   'form-control shopping-add-section',
+    'aria-label': 'Grocery section',
+  });
+
+  for (const key of SECTION_ORDER) {
+    const label = SECTION_LABELS[key] || key;
+    const option = document.createElement('option');
+    option.value = key;
+    option.textContent = label;
+    if (key === 'other') option.selected = true;
+    sectionSelect.appendChild(option);
+  }
+
+  // Validation feedback element (hidden until needed)
+  const validationMsg = el('span', {
+    className: 'shopping-add-validation',
+    role:      'alert',
+    style:     { color: 'var(--color-danger)', fontSize: 'var(--font-size-xs)', display: 'none' },
+  }, 'Item name is required');
+
+  // ── Add Button ───────────────────────────────────────────────
+
+  const addBtn = el('button', {
+    type:      'button',
+    className: 'btn btn-primary shopping-add-btn',
+    onClick:   () => handleAddItem(nameInput, qtyInput, unitInput, sectionSelect, validationMsg),
+  }, '+ Add');
+
+  // Allow Enter key in the name input to submit
+  nameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddItem(nameInput, qtyInput, unitInput, sectionSelect, validationMsg);
+    }
+  });
+
+  // Hide validation message as soon as the user starts typing
+  nameInput.addEventListener('input', () => {
+    if (nameInput.value.trim()) {
+      validationMsg.style.display = 'none';
+    }
+  });
+
+  // ── Assemble ────────────────────────────────────────────────
+
+  const inputsRow = el('div', { className: 'shopping-add-row' },
+    nameInput,
+    qtyInput,
+    unitInput,
+    sectionSelect,
+    addBtn,
+  );
+
+  return el('div', { className: 'shopping-add-container' },
+    inputsRow,
+    validationMsg,
+  );
+}
+
+/**
+ * Handle the "Add" button click.
+ * Validates input, calls POST /api/shopping/items, updates DOM state, and
+ * shows a toast on success or for "no list" errors.
+ *
+ * @param {HTMLInputElement}  nameInput
+ * @param {HTMLInputElement}  qtyInput
+ * @param {HTMLInputElement}  unitInput
+ * @param {HTMLSelectElement} sectionSelect
+ * @param {HTMLElement}       validationMsg
+ */
+async function handleAddItem(nameInput, qtyInput, unitInput, sectionSelect, validationMsg) {
+  const { showToast } = window.App;
+
+  // ── Validate ───────────────────────────────────────────────
+
+  const itemName = nameInput.value.trim();
+  if (!itemName) {
+    validationMsg.style.display = '';
+    nameInput.focus();
+    return;
+  }
+  validationMsg.style.display = 'none';
+
+  const qty = parseFloat(qtyInput.value);
+  const quantity = isNaN(qty) || qty <= 0 ? 1 : qty;
+  const unit = unitInput.value.trim() || 'whole';
+  const grocerySection = sectionSelect.value || 'other';
+
+  // ── Disable controls while in-flight ──────────────────────
+
+  nameInput.disabled = true;
+  qtyInput.disabled = true;
+  unitInput.disabled = true;
+  sectionSelect.disabled = true;
+
+  const addBtn = nameInput.closest('.shopping-add-container')
+    ? nameInput.closest('.shopping-add-container').querySelector('.shopping-add-btn')
+    : null;
+  if (addBtn) {
+    addBtn.disabled = true;
+    addBtn.textContent = 'Adding…';
+  }
+
+  // ── API Call ───────────────────────────────────────────────
+
+  try {
+    // Use raw fetch so we can inspect the 404 case without apiFetch auto-toasting it.
+    const resp = await fetch('/api/shopping/items', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        item:            itemName,
+        quantity:        quantity,
+        unit:            unit,
+        grocery_section: grocerySection,
+        source:          'manual',
+      }),
+    });
+
+    if (resp.status === 404) {
+      // No shopping list exists yet — tell the user what to do.
+      let detail = 'No shopping list exists. Generate one from the Meal Planner first.';
+      try {
+        const data = await resp.json();
+        if (data && data.detail) detail = data.detail + ' Open the Meal Planner to generate one.';
+      } catch (_) { /* ignore */ }
+      showToast(detail, 'info', 6000);
+      return;
+    }
+
+    if (!resp.ok) {
+      let errorDetail = resp.statusText;
+      try {
+        const errData = await resp.json();
+        if (errData && errData.detail) errorDetail = errData.detail;
+      } catch (_) { /* ignore */ }
+      showToast(`Failed to add item: ${errorDetail}`, 'error');
+      return;
+    }
+
+    const newItem = await resp.json();
+
+    // ── Success: update local state ──────────────────────────
+
+    if (shoppingState.list) {
+      shoppingState.list.items.push(newItem);
+    } else {
+      // Edge case: list was null but POST succeeded (should not happen with backend logic,
+      // but handle gracefully by re-fetching).
+      try {
+        const freshResp = await fetch('/api/shopping/current');
+        if (freshResp.ok) shoppingState.list = await freshResp.json();
+      } catch (_) { /* ignore */ }
+    }
+
+    showToast(`"${itemName}" added to ${SECTION_LABELS[grocerySection] || grocerySection}`, 'success');
+
+    // Re-render to insert the item in the correct section and update the count summary.
+    renderShoppingView();
+
+    // Note: renderShoppingView() replaces the DOM, so the old inputs are gone.
+    // The new add-row inputs will be blank (fresh render), which is the desired
+    // behaviour — inputs cleared after successful add.
+
+  } catch (networkErr) {
+    showToast(`Network error: ${networkErr.message}`, 'error');
+  } finally {
+    // Re-enable controls. If we didn't full-re-render, restore them.
+    nameInput.disabled = false;
+    qtyInput.disabled = false;
+    unitInput.disabled = false;
+    sectionSelect.disabled = false;
+    if (addBtn) {
+      addBtn.disabled = false;
+      addBtn.textContent = '+ Add';
+    }
   }
 }
