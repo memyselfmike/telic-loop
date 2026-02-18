@@ -168,6 +168,12 @@ class ProcessMonitorState:
     file_line_counts: dict[str, int] = field(default_factory=dict)
     file_line_counts_prev: dict[str, int] = field(default_factory=dict)
     code_health_warnings: list[str] = field(default_factory=list)
+    long_functions: dict[str, list[tuple[str, int]]] = field(default_factory=dict)
+    duplicate_blocks: list[dict] = field(default_factory=list)
+    missing_prd_files: list[str] = field(default_factory=list)
+    test_source_ratio: float = 0.0
+    todo_count: int = 0
+    debug_artifact_count: int = 0
     status: str = "GREEN"
     last_strategy_change_iteration: int = 0
     current_strategy: dict = field(default_factory=lambda: {

@@ -154,6 +154,25 @@ def format_code_health(state: LoopState) -> str:
         for w in pm.code_health_warnings:
             sections.append(f"  ⚠ {w}")
 
+    # Quality check summary stats
+    quality_stats: list[str] = []
+    if pm.long_functions:
+        total_fns = sum(len(fns) for fns in pm.long_functions.values())
+        quality_stats.append(f"Long functions: {total_fns} in {len(pm.long_functions)} file(s)")
+    if pm.duplicate_blocks:
+        quality_stats.append(f"Duplicate blocks: {len(pm.duplicate_blocks)}")
+    if pm.missing_prd_files:
+        quality_stats.append(f"Missing PRD files: {len(pm.missing_prd_files)}")
+    quality_stats.append(f"Test/source ratio: {pm.test_source_ratio:.2f}")
+    if pm.todo_count:
+        quality_stats.append(f"TODO markers: {pm.todo_count}")
+    if pm.debug_artifact_count:
+        quality_stats.append(f"Debug artifacts: {pm.debug_artifact_count}")
+    if quality_stats:
+        sections.append("Quality checks:")
+        for s in quality_stats:
+            sections.append(f"  {s}")
+
     return "\n".join(sections)
 
 
@@ -213,6 +232,11 @@ def evaluate_process_triggers(state: LoopState, config: LoopConfig) -> str:
         if monolith_count >= 3 or growth_count >= 2:
             triggers.append(("code_health", "YELLOW"))
 
+    # Code quality: long functions, duplicates, debug artifacts
+    long_fn_count = sum(1 for w in pm.code_health_warnings if w.startswith("LONG_FUNCTION"))
+    if long_fn_count >= 5 or len(pm.duplicate_blocks) >= 2 or pm.debug_artifact_count > 0:
+        triggers.append(("code_quality", "YELLOW"))
+
     if any(level == "RED" for _, level in triggers):
         return "RED"
     if any(level == "YELLOW" for _, level in triggers):
@@ -232,11 +256,17 @@ def maybe_run_strategy_reasoner(
     # Layer 0: metrics
     update_process_metrics(state, action=action, made_progress=made_progress)
     scan_file_line_counts(state, config)
+    from .code_quality import create_quality_tasks, run_all_quality_checks
+    run_all_quality_checks(state, config)
 
     if pm.code_health_warnings:
         print(f"\n  CODE HEALTH — {len(pm.code_health_warnings)} warning(s):")
-        for w in pm.code_health_warnings[:5]:
+        for w in pm.code_health_warnings[:8]:
             print(f"    ⚠ {w}")
+        # Auto-create quality tasks for all violations
+        tasks_created = create_quality_tasks(state, config)
+        if tasks_created:
+            print(f"    -> {tasks_created} quality task(s) auto-created")
 
     # Layer 1: triggers
     new_status = evaluate_process_triggers(state, config)

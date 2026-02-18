@@ -85,6 +85,82 @@ def do_exit_gate(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
         print(f"  EXIT GATE FAILED — critical eval found {len(new_tasks)} issues")
         return False
 
+    # 4. Comprehensive code quality enforcement
+    if config.code_health_enforce_at_exit:
+        from .code_quality import create_quality_tasks, run_all_quality_checks
+        from .process_monitor import scan_file_line_counts
+
+        scan_file_line_counts(state, config)
+        run_all_quality_checks(state, config)
+        pm = state.process_monitor
+
+        # --- Blocking checks (hard gate) ---
+        blocking_issues: list[str] = []
+
+        # MONOLITH: exclude style files (.css/.scss/.less)
+        style_exts = {".css", ".scss", ".less"}
+        monolith_files = [
+            (rel, lines)
+            for rel, lines in pm.file_line_counts.items()
+            if lines >= config.code_health_monolith_threshold
+            and not any(rel.endswith(ext) for ext in style_exts)
+        ]
+        if monolith_files:
+            for rel, lines in monolith_files:
+                blocking_issues.append(
+                    f"MONOLITH: {rel} ({lines} lines, max: {config.code_health_monolith_threshold})"
+                )
+
+        # LONG_FUNCTION: exclude files already flagged as monolithic
+        monolith_rels = {rel for rel, _ in monolith_files}
+        for rel, fns in pm.long_functions.items():
+            if rel not in monolith_rels:
+                for name, length in fns:
+                    blocking_issues.append(
+                        f"LONG_FUNCTION: {rel}::{name} ({length} lines, "
+                        f"max: {config.code_health_max_function_lines})"
+                    )
+
+        # DUPLICATE
+        for dup in pm.duplicate_blocks:
+            blocking_issues.append(
+                f"DUPLICATE: {dup['line_count']}-line block in {', '.join(dup['files'])}"
+            )
+
+        # DEBUG_ARTIFACT
+        if pm.debug_artifact_count > 0:
+            blocking_issues.append(
+                f"DEBUG_ARTIFACT: {pm.debug_artifact_count} debug statement(s) in production code"
+            )
+
+        if blocking_issues:
+            print(f"  EXIT GATE FAILED — {len(blocking_issues)} code quality issue(s):")
+            for issue in blocking_issues[:10]:
+                print(f"    {issue}")
+            created = create_quality_tasks(state, config)
+            if created:
+                print(f"  Created {created} quality task(s)")
+            return False
+
+        # --- Non-blocking checks (informational) ---
+        info_issues: list[str] = []
+        if pm.missing_prd_files:
+            info_issues.append(
+                f"MISSING_STRUCTURE: {len(pm.missing_prd_files)} PRD file(s) not created"
+            )
+        if pm.test_source_ratio < config.code_health_min_test_ratio:
+            info_issues.append(
+                f"LOW_TEST_RATIO: {pm.test_source_ratio:.2f} (target: {config.code_health_min_test_ratio})"
+            )
+        if pm.todo_count > config.code_health_max_todo_count:
+            info_issues.append(f"TODO_DEBT: {pm.todo_count} markers")
+
+        if info_issues:
+            print(f"  Code quality notes (non-blocking): {len(info_issues)}")
+            for issue in info_issues:
+                print(f"    {issue}")
+            create_quality_tasks(state, config)
+
     print("  EXIT GATE PASSED — value verified")
     git_commit(config, state, f"telic-loop({config.sprint}): Exit gate passed — value verified")
     return True

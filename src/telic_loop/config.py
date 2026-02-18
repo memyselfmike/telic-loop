@@ -65,6 +65,16 @@ class LoopConfig:
     pm_budget_value_ratio: float = 2.0
     pm_file_hotspot_pct: float = 50
 
+    # Code health enforcement
+    code_health_monolith_threshold: int = 500   # lines — files at/above this get refactoring tasks
+    code_health_max_file_lines: int = 400       # target max lines after refactoring
+    code_health_enforce_at_exit: bool = True     # hard gate: block exit if monoliths remain
+    code_health_max_function_lines: int = 50    # LONG_FUNCTION threshold
+    code_health_duplicate_min_lines: int = 8    # DUPLICATE block minimum
+    code_health_min_test_ratio: float = 0.5     # LOW_TEST_RATIO threshold
+    code_health_max_todo_count: int = 5         # TODO_DEBT threshold
+    code_health_max_duplicate_tasks: int = 5    # cap on DEDUP tasks created
+
     # Reliability
     max_task_retries: int = 3
     max_rollbacks_per_sprint: int = 3

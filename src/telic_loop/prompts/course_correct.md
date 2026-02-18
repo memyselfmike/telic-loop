@@ -42,6 +42,9 @@ Examine the evidence. Do not guess. The data tells you what is wrong.
 | **Architectural mismatch** | Many tasks fail in the same files or the same integration points | The plan assumes an architecture that does not match reality |
 | **Compounding regressions** | Value score has dropped since last checkpoint, each fix breaks something else | Recent changes have poisoned the codebase — rollback to last known-good state |
 | **Monolithic files / code concentration** | Code health warnings show 500+ line files, rapid growth, or single-file concentration | The builder is dumping everything into one file instead of using proper module structure — split via restructure |
+| **Long functions / SRP violations** | LONG_FUNCTION warnings for functions exceeding 50 lines | Functions are accumulating multiple responsibilities — extract helpers and split into focused single-purpose functions |
+| **Duplicate code across files** | DUPLICATE warnings showing identical code blocks in multiple files | Copy-paste coding instead of shared modules — extract common logic into a shared utility |
+| **Debug artifacts in production code** | DEBUG_ARTIFACT warnings for print/console.log/breakpoint statements | Builder left debugging statements in production code — clean up before shipping |
 
 Name the pattern explicitly. Cite specific task IDs, verification IDs, or VRC snapshots as evidence.
 

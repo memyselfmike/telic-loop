@@ -72,20 +72,25 @@ Are any pending tasks no longer relevant given what has been completed?
 
 **Action**: Remove stale tasks via `manage_task` (action: "remove") or update status via modify.
 
-### 6. Code Health / SOLID Violations
+### 6. Code Health / DRY / SOLID Violations
 
 Review the Code Health Metrics above (if present). Check for:
 
 - **Monolithic files** (500+ lines): Suggest splitting into focused modules. A single file handling routing, business logic, and data access is a SOLID violation.
 - **Rapid growth** (150+ lines in one iteration): A file growing that fast is likely accumulating responsibilities. Flag for the builder to refactor.
 - **Code concentration** (one file > 50% of codebase): The project has a single point of failure. Suggest extracting concerns into separate modules.
+- **Long functions** (50+ lines): Functions exceeding the threshold indicate SRP violations. Suggest extracting helper functions.
+- **Duplicate code blocks**: Identical code in multiple files is a DRY violation. Suggest extracting into shared utilities.
+- **Debug artifacts**: print/console.log/breakpoint statements left in production code. Must be removed before shipping.
+- **Low test ratio**: If test files are less than half the source file count, testing coverage is likely insufficient.
+- **TODO debt**: Excessive TODO/FIXME/HACK markers indicate unfinished work or deferred decisions.
 
-**Action**: If code health warnings are present, add a targeted refactoring task via `manage_task` (action: "add") with:
-- description: which file(s) to split and what concerns to extract
-- value: "Reduce monolithic file risk — improve maintainability and reduce merge conflicts"
-- acceptance: specific size targets (e.g., "no file exceeds 400 lines after split")
+**Action**: If code health warnings are present, add a targeted quality task via `manage_task` (action: "add") with:
+- description: which file(s) to fix and what specific violations to address
+- value: "Reduce code quality risk — improve maintainability and reduce defect probability"
+- acceptance: specific targets (e.g., "no file exceeds 400 lines", "no function exceeds 50 lines", "zero debug statements")
 
-Do NOT add refactoring tasks if no code health warnings are present. Do NOT add refactoring tasks for files that are naturally large (e.g., generated code, test fixtures, configuration).
+Do NOT add quality tasks if no code health warnings are present. Do NOT add tasks for files that are naturally large (e.g., generated code, test fixtures, configuration).
 
 ## Process
 
