@@ -1,0 +1,147 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const steps = [
+  {
+    number: '01',
+    letter: 'B',
+    heading: 'Build',
+    description:
+      'Grow your LinkedIn network with precision-targeted connections. We identify your ideal customer profile and systematically expand your network with prospects who match — quality over quantity, every time.',
+    highlight: 'Build a targeted network of high-value prospects',
+  },
+  {
+    number: '02',
+    letter: 'E',
+    heading: 'Engage',
+    description:
+      'Foster meaningful one-to-one conversations based on your prospects\' goals, interests, and pain points. Authentic engagement turns cold connections into warm relationships that are receptive to your message.',
+    highlight: 'Turn connections into conversations that matter',
+  },
+  {
+    number: '03',
+    letter: 'E',
+    heading: 'Educate',
+    description:
+      'Deliver high-value content that directly addresses your prospects\' biggest challenges. By consistently educating your audience, you position yourself as the trusted authority they turn to when they are ready to buy.',
+    highlight: 'Become the go-to expert in your niche',
+  },
+  {
+    number: '04',
+    letter: 'P',
+    heading: 'Promote',
+    description:
+      'Share your offerings to a warmed, trusting audience who already sees your value. Because you built the relationship first, promotion feels natural — not pushy — and conversion rates reflect that.',
+    highlight: 'Present offers to an audience that is ready to buy',
+  },
+];
+---
+
+<BaseLayout
+  title="How It Works — The BEEP Method | Beep2B"
+  description="Learn how the BEEP methodology (Build, Engage, Educate, Promote) generates consistent B2B leads from LinkedIn through systematic relationship-building."
+>
+  <main>
+
+    <!-- Page Hero -->
+    <section class="bg-brand py-16 px-4">
+      <div class="max-w-4xl mx-auto text-center">
+        <p class="text-primary-300 text-sm font-semibold uppercase tracking-widest mb-3">
+          Our Proven Process
+        </p>
+        <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">
+          The BEEP Method
+        </h1>
+        <p class="text-xl text-primary-100 max-w-2xl mx-auto">
+          A systematic four-step process that turns LinkedIn into your most
+          predictable source of qualified B2B leads — without cold calls or
+          spammy outreach.
+        </p>
+      </div>
+    </section>
+
+    <!-- Steps -->
+    <section class="py-16 px-4 bg-white">
+      <div class="max-w-5xl mx-auto space-y-20">
+        {steps.map((step, i) => (
+          <div class={`flex flex-col ${i % 2 === 1 ? 'md:flex-row-reverse' : 'md:flex-row'} items-center gap-12`}>
+
+            <!-- Visual circle -->
+            <div class="flex-shrink-0 w-48 h-48 rounded-full bg-primary-50 border-4 border-primary-200 flex flex-col items-center justify-center">
+              <span class="text-5xl font-extrabold text-primary-800">{step.letter}</span>
+              <span class="text-sm text-primary-500 font-semibold mt-1">{step.number}</span>
+            </div>
+
+            <!-- Text content -->
+            <div class="flex-1 text-center md:text-left">
+              <h2 class="text-3xl font-bold text-slate-900 mb-3">
+                {step.heading}
+              </h2>
+              <p class="text-lg text-slate-600 leading-relaxed mb-4">
+                {step.description}
+              </p>
+              <div class="inline-flex items-center gap-2 bg-primary-50 text-primary-800 px-4 py-2 rounded-full text-sm font-semibold">
+                <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                {step.highlight}
+              </div>
+            </div>
+
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <!-- Why It Works -->
+    <section class="bg-slate-50 py-16 px-4">
+      <div class="max-w-4xl mx-auto text-center">
+        <h2 class="text-3xl font-bold text-slate-900 mb-4">
+          Why BEEP Works Where Others Fail
+        </h2>
+        <p class="text-lg text-slate-600 mb-10 max-w-2xl mx-auto">
+          Most LinkedIn lead generation fails because it skips the relationship.
+          BEEP is built on a foundation of genuine value exchange — prospects
+          want to hear from you because you've already helped them.
+        </p>
+        <div class="grid md:grid-cols-3 gap-6 text-left">
+          <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+            <div class="text-2xl mb-3">🎯</div>
+            <h3 class="font-semibold text-slate-900 mb-2">Targeted, Not Scattered</h3>
+            <p class="text-sm text-slate-600">Every connection is intentional. We reach only prospects who match your ideal customer profile.</p>
+          </div>
+          <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+            <div class="text-2xl mb-3">🤝</div>
+            <h3 class="font-semibold text-slate-900 mb-2">Relationship-First</h3>
+            <p class="text-sm text-slate-600">Trust is built before any pitch. When you promote, your audience already believes in your value.</p>
+          </div>
+          <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+            <div class="text-2xl mb-3">📈</div>
+            <h3 class="font-semibold text-slate-900 mb-2">Consistently Scalable</h3>
+            <p class="text-sm text-slate-600">A system, not a tactic. BEEP compounds over time — your network and authority grow with every month.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="bg-brand py-16 px-4 text-center">
+      <div class="max-w-2xl mx-auto">
+        <h2 class="text-3xl font-bold text-white mb-4">
+          Ready to Put BEEP to Work?
+        </h2>
+        <p class="text-primary-100 text-lg mb-8">
+          Join over 500 B2B entrepreneurs and marketers across 22 countries who
+          use the BEEP method to generate qualified leads on LinkedIn.
+        </p>
+        <a
+          href="/contact"
+          class="inline-flex items-center px-8 py-3 bg-white text-primary-800 font-semibold rounded-md hover:bg-primary-50 transition-colors text-lg"
+        >
+          Book a Discovery Call
+        </a>
+      </div>
+    </section>
+
+  </main>
+</BaseLayout>

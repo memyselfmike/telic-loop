@@ -3,11 +3,230 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout
-  title="Beep2B — LinkedIn Lead Generation for B2B"
-  description="Beep2B helps B2B entrepreneurs and marketers generate high-quality LinkedIn leads through the proven BEEP methodology."
+  title="Beep2B — Consistent B2B Leads From LinkedIn"
+  description="Beep2B helps B2B entrepreneurs and marketers generate high-quality LinkedIn leads through the proven BEEP methodology. Join 500+ businesses across 22 countries."
 >
-  <main class="min-h-screen bg-white">
-    <h1 class="text-4xl font-bold text-blue-800 p-8">Welcome to Beep2B</h1>
-    <p class="text-lg text-slate-600 px-8">B2B LinkedIn Lead Generation Consulting</p>
+  <main>
+
+    <!-- Hero -->
+    <section class="bg-brand py-20 px-4">
+      <div class="max-w-5xl mx-auto">
+        <div class="max-w-3xl">
+          <p class="text-primary-300 text-sm font-semibold uppercase tracking-widest mb-4">
+            LinkedIn Lead Generation for B2B
+          </p>
+          <h1 class="text-4xl md:text-6xl font-extrabold text-white leading-tight mb-6">
+            Consistent B2B Leads<br class="hidden md:block" /> From LinkedIn
+          </h1>
+          <p class="text-xl text-primary-100 mb-8 max-w-2xl leading-relaxed">
+            Stop guessing. The BEEP methodology gives you a repeatable system for
+            generating qualified leads on LinkedIn — without cold calls, spam, or
+            unpredictable results.
+          </p>
+          <div class="flex flex-col sm:flex-row gap-4">
+            <a
+              href="/contact"
+              class="inline-flex items-center justify-center px-8 py-3.5 bg-white text-primary-800 font-bold rounded-md hover:bg-primary-50 transition-colors text-lg shadow"
+            >
+              Book a Discovery Call
+            </a>
+            <a
+              href="/how-it-works"
+              class="inline-flex items-center justify-center px-8 py-3.5 border-2 border-primary-300 text-white font-semibold rounded-md hover:bg-primary-700 transition-colors text-lg"
+            >
+              See How It Works
+            </a>
+          </div>
+          <!-- Trust indicators -->
+          <div class="mt-10 flex flex-wrap gap-6 text-primary-200 text-sm">
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+              500+ clients served
+            </span>
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+              22 countries
+            </span>
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+              Est. 2014
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- What We Do — Feature Cards -->
+    <section class="py-16 px-4 bg-white">
+      <div class="max-w-5xl mx-auto">
+        <div class="text-center mb-10">
+          <h2 class="text-3xl font-bold text-slate-900 mb-3">
+            Everything You Need to Generate B2B Leads on LinkedIn
+          </h2>
+          <p class="text-slate-600 max-w-2xl mx-auto">
+            Beep2B combines strategy, execution, and training to deliver qualified
+            prospects into your pipeline — consistently.
+          </p>
+        </div>
+        <div class="grid md:grid-cols-3 gap-6">
+          {[
+            {
+              icon: '🎯',
+              title: 'Precision Targeting',
+              description: 'We identify and connect with prospects who match your exact ideal customer profile — no broad blasting, no wasted time.',
+            },
+            {
+              icon: '🤝',
+              title: 'Relationship-First',
+              description: 'BEEP builds trust before pitching. When you promote, you\'re talking to a warm audience that already sees your value.',
+            },
+            {
+              icon: '📈',
+              title: 'Predictable Pipeline',
+              description: 'Systematic outreach means consistent results month after month — not spikes and droughts driven by random effort.',
+            },
+            {
+              icon: '✍️',
+              title: 'Thought Leadership',
+              description: 'Position yourself as the go-to authority in your niche with expert content that attracts inbound enquiries.',
+            },
+            {
+              icon: '📊',
+              title: 'Transparent Reporting',
+              description: 'Monthly performance reports show exactly what activity was done, what results it produced, and what\'s planned next.',
+            },
+            {
+              icon: '🎓',
+              title: 'Training and Playbooks',
+              description: 'Prefer to run it in-house? We train your team with the exact same systems we use for managed clients.',
+            },
+          ].map((feature) => (
+            <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
+              <div class="text-3xl mb-3">{feature.icon}</div>
+              <h3 class="text-lg font-semibold text-slate-900 mb-2">{feature.title}</h3>
+              <p class="text-slate-600 text-sm leading-relaxed">{feature.description}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- BEEP Method Preview -->
+    <section class="py-16 px-4 bg-slate-50">
+      <div class="max-w-5xl mx-auto">
+        <div class="text-center mb-10">
+          <p class="text-primary-600 text-sm font-semibold uppercase tracking-widest mb-2">
+            Our Methodology
+          </p>
+          <h2 class="text-3xl font-bold text-slate-900 mb-3">
+            The BEEP Method
+          </h2>
+          <p class="text-slate-600 max-w-xl mx-auto">
+            Four steps. One system. Repeatable results. BEEP works because it mirrors how real buying decisions happen.
+          </p>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {[
+            { letter: 'B', step: 'Build', desc: 'Grow your network with precision-targeted connections.', num: '01' },
+            { letter: 'E', step: 'Engage', desc: 'Start authentic, goal-based conversations.', num: '02' },
+            { letter: 'E', step: 'Educate', desc: 'Deliver valuable content that builds authority.', num: '03' },
+            { letter: 'P', step: 'Promote', desc: 'Present offers to a warm, trusting audience.', num: '04' },
+          ].map((item) => (
+            <div class="bg-white rounded-xl p-5 border border-primary-100 text-center shadow-sm">
+              <div class="w-12 h-12 rounded-full bg-primary-800 text-white font-extrabold text-2xl flex items-center justify-center mx-auto mb-3">
+                {item.letter}
+              </div>
+              <div class="text-xs text-primary-500 font-semibold mb-1">Step {item.num}</div>
+              <h3 class="font-bold text-slate-900 mb-1">{item.step}</h3>
+              <p class="text-xs text-slate-500 leading-relaxed">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+        <div class="text-center">
+          <a
+            href="/how-it-works"
+            class="inline-flex items-center gap-2 text-primary-700 font-semibold hover:text-primary-900 transition-colors"
+          >
+            Learn the full BEEP methodology
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="py-16 px-4 bg-white">
+      <div class="max-w-5xl mx-auto">
+        <div class="text-center mb-10">
+          <h2 class="text-3xl font-bold text-slate-900 mb-3">
+            What Our Clients Say
+          </h2>
+          <p class="text-slate-600">
+            Real results from real B2B businesses using the BEEP methodology.
+          </p>
+        </div>
+        <div class="grid md:grid-cols-3 gap-6">
+          {[
+            {
+              quote: 'Within 3 months of implementing BEEP, I was having 4 to 5 qualified discovery calls a week. Before, I was lucky to get one a month.',
+              name: 'Sarah M.',
+              role: 'Founder, B2B SaaS',
+              country: 'UK',
+            },
+            {
+              quote: 'The methodology is so systematic. I knew exactly what to do every day, and the results were predictable. That is rare in marketing.',
+              name: 'James K.',
+              role: 'Sales Director',
+              country: 'Australia',
+            },
+            {
+              quote: 'We trained our whole team. Within 6 weeks, 3 reps had LinkedIn as their top lead source. The ROI on the training was obvious.',
+              name: 'Anja W.',
+              role: 'VP Marketing',
+              country: 'Germany',
+            },
+          ].map((testimonial) => (
+            <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
+              <div class="text-primary-500 text-3xl mb-3 font-serif">&ldquo;</div>
+              <p class="text-slate-700 leading-relaxed mb-5 text-sm italic">
+                {testimonial.quote}
+              </p>
+              <div class="flex items-center gap-3 border-t border-slate-200 pt-4">
+                <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-sm flex-shrink-0">
+                  {testimonial.name.charAt(0)}
+                </div>
+                <div>
+                  <div class="text-sm font-semibold text-slate-900">{testimonial.name}</div>
+                  <div class="text-xs text-slate-500">{testimonial.role} &middot; {testimonial.country}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Banner -->
+    <section class="bg-brand py-16 px-4 text-center">
+      <div class="max-w-2xl mx-auto">
+        <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
+          Ready to Grow Your B2B Pipeline?
+        </h2>
+        <p class="text-primary-100 text-lg mb-8 leading-relaxed">
+          Book a free 30-minute discovery call. We'll review your current LinkedIn
+          presence and show you exactly how BEEP would work for your business.
+        </p>
+        <a
+          href="/contact"
+          class="inline-flex items-center px-10 py-4 bg-white text-primary-800 font-bold rounded-md hover:bg-primary-50 transition-colors text-lg shadow-lg"
+        >
+          Book Your Free Discovery Call
+        </a>
+        <p class="text-primary-300 text-sm mt-4">No commitment. No pressure. Just an honest conversation.</p>
+      </div>
+    </section>
+
   </main>
 </BaseLayout>

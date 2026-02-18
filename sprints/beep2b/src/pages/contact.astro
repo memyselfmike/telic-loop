@@ -1,0 +1,96 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ContactForm from '../components/ContactForm.tsx';
+---
+
+<BaseLayout
+  title="Contact Beep2B — Book a Discovery Call"
+  description="Get in touch with the Beep2B team to discuss how we can help you generate consistent B2B leads on LinkedIn. Book a free discovery call today."
+>
+  <main>
+
+    <!-- Page Hero -->
+    <section class="bg-brand py-16 px-4">
+      <div class="max-w-4xl mx-auto text-center">
+        <p class="text-primary-300 text-sm font-semibold uppercase tracking-widest mb-3">
+          Get In Touch
+        </p>
+        <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">
+          Let's Talk
+        </h1>
+        <p class="text-xl text-primary-100 max-w-2xl mx-auto">
+          Book a free 30-minute discovery call or send us a message.
+          We'll get back to you within one business day.
+        </p>
+      </div>
+    </section>
+
+    <!-- Content -->
+    <section class="py-16 px-4 bg-white">
+      <div class="max-w-5xl mx-auto">
+        <div class="grid md:grid-cols-2 gap-12 items-start">
+
+          <!-- Left: Contact info -->
+          <div>
+            <h2 class="text-2xl font-bold text-slate-900 mb-4">
+              Why Book a Discovery Call?
+            </h2>
+            <p class="text-slate-600 leading-relaxed mb-6">
+              In 30 minutes, we'll explore your current LinkedIn activity, understand your ideal customer profile, and walk you through exactly how the BEEP methodology would apply to your business. No obligation — just a genuine conversation about your growth goals.
+            </p>
+
+            <!-- Benefits of calling -->
+            <ul class="space-y-4 mb-8">
+              {[
+                'Get a free LinkedIn profile audit',
+                'See a live example of the BEEP method',
+                'Understand what results are realistic for your market',
+                'No sales pressure — honest advice only',
+              ].map((point) => (
+                <li class="flex items-start gap-3">
+                  <svg class="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-slate-700">{point}</span>
+                </li>
+              ))}
+            </ul>
+
+            <!-- Contact details -->
+            <div class="border-t border-slate-200 pt-6 space-y-3">
+              <div class="flex items-center gap-3 text-slate-600">
+                <svg class="w-5 h-5 text-primary-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <span>hello@beep2b.com</span>
+              </div>
+              <div class="flex items-center gap-3 text-slate-600">
+                <svg class="w-5 h-5 text-primary-500 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                </svg>
+                <a
+                  href="https://linkedin.com/company/beep2b"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="hover:text-primary-600 transition-colors"
+                >
+                  LinkedIn — @beep2b
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Contact form (React island) -->
+          <div class="bg-slate-50 rounded-2xl p-8 border border-slate-200">
+            <h2 class="text-xl font-bold text-slate-900 mb-6">
+              Send Us a Message
+            </h2>
+            <ContactForm client:load />
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+</BaseLayout>

@@ -1,0 +1,160 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const services = [
+  {
+    id: 'linkedin-marketing',
+    heading: 'LinkedIn Marketing',
+    subheading: 'Consistent B2B leads from the world\'s most powerful professional network',
+    description:
+      'Our flagship service applies the full BEEP methodology to your LinkedIn presence. We build, manage, and optimise your lead generation system so you get a steady pipeline of qualified prospects — without you spending hours on the platform every day.',
+    benefits: [
+      'Profile optimisation to attract your ideal client',
+      'Targeted connection outreach to your ICP',
+      'Personalised conversation sequences that convert',
+      'Monthly performance reporting and strategy reviews',
+      'Dedicated account manager with weekly check-ins',
+    ],
+    cta: 'Book a Discovery Call',
+    ctaHref: '/contact',
+    accent: 'bg-blue-50',
+    iconBg: 'bg-primary-100',
+    icon: `<svg class="w-8 h-8 text-primary-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>`,
+  },
+  {
+    id: 'thought-leadership',
+    heading: 'Thought Leadership Marketing',
+    subheading: 'Become the recognised authority in your industry',
+    description:
+      'Authority is the ultimate lead generation asset. We craft and distribute content that establishes you as the go-to expert in your niche — turning LinkedIn into an inbound channel where prospects reach out to you.',
+    benefits: [
+      'Content strategy aligned to your expertise and audience',
+      'Ghostwritten articles and posts published under your name',
+      'Engagement strategies to amplify organic reach',
+      'LinkedIn newsletter setup and growth',
+      'Competitor positioning and differentiation analysis',
+    ],
+    cta: 'Learn More',
+    ctaHref: '/contact',
+    accent: 'bg-slate-50',
+    iconBg: 'bg-primary-100',
+    icon: `<svg class="w-8 h-8 text-primary-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>`,
+  },
+  {
+    id: 'linkedin-training',
+    heading: 'LinkedIn Training',
+    subheading: 'Equip your team with the skills to generate leads independently',
+    description:
+      'Prefer to run LinkedIn lead generation in-house? Our training programmes give you and your team the exact playbooks, templates, and techniques Beep2B uses for clients every day. Walk away with a system you own.',
+    benefits: [
+      'Half-day or full-day live training workshops',
+      'BEEP methodology playbook and templates included',
+      'Personalised profile audit for every participant',
+      'Post-training coaching calls (Q&A and accountability)',
+      'Team and 1-to-1 formats available',
+    ],
+    cta: 'Enquire About Training',
+    ctaHref: '/contact',
+    accent: 'bg-blue-50',
+    iconBg: 'bg-primary-100',
+    icon: `<svg class="w-8 h-8 text-primary-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>`,
+  },
+];
+---
+
+<BaseLayout
+  title="Services — LinkedIn Marketing, Thought Leadership & Training | Beep2B"
+  description="Beep2B offers three core services: LinkedIn Marketing, Thought Leadership Marketing, and LinkedIn Training — all built on the proven BEEP methodology."
+>
+  <main>
+
+    <!-- Page Hero -->
+    <section class="bg-brand py-16 px-4">
+      <div class="max-w-4xl mx-auto text-center">
+        <p class="text-primary-300 text-sm font-semibold uppercase tracking-widest mb-3">
+          What We Offer
+        </p>
+        <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">
+          Our Services
+        </h1>
+        <p class="text-xl text-primary-100 max-w-2xl mx-auto">
+          Three ways to build a predictable LinkedIn lead generation engine —
+          whether you want us to do it for you, with you, or teach you to do it yourself.
+        </p>
+      </div>
+    </section>
+
+    <!-- Services -->
+    <div class="py-4">
+      {services.map((service, i) => (
+        <section id={service.id} class={`${service.accent} py-16 px-4`}>
+          <div class="max-w-5xl mx-auto">
+            <div class={`flex flex-col ${i % 2 === 1 ? 'lg:flex-row-reverse' : 'lg:flex-row'} gap-12 items-start`}>
+
+              <!-- Icon + Heading -->
+              <div class="lg:w-2/5">
+                <div class={`inline-flex items-center justify-center w-16 h-16 rounded-xl ${service.iconBg} mb-4`} set:html={service.icon} />
+                <h2 class="text-3xl font-bold text-slate-900 mb-2">
+                  {service.heading}
+                </h2>
+                <p class="text-primary-700 font-medium text-lg mb-4">
+                  {service.subheading}
+                </p>
+                <p class="text-slate-600 leading-relaxed">
+                  {service.description}
+                </p>
+                <a
+                  href={service.ctaHref}
+                  class="inline-flex items-center mt-6 px-6 py-3 bg-primary-800 text-white font-semibold rounded-md hover:bg-primary-700 transition-colors"
+                >
+                  {service.cta}
+                  <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </a>
+              </div>
+
+              <!-- Benefits list -->
+              <div class="lg:w-3/5 bg-white rounded-xl shadow-sm border border-slate-200 p-8">
+                <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-5">
+                  What's Included
+                </h3>
+                <ul class="space-y-4">
+                  {service.benefits.map((benefit) => (
+                    <li class="flex items-start gap-3">
+                      <svg class="w-5 h-5 text-primary-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="text-slate-700">{benefit}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+            </div>
+          </div>
+        </section>
+      ))}
+    </div>
+
+    <!-- CTA -->
+    <section class="bg-brand py-16 px-4 text-center">
+      <div class="max-w-2xl mx-auto">
+        <h2 class="text-3xl font-bold text-white mb-4">
+          Not Sure Which Service Fits?
+        </h2>
+        <p class="text-primary-100 text-lg mb-8">
+          Book a free 30-minute discovery call. We'll understand your goals and
+          recommend the right solution for your business and budget.
+        </p>
+        <a
+          href="/contact"
+          class="inline-flex items-center px-8 py-3 bg-white text-primary-800 font-semibold rounded-md hover:bg-primary-50 transition-colors text-lg"
+        >
+          Book Your Discovery Call
+        </a>
+      </div>
+    </section>
+
+  </main>
+</BaseLayout>
