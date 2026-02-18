@@ -25,13 +25,34 @@ const SECTION_LABELS = {
 };
 
 /* ============================================================
+   Date Helpers (mirrors planner.js — no module bundler)
+   ============================================================ */
+
+/**
+ * Return the ISO date string (YYYY-MM-DD) for the Monday of the
+ * week containing today.
+ * @returns {string}
+ */
+function getCurrentWeekMonday() {
+  const d = new Date();
+  // getDay(): 0=Sun, 1=Mon … 6=Sat  →  shift so Monday=0
+  const dayOfWeek = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - dayOfWeek);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/* ============================================================
    Module State
    ============================================================ */
 
-/** @type {{ list: object|null, inflight: Set<number> }} */
+/** @type {{ list: object|null, inflight: Set<number>, generating: boolean }} */
 const shoppingState = {
-  list:     null,   // ShoppingListResponse from API (or null when no list exists)
-  inflight: new Set(), // item IDs with a pending API call (prevents double-toggle)
+  list:       null,      // ShoppingListResponse from API (or null when no list exists)
+  inflight:   new Set(), // item IDs with a pending API call (prevents double-toggle)
+  generating: false,     // true while POST /api/shopping/generate is in-flight
 };
 
 /* ============================================================
@@ -106,16 +127,22 @@ function renderShoppingView() {
    ============================================================ */
 
 /**
- * Build the page header, including the item-count summary when a list exists.
+ * Build the page header, including the item-count summary when a list exists
+ * and the Generate from This Week button.
  * @param {object|null} list
  * @returns {HTMLElement}
  */
 function buildShoppingHeader(list) {
   const { el } = window.App;
 
+  const generateBtn = buildGenerateButton(list);
+
   if (!list || list.items.length === 0) {
     return el('div', { className: 'page-header' },
-      el('h1', { className: 'page-title' }, '🛒 Shopping List'),
+      el('div', {},
+        el('h1', { className: 'page-title' }, '🛒 Shopping List'),
+      ),
+      generateBtn,
     );
   }
 
@@ -132,7 +159,114 @@ function buildShoppingHeader(list) {
       el('h1', { className: 'page-title' }, '🛒 Shopping List'),
       subtitle,
     ),
+    generateBtn,
   );
+}
+
+/**
+ * Build the "Generate from This Week" button.
+ * Shown in a loading/disabled state while generation is in-flight.
+ * @param {object|null} list  — current shopping list (used to decide whether to warn about replacement)
+ * @returns {HTMLElement}
+ */
+function buildGenerateButton(list) {
+  const { el } = window.App;
+
+  const isGenerating = shoppingState.generating;
+  const hasExistingItems = list && list.items && list.items.length > 0;
+
+  const btnLabel = isGenerating
+    ? '⏳ Generating…'
+    : '🗓️ Generate from This Week';
+
+  const btnAttrs = {
+    type:      'button',
+    className: 'btn btn-primary',
+    onClick:   () => handleGenerate(hasExistingItems),
+  };
+  if (isGenerating) {
+    btnAttrs.disabled = 'disabled';
+    btnAttrs.style = { opacity: '0.7', cursor: 'not-allowed' };
+  }
+
+  return el('div', { className: 'page-header-actions' },
+    el('button', btnAttrs, btnLabel),
+  );
+}
+
+/* ============================================================
+   Generate Shopping List
+   ============================================================ */
+
+/**
+ * Handle the "Generate from This Week" button click.
+ *
+ * Flow:
+ *  1. If a non-empty list already exists → show window.confirm warning.
+ *  2. Call POST /api/shopping/generate with the current week's Monday date.
+ *  3. On success (201) → update shoppingState.list and re-render.
+ *  4. Show a toast with the count of items generated.
+ *
+ * @param {boolean} hasExistingItems  — whether the current list has any items
+ */
+async function handleGenerate(hasExistingItems) {
+  const { showToast } = window.App;
+
+  // Guard: do nothing if already generating.
+  if (shoppingState.generating) return;
+
+  // If a list with items already exists, ask the user to confirm replacement.
+  if (hasExistingItems) {
+    const confirmed = window.confirm(
+      'This will replace your current shopping list with items from this week\'s meal plan.\n\nContinue?'
+    );
+    if (!confirmed) return;
+  }
+
+  // Compute the Monday for the current week — same algorithm as planner.js.
+  const weekStart = getCurrentWeekMonday();
+
+  // Enter loading state and re-render the header to reflect it.
+  shoppingState.generating = true;
+  renderShoppingView();
+
+  try {
+    // POST /api/shopping/generate returns 201 Created with the new list.
+    const resp = await fetch('/api/shopping/generate', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ week_start: weekStart }),
+    });
+
+    if (!resp.ok) {
+      let detail = `HTTP ${resp.status}`;
+      try {
+        const errData = await resp.json();
+        if (errData && errData.detail) detail = errData.detail;
+      } catch (_) { /* ignore parse errors */ }
+      showToast(`Failed to generate shopping list: ${detail}`, 'error');
+      return;
+    }
+
+    // 201 — new list created/replaced.
+    const newList = await resp.json();
+    shoppingState.list = newList;
+
+    const itemCount = newList.items ? newList.items.length : 0;
+    showToast(
+      itemCount > 0
+        ? `✅ Shopping list generated — ${itemCount} item${itemCount !== 1 ? 's' : ''}`
+        : '✅ Shopping list generated (no ingredients found in this week\'s meals)',
+      'success',
+    );
+
+  } catch (networkErr) {
+    showToast(`Network error: ${networkErr.message}`, 'error');
+  } finally {
+    // Always leave loading state and re-render.
+    shoppingState.generating = false;
+    renderShoppingView();
+  }
 }
 
 /* ============================================================
