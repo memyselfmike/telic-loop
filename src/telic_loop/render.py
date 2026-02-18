@@ -94,8 +94,43 @@ def generate_delivery_report(config: LoopConfig, state: LoopState) -> None:
         f"- QC checks: {passed}/{len(state.verifications)} passing",
         f"- Iterations: {state.iteration}",
         f"- Exit gate attempts: {state.exit_gate_attempts}",
-        f"- Tokens used: {state.total_tokens_used:,}",
+        f"- Tokens used: {state.total_tokens_used:,}"
+        f" ({state.total_input_tokens:,} in / {state.total_output_tokens:,} out)",
         "",
+    ]
+
+    # Phase usage breakdown
+    phase_stats: dict[str, dict] = {}
+    for entry in state.progress_log:
+        phase = entry.get("action", "unknown")
+        inp = entry.get("input_tokens", 0)
+        out = entry.get("output_tokens", 0)
+        dur = entry.get("duration_sec", 0.0)
+        if phase not in phase_stats:
+            phase_stats[phase] = {"calls": 0, "input": 0, "output": 0, "time": 0.0}
+        phase_stats[phase]["calls"] += 1
+        phase_stats[phase]["input"] += inp
+        phase_stats[phase]["output"] += out
+        phase_stats[phase]["time"] += dur
+
+    if phase_stats:
+        lines.append("## Phase Usage")
+        lines.append("")
+        lines.append("| Phase | Calls | Input Tokens | Output Tokens | Time |")
+        lines.append("|-------|-------|-------------|--------------|------|")
+        for phase, s in sorted(
+            phase_stats.items(),
+            key=lambda x: x[1]["input"] + x[1]["output"],
+            reverse=True,
+        ):
+            mins, secs = divmod(int(s["time"]), 60)
+            time_str = f"{mins}m {secs}s" if mins else f"{secs}s"
+            lines.append(
+                f"| {phase} | {s['calls']} | {s['input']:,} | {s['output']:,} | {time_str} |"
+            )
+        lines.append("")
+
+    lines += [
         "## Deliverables",
     ]
     for t in state.tasks.values():

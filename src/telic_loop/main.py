@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
+import time
 from pathlib import Path
 
 from .claude import Claude
@@ -78,6 +79,11 @@ def run_value_loop(
 
         print(f"\n── Iteration {iteration} ── Action: {action.value}")
 
+        # Capture timing and token deltas for per-phase tracking
+        inp_before = state.total_input_tokens
+        out_before = state.total_output_tokens
+        t0 = time.perf_counter()
+
         # Exit gate is special — it can terminate the loop
         if action == Action.EXIT_GATE:
             exit_passed = do_exit_gate(config, state, claude)
@@ -98,7 +104,17 @@ def run_value_loop(
                 print(f"  WARNING: No handler for action {action.value}")
                 progress = False
 
-        state.record_progress(action.value, "progress" if progress else "no_progress", progress)
+        elapsed = round(time.perf_counter() - t0, 1)
+        phase_inp = state.total_input_tokens - inp_before
+        phase_out = state.total_output_tokens - out_before
+        state.record_progress(
+            action.value,
+            "progress" if progress else "no_progress",
+            progress,
+            input_tokens=phase_inp,
+            output_tokens=phase_out,
+            duration_sec=elapsed,
+        )
 
         # Process monitor (after every action)
         maybe_run_strategy_reasoner(
@@ -203,9 +219,19 @@ def main() -> None:
         # Run phases
         if state.phase == "pre_loop":
             from .phases.preloop import run_preloop
+            t0 = time.perf_counter()
+            inp_before = state.total_input_tokens
+            out_before = state.total_output_tokens
             if not run_preloop(config, state, claude):
                 print("\nPRE-LOOP FAILED — cannot proceed.")
                 sys.exit(1)
+            state.record_progress(
+                "preloop", "progress", True,
+                input_tokens=state.total_input_tokens - inp_before,
+                output_tokens=state.total_output_tokens - out_before,
+                duration_sec=round(time.perf_counter() - t0, 1),
+            )
+            state.save(config.state_file)
 
         if state.phase == "value_loop":
             from .phases.epic import run_epic_loop

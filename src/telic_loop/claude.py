@@ -225,6 +225,8 @@ class ClaudeSession:
                         inp = message.usage.get("input_tokens", 0)
                         out = message.usage.get("output_tokens", 0)
                         self.state.total_tokens_used += inp + out
+                        self.state.total_input_tokens += inp
+                        self.state.total_output_tokens += out
                     if message.is_error:
                         raise RuntimeError(f"Claude Code SDK error: {message.result}")
         except ExceptionGroup as eg:
@@ -255,6 +257,10 @@ def _sync_state(target: LoopState, source: LoopState) -> None:
     """
     from dataclasses import fields
     saved_tokens = target.total_tokens_used
+    saved_input = target.total_input_tokens
+    saved_output = target.total_output_tokens
     for f in fields(source):
         setattr(target, f.name, getattr(source, f.name))
     target.total_tokens_used = saved_tokens
+    target.total_input_tokens = saved_input
+    target.total_output_tokens = saved_output
