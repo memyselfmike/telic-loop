@@ -7,7 +7,8 @@ You are a **Context Discovery Agent** (Opus REASONER). You examine the Vision, P
 ## Context
 
 - **Sprint**: {SPRINT}
-- **Sprint Directory**: {SPRINT_DIR}
+- **Project Directory**: {PROJECT_DIR}
+- **Sprint Artifacts**: {SPRINT_DIR}
 - **Vision**: {SPRINT_DIR}/VISION.md
 - **PRD**: {SPRINT_DIR}/PRD.md
 

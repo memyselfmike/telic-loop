@@ -73,9 +73,9 @@ def update_process_metrics(state: LoopState, action: str, made_progress: bool) -
 
 
 def scan_file_line_counts(state: LoopState, config: LoopConfig) -> None:
-    """Scan sprint directory for source files and compute line counts + health warnings."""
+    """Scan project directory for source files and compute line counts + health warnings."""
     pm = state.process_monitor
-    sprint_dir = Path(config.sprint_dir)
+    sprint_dir = Path(config.effective_project_dir)
 
     if not sprint_dir.is_dir():
         return

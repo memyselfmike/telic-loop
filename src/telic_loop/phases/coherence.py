@@ -120,9 +120,9 @@ def do_full_coherence_eval(
 def _assess_structural_integrity(config: LoopConfig) -> dict:
     """Analyze project structure for dependency issues and module health. No LLM."""
     findings: list[str] = []
-    sprint_dir = config.sprint_dir
+    project_dir = config.effective_project_dir
 
-    py_files = list(sprint_dir.rglob("*.py"))
+    py_files = list(project_dir.rglob("*.py"))
 
     # Check for circular imports
     import_graph: dict[str, list[str]] = {}
@@ -159,9 +159,9 @@ def _assess_structural_integrity(config: LoopConfig) -> dict:
 def _assess_interaction_coherence(config: LoopConfig, state: LoopState) -> dict:
     """Check cross-cutting concern consistency. No LLM."""
     findings: list[str] = []
-    sprint_dir = config.sprint_dir
+    project_dir = config.effective_project_dir
 
-    py_files = list(sprint_dir.rglob("*.py"))
+    py_files = list(project_dir.rglob("*.py"))
 
     # Check for inconsistent error handling patterns
     bare_excepts = 0

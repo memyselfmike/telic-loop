@@ -18,7 +18,8 @@ You are an agent in a **value delivery loop**. Your goal is to deliver the outco
 
 ## Sprint Context
 
-- **Sprint directory**: {SPRINT_DIR}
+- **Project directory**: {PROJECT_DIR}
+- **Sprint artifacts**: {SPRINT_DIR}
 - **Vision**: {SPRINT_DIR}/VISION.md
 - **PRD**: {SPRINT_DIR}/PRD.md
 - **State**: {SPRINT_DIR}/.loop_state.json

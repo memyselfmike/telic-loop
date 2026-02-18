@@ -140,11 +140,12 @@ def main() -> None:
     from .git import ensure_gitignore, setup_sprint_branch
 
     if len(sys.argv) < 2:
-        print("Usage: telic-loop <sprint-name> [--sprint-dir <path>]")
+        print("Usage: telic-loop <sprint-name> [--sprint-dir <path>] [--project-dir <path>]")
         sys.exit(1)
 
     sprint = sys.argv[1]
     sprint_dir = Path(f"sprints/{sprint}")
+    project_dir: Path | None = None
 
     # Parse optional --sprint-dir
     if "--sprint-dir" in sys.argv:
@@ -152,7 +153,13 @@ def main() -> None:
         if idx + 1 < len(sys.argv):
             sprint_dir = Path(sys.argv[idx + 1])
 
-    config = LoopConfig(sprint=sprint, sprint_dir=sprint_dir)
+    # Parse optional --project-dir
+    if "--project-dir" in sys.argv:
+        idx = sys.argv.index("--project-dir")
+        if idx + 1 < len(sys.argv):
+            project_dir = Path(sys.argv[idx + 1])
+
+    config = LoopConfig(sprint=sprint, sprint_dir=sprint_dir, project_dir=project_dir)
 
     # Ensure sprint directory exists
     config.sprint_dir.mkdir(parents=True, exist_ok=True)

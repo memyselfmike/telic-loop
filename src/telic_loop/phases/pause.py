@@ -68,7 +68,7 @@ def _verify_human_action(verification: str, config: LoopConfig) -> bool:
     try:
         result = subprocess.run(
             verification, shell=True, capture_output=True, timeout=30,
-            cwd=str(config.sprint_dir),
+            cwd=str(config.effective_project_dir),
         )
         return result.returncode == 0
     except subprocess.TimeoutExpired:

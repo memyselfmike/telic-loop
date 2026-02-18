@@ -87,8 +87,8 @@ def run_all_quality_checks(state: LoopState, config: LoopConfig) -> None:
     Must be called AFTER scan_file_line_counts() (which clears warnings first).
     """
     pm = state.process_monitor
-    sprint_dir = Path(config.sprint_dir)
-    source_files = _read_source_files(sprint_dir)
+    project_dir = Path(config.effective_project_dir)
+    source_files = _read_source_files(project_dir)
 
     _scan_function_lengths(pm, source_files, config)
     _scan_duplicates(pm, source_files, config)
@@ -293,7 +293,7 @@ def _scan_prd_structure(pm: ProcessMonitorState, config: LoopConfig) -> None:
 
     pm.missing_prd_files = []
     prd_path = config.prd_file
-    sprint_dir = config.sprint_dir
+    sprint_dir = config.effective_project_dir
 
     if not prd_path.is_file():
         return

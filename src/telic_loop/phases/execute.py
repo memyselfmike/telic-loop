@@ -63,6 +63,7 @@ def do_execute(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
             SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),
             SPRINT=config.sprint,
             SPRINT_DIR=str(config.sprint_dir),
+            PROJECT_DIR=str(config.effective_project_dir),
         )
         session.send(prompt)
     except Exception as e:

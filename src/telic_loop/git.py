@@ -231,8 +231,11 @@ def check_and_fix_services(config: LoopConfig, state: LoopState) -> None:
 def _get_safe_directories(config: LoopConfig, state: LoopState) -> list[str]:
     """Derive safe directories for staging new files."""
     safe = [str(config.sprint_dir)]
+    project_dir = config.effective_project_dir
+    if project_dir != config.sprint_dir:
+        safe.append(str(project_dir))
     for d in ["src", "tests", "test", "lib", "docs"]:
-        candidate = config.sprint_dir / d
+        candidate = project_dir / d
         if candidate.exists():
             safe.append(str(candidate))
     return safe

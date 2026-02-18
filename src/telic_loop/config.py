@@ -12,6 +12,7 @@ class LoopConfig:
 
     sprint: str
     sprint_dir: Path
+    project_dir: Path | None = None  # None = same as sprint_dir
 
     # Safety valves
     max_loop_iterations: int = 200
@@ -80,6 +81,11 @@ class LoopConfig:
     max_rollbacks_per_sprint: int = 3
 
     # Derived paths
+    @property
+    def effective_project_dir(self) -> Path:
+        """Where application source code lives."""
+        return self.project_dir if self.project_dir is not None else self.sprint_dir
+
     @property
     def vision_file(self) -> Path:
         return self.sprint_dir / "VISION.md"

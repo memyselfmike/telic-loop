@@ -5,7 +5,8 @@ You are the **Builder**. You receive ONE specific task from the orchestrator. Yo
 ## Context
 
 - **Sprint**: {SPRINT}
-- **Sprint Directory**: {SPRINT_DIR}
+- **Project Directory**: {PROJECT_DIR}
+- **Sprint Artifacts**: {SPRINT_DIR}
 - **Sprint Context**: {SPRINT_CONTEXT}
 
 ## The Task

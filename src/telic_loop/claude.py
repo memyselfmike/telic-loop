@@ -129,7 +129,10 @@ class Claude:
     ) -> ClaudeSession:
         model_attr, max_turns, tools_set = role.value
         model = getattr(self.config, model_attr)
-        system = load_prompt("system", SPRINT_DIR=str(self.config.sprint_dir))
+        system = load_prompt("system",
+            SPRINT_DIR=str(self.config.sprint_dir),
+            PROJECT_DIR=str(self.config.effective_project_dir),
+        )
         if system_extra:
             system += "\n" + system_extra
         system += _tool_cli_instructions(self.config.state_file)

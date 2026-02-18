@@ -38,6 +38,7 @@ def discover_context(config: LoopConfig, claude: Claude, state: LoopState) -> No
     prompt = load_prompt("discover_context",
         SPRINT=config.sprint,
         SPRINT_DIR=str(config.sprint_dir),
+        PROJECT_DIR=str(config.effective_project_dir),
     )
     session.send(prompt)
 
