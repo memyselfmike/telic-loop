@@ -41,6 +41,22 @@
   --muted-foreground: #64748b;
   --border: #e2e8f0;
   --ring: #1e40af;
+
+  /* shadcn/ui compatible CSS variables — blue B2B theme */
+  --primary: #1e40af;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --accent: #eff6ff;
+  --accent-foreground: #1e40af;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --input: #e2e8f0;
+  --radius: 0.5rem;
 }
 
 body {
