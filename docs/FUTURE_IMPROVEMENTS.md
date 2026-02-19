@@ -197,3 +197,77 @@ Epic 1 execution (iters 11-27): 15/16 progress (94%), 49 min  ← night and day
 **Files**: `phases/code_quality.py` (`_scan_prd_structure`, `_upsert_task`)
 
 **Expected savings**: ~5-10 wasted iterations per sprint with novel frameworks
+
+---
+
+## P6: Make Critical Eval with Playwright Reliable
+
+**Problem**: Critical eval with Playwright browser evaluation timed out on every invocation (4/4) and never delivered value. However, the capability is **essential** — a visual review of the built site is the only way to catch layout issues, broken responsive behavior, dodgy-looking filter widgets, etc. In beep2b, the user spotted a layout issue on a category filter that a working critical evaluator should have caught and sent back for polish. The goal is not to remove browser evaluation but to make it work reliably. We're aiming for the best possible outcomes, not the median.
+
+**Root cause**: The critical evaluator tries to start a dev server, wait for it, navigate every page, take screenshots, and analyze them — all within a single SDK session that has a 5-minute timeout. For a 6-page Astro site this is too tight, especially on Windows where subprocess startup is slower.
+
+**What the critical evaluator SHOULD do**:
+1. Navigate every page at desktop and mobile viewport sizes
+2. Take screenshots and visually inspect for layout issues, broken components, misaligned elements, missing content
+3. Test interactive elements (mobile menu toggle, contact form validation, pagination)
+4. Compare against the PRD/vision to catch gaps between intent and implementation
+5. File specific, actionable tasks for anything that doesn't look right
+
+**Fix**:
+1. **Pre-warm the dev server**: Start the dev server as a background process BEFORE launching the SDK session. Pass the URL to the evaluator. Don't make the evaluator waste time starting servers.
+2. **Longer SDK timeout for evaluator**: Critical eval needs 10-15 min, not 5. Add per-role timeout configuration (e.g. `sdk_query_timeout_evaluator_sec: 900`).
+3. **Staged evaluation**: Break into two SDK sessions: (a) Quick structural checks (does it build, do pages exist, are there console errors). (b) Deep visual review with screenshots at multiple viewports. If (a) fails, skip (b).
+4. **Retry with narrower scope**: If the full evaluation times out, retry with just the pages that changed since the last successful eval.
+5. **Screenshot management**: The evaluator takes screenshots via Playwright's `browser_take_screenshot` tool, which saves to the CWD. These need explicit cleanup (see P7).
+
+**Files**: `phases/critical_eval.py`, `claude.py` (per-role timeout), `config.py`, `prompts/critical_eval.md`
+
+**Expected impact**: Catch visual/UX issues that code-only checks miss. The difference between "it builds" and "it looks polished."
+
+---
+
+## P7: Playwright Artifact Cleanup
+
+**Problem**: Playwright screenshots and temp files litter the project root directory during loop execution. In beep2b, 90+ PNG screenshots and `nul` files accumulated in the telic-loop root, requiring manual cleanup. This is messy and unprofessional — the loop should clean up after itself.
+
+**Root cause**: Playwright's `browser_take_screenshot` MCP tool saves screenshots to the current working directory. The SDK's `query()` runs from the telic-loop root, so screenshots land there. Neither the critical evaluator nor the exit gate cleans them up.
+
+**Artifacts observed**:
+- `homepage-desktop-full.png`, `homepage-mobile-375.png`, `contact-form-error.png`, etc.
+- `nul` files (Windows artifact from Playwright trying to write to `/dev/null`)
+- `.playwright-mcp/` directory with console logs from every Playwright session
+
+**Fix**:
+1. **Post-phase cleanup**: After any phase that uses Playwright (critical_eval, exit_gate), scan the working directory for `*.png` files and `.playwright-mcp/` and delete them.
+2. **Dedicated screenshot directory**: Configure Playwright to save screenshots to `sprints/<name>/.loop/screenshots/` instead of the root. Pass this path in the evaluator's system prompt.
+3. **End-of-loop cleanup**: Add a final cleanup step in `generate_delivery_report()` or the epic loop's completion handler to remove all temp artifacts.
+4. **`.gitignore` rule**: Add `*.png` and `.playwright-mcp/` to the sprint `.gitignore` template in `ensure_gitignore()`.
+
+**Files**: `phases/critical_eval.py`, `phases/exit_gate.py`, `render.py`, `git.py` (gitignore)
+
+**Expected impact**: Clean working directory. No manual cleanup needed.
+
+---
+
+## P8: End-to-End Integration Verification
+
+**Problem**: The beep2b sprint delivered Sanity CMS integration at 100% VRC, but the CMS is completely non-functional. No real Sanity project was created. `projectId` is `'placeholder'`. No `.env` files exist. The user cannot log into Sanity Studio or edit blog posts. Every page renders with fallback/placeholder content. The VRC verified that the code exists, builds, and renders — but not that the integration actually works.
+
+This is a systemic gap: the loop can verify **static outcomes** (files exist, build passes, pages render) but not **dynamic ones** (can you log into the CMS? does the API return real data? does the contact form submit successfully?).
+
+**Root cause**: Multiple contributing factors:
+1. **No interactive credential flow**: The loop runs non-interactively. It can't prompt the user for a Sanity project ID mid-sprint, and `sanity init` is interactive (requires browser OAuth). The builder coded around this by adding graceful fallbacks everywhere — which made the VRC think everything was fine.
+2. **VRC doesn't verify service connectivity**: VRC checks whether deliverables exist and work, but "work" means "renders without errors", not "connects to a real backend." A page showing "No posts yet" technically "works."
+3. **Graceful degradation masks failures**: Task 2.7 ("graceful empty-state handling") was delivered successfully — but it makes it impossible to distinguish "CMS is empty" from "CMS is not connected."
+4. **PRD didn't specify credentials**: The vision/PRD said "Sanity CMS integration" but didn't include a project ID or setup instructions. The loop had no way to provision one.
+
+**Fix**:
+1. **Pre-sprint setup checklist**: Before the loop starts, scan the PRD for third-party service dependencies (Sanity, Stripe, Auth0, etc.). Present a checklist to the user: "This sprint requires: Sanity project ID, dataset name. Please provide or create one." Block loop start until credentials are provided.
+2. **Integration health check**: Add a new verification type beyond "does it build" — "does it connect?" For Sanity: attempt a GROQ query and verify non-empty response. For APIs: hit the health endpoint. Run this check during VRC and exit gate.
+3. **Credential provisioning in PRD template**: Update the PRD prompt to ask the user: "List any API keys, project IDs, or service credentials needed. Provide them now or note that they'll be needed during setup."
+4. **Service liveness in critical eval**: When evaluating a CMS-backed site, the critical evaluator should notice that all content is placeholder/fallback and flag it as a gap ("Blog page shows 'No posts yet' — is the CMS connected?").
+5. **Setup task generation**: If the planner detects a third-party service dependency, auto-generate a setup task (e.g. "Create Sanity project and configure .env") that requires human input and blocks the integration tasks.
+
+**Files**: `phases/preloop.py` (setup checklist), `phases/vrc.py` (connectivity check), `prompts/plan.md` (credential prompt), `prompts/critical_eval.md` (liveness check), `prompts/prd.md` (credential section)
+
+**Expected impact**: Prevents shipping "working" code that doesn't actually work. Catches integration gaps before exit gate rather than after delivery.
