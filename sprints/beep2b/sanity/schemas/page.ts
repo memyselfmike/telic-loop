@@ -1,5 +1,5 @@
 import { defineField, defineType } from 'sanity'
-import { requiredValidation } from './fieldHelpers'
+import { requiredValidation, slugField } from './fieldHelpers'
 import { createPortableTextBlock } from './portableTextConfig'
 
 // Section: Hero
@@ -217,17 +217,7 @@ export default defineType({
       description: 'Internal page identifier (e.g., "Home", "About")',
       validation: (Rule) => Rule.required(),
     }),
-    defineField({
-      name: 'slug',
-      title: 'Slug',
-      type: 'slug',
-      options: {
-        source: 'title',
-        maxLength: 96,
-      },
-      description: 'Must match route (e.g., "home", "about", "services")',
-      validation: requiredValidation,
-    }),
+    slugField('title', 'Must match route (e.g., "home", "about", "services")'),
     defineField({
       name: 'sections',
       title: 'Page Sections',

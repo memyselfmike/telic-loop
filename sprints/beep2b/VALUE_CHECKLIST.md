@@ -1,12 +1,12 @@
 # Value Checklist: beep2b
-Generated: 2026-02-19T09:35:54.585594
+Generated: 2026-02-19T09:43:11.433427
 
 ## VRC Status
 - Value Score: 100%
 - Verified: 7/7
 - Blocked: 0
 - Recommendation: SHIP_READY
-- Summary: Fallback VRC: carried forward from iteration 46 (100%)
+- Summary: Fallback VRC: carried forward from iteration 47 (100%)
 
 ## Tasks
 - [x] **1.1**: Verify Astro project configuration: astro.config.mjs has React integration and Tailwind v4 via @tailwindcss/vite plugin, tsconfig.json extends astro/tsconfigs/strict with jsx:react-jsx, package.json has dev/build/preview scripts. Confirm npm run dev starts on port 4321 and npm run build produces dist/ with zero errors. This is brownfield verification -- all config files already exist.
@@ -41,8 +41,9 @@ Generated: 2026-02-19T09:35:54.585594
 - [x] **DEDUP-6494f0e7-author-post**: Extract duplicate code block into shared module. Found in: sanity/schemas/author.ts, sanity/schemas/post.ts. Block starts with: type: 'string',
 - [x] **DEDUP-544d65da-category-page**: Extract duplicate code block into shared module. Found in: sanity/schemas/category.ts, sanity/schemas/page.ts, sanity/schemas/post.ts. Block starts with: validation: (Rule) => Rule.required(),
 - [x] **DEDUP-402067d2-category-siteSettings**: Extract duplicate code block into shared module. Found in: sanity/schemas/category.ts, sanity/schemas/siteSettings.ts. Block starts with: }),
-- [ ] **DEDUP-9aa6fa7b-page-post**: Extract duplicate code block into shared module. Found in: sanity/schemas/page.ts, sanity/schemas/post.ts. Block starts with: { title: 'Quote', value: 'blockquote' },
-- [ ] **DEDUP-aad4ccf4-siteSettings-testimonial**: Extract duplicate code block into shared module. Found in: sanity/schemas/siteSettings.ts, sanity/schemas/testimonial.ts. Block starts with: options: {
+- [x] **DEDUP-9aa6fa7b-page-post**: Extract duplicate code block into shared module. Found in: sanity/schemas/page.ts, sanity/schemas/post.ts. Block starts with: { title: 'Quote', value: 'blockquote' },
+- [x] **DEDUP-aad4ccf4-siteSettings-testimonial**: Extract duplicate code block into shared module. Found in: sanity/schemas/siteSettings.ts, sanity/schemas/testimonial.ts. Block starts with: options: {
 - [ ] **DEDUP-ccbf2070-category-page**: Extract duplicate code block into shared module. Found in: sanity/schemas/category.ts, sanity/schemas/page.ts. Block starts with: }),
+- [ ] **SPLIT-FN-sanity-schemas-portableTextConfig-ts**: Split long functions in sanity/schemas/portableTextConfig.ts: createPortableTextBlock(57L). Extract helper functions to keep each function under 50 lines.
 
 ## Verifications
