@@ -310,13 +310,39 @@ def _scan_prd_structure(pm: ProcessMonitorState, config: LoopConfig) -> None:
     for rel in expected_files:
         full = sprint_dir / rel
         if not full.exists():
-            pm.missing_prd_files.append(rel)
+            # Check for architectural alternatives before flagging as missing
+            if not _has_architectural_alternative(sprint_dir, rel):
+                pm.missing_prd_files.append(rel)
 
     if pm.missing_prd_files:
         pm.code_health_warnings.append(
             f"MISSING_STRUCTURE: {len(pm.missing_prd_files)} file(s) from PRD "
             f"tree not yet created: {', '.join(pm.missing_prd_files[:5])}"
         )
+
+
+def _has_architectural_alternative(sprint_dir: Path, missing_path: str) -> bool:
+    """Check if a superior architectural alternative exists for a missing file.
+
+    Common patterns:
+    - blog/index.astro → blog/[...page].astro (paginated listing)
+    - blog/[...slug].astro → blog/[slug].astro (single param route)
+    """
+    parent = sprint_dir / Path(missing_path).parent
+
+    # Pattern 1: index.astro replaced by [...page].astro (pagination)
+    if missing_path.endswith("index.astro"):
+        paginated_version = parent / "[...page].astro"
+        if paginated_version.exists():
+            return True
+
+    # Pattern 2: [...slug].astro replaced by [slug].astro (single param)
+    if missing_path.endswith("[...slug].astro"):
+        single_param = parent / "[slug].astro"
+        if single_param.exists():
+            return True
+
+    return False
 
 
 def _parse_prd_tree(content: str) -> list[str]:
