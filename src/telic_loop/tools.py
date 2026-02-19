@@ -822,6 +822,12 @@ def handle_manage_task(input_data: dict, state: LoopState, task_source: str = "a
         new_value = input_data.get("new_value", "")
 
         if field_name == "status":
+            # Prevent un-descoping: once descoped, only the human can revert
+            if task.status == "descoped" and new_value != "descoped":
+                return (
+                    f"Cannot change {task_id} from descoped to {new_value}. "
+                    f"Descoped tasks were intentionally removed from scope."
+                )
             task.status = new_value
             if new_value == "descoped":
                 task.blocked_reason = input_data.get("reason", "Descoped")

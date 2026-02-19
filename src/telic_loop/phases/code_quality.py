@@ -346,8 +346,22 @@ def _parse_prd_tree(content: str) -> list[str]:
         prefix = m.group(1)
         name = m.group(2).strip()
 
-        # Depth = count of │ characters before the marker
-        depth = prefix.count("│")
+        # Strip inline comments (e.g., "astro.config.mjs  # Comment")
+        if "#" in name:
+            name = name.split("#")[0].strip()
+
+        # Depth = count of │ characters + extra indentation after last │
+        pipe_count = prefix.count("│")
+        # Find position of last │, count spaces after it
+        last_pipe = prefix.rfind("│")
+        if last_pipe >= 0:
+            trailing_spaces = len(prefix) - last_pipe - 1
+            # Each 4 spaces ≈ one additional depth level
+            depth = pipe_count + (trailing_spaces // 4)
+        else:
+            # No pipes: pure space indentation (e.g., under a root-level dir)
+            # Each 4 spaces = one depth level
+            depth = len(prefix) // 4
 
         # Pop stack to current depth
         while dir_stack and dir_stack[-1][0] >= depth:
@@ -640,6 +654,8 @@ def _upsert_task(
         existing = state.tasks[task_id]
         if existing.status in ("in_progress", "pending"):
             return 0
+        if existing.status == "descoped":
+            return 0  # Respect manual descope decisions
         if existing.status == "done":
             existing.status = "pending"
             existing.retry_count += 1
