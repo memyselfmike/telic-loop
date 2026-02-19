@@ -60,6 +60,16 @@ Sprint stats: 63 iterations, 1.1M tokens, 6.2 hrs wall clock. **53% of time wast
 
 Quality-gated: CRAP + CONNECT + project-agnostic review applied 2026-02-19. Original P1 merged into P5, original P7 merged into P5, P3/P5/P8 revised to remove framework-specific logic.
 
+### Implementation philosophy: Measure first, constrain second
+
+The beep2b sprint data is from a buggy run with concurrent instances, state corruption, and missing fixes. Timeouts derived from that data would be unreliable. For the next test sprint:
+
+1. **Set generous defaults**: All timeouts should allow functions to complete naturally (e.g. EVALUATOR at 1800s, exit gate wall-clock at 30 min). We want a clean run, not artificial failures.
+2. **Collect real timing data**: Per-phase `record_progress()` already tracks `duration_sec` for every action. The delivery report's Phase Usage table gives us exact p50/p95/max per phase.
+3. **Tighten after observation**: After a successful clean sprint, use the observed timings to set realistic timeouts with reasonable headroom (e.g. p95 + 50%).
+
+This means P0's wall-clock cap and P1's per-role timeouts should ship with **permissive defaults** that prevent infinite hangs but don't cut off legitimate work. The goal for the next sprint is a fully delivered end-to-end run with no gaps — timing data from that run informs the production-ready thresholds.
+
 ---
 
 ## P0: Exit Gate Fail-Fast and Timeout Control
@@ -80,7 +90,7 @@ iter=63  exit_gate  1155s (19min) no_progress
 
 **Fix**:
 1. **Fail fast**: If coherence or regression fails, return immediately — skip VRC, critical eval, and code quality. Currently runs all 5 even after early failure.
-2. **Wall-clock cap**: Add a configurable total timeout on the exit gate function (default 15 min). If checks haven't all passed by then, fail and move on. `exit_gate_wall_clock_sec: int = 900` in LoopConfig.
+2. **Wall-clock cap**: Add a configurable total timeout on the exit gate function. Default generous for measurement: `exit_gate_wall_clock_sec: int = 1800` (30 min). Tighten after observing real durations from a clean sprint.
 3. **Budget-aware short-circuit**: If token budget > 95%, skip non-essential checks (coherence, code quality) and run only regression + VRC.
 
 **Files**: `phases/exit_gate.py`, `config.py`
@@ -96,18 +106,19 @@ iter=63  exit_gate  1155s (19min) no_progress
 **Root cause**: `ClaudeSession.timeout_sec` is set from the single `config.sdk_query_timeout_sec` value at `claude.py:151`. No per-role override exists.
 
 **Fix**:
-1. Add `sdk_timeout_by_role: dict[str, int]` to LoopConfig with sensible defaults:
+1. Add `sdk_timeout_by_role: dict[str, int]` to LoopConfig with generous defaults for measurement:
    ```python
    sdk_timeout_by_role: dict[str, int] = field(default_factory=lambda: {
-       "CLASSIFIER": 60,
-       "BUILDER": 300,
-       "FIXER": 300,
-       "QC": 300,
-       "REASONER": 300,
-       "EVALUATOR": 900,
-       "RESEARCHER": 300,
+       "CLASSIFIER": 120,
+       "BUILDER": 600,
+       "FIXER": 600,
+       "QC": 600,
+       "REASONER": 600,
+       "EVALUATOR": 1800,   # 30 min — Playwright page-by-page review
+       "RESEARCHER": 600,
    })
    ```
+   These are intentionally generous. After a clean test sprint, tighten based on observed p95 + 50% headroom from the delivery report's Phase Usage table.
 2. In `Claude.session()`, look up `role.name` in the dict, falling back to the global default.
 
 **Files**: `config.py`, `claude.py`
