@@ -6,6 +6,12 @@ import { defineField } from 'sanity'
  */
 
 /**
+ * Standard required field validation.
+ * Use this helper to ensure consistent required field validation across all schemas.
+ */
+export const requiredValidation = (Rule: any) => Rule.required()
+
+/**
  * Standard alt text field for images.
  * Use within image field's `fields` array for accessibility compliance.
  * @param description - Optional custom description (defaults to standard SEO/accessibility text)
@@ -36,3 +42,15 @@ export const slugField = (source: string, description?: string) =>
     description,
     validation: (Rule) => Rule.required(),
   })
+
+/**
+ * Standard preview configuration for documents with title and description.
+ * Use this helper for consistent preview display across schemas.
+ * @returns Preview object with title and description selection
+ */
+export const titleDescriptionPreview = () => ({
+  select: {
+    title: 'title',
+    subtitle: 'description',
+  },
+})

@@ -1,4 +1,5 @@
 import { defineField, defineType } from 'sanity'
+import { requiredValidation, titleDescriptionPreview } from './fieldHelpers'
 
 export default defineType({
   name: 'category',
@@ -10,7 +11,7 @@ export default defineType({
       title: 'Title',
       type: 'string',
       description: 'Display name for the category',
-      validation: (Rule) => Rule.required(),
+      validation: requiredValidation,
     }),
     defineField({
       name: 'slug',
@@ -21,7 +22,7 @@ export default defineType({
         maxLength: 96,
       },
       description: 'URL-safe identifier used in /blog/category/[slug] routes',
-      validation: (Rule) => Rule.required(),
+      validation: requiredValidation,
     }),
     defineField({
       name: 'description',
@@ -31,10 +32,5 @@ export default defineType({
       description: 'Optional description of this category',
     }),
   ],
-  preview: {
-    select: {
-      title: 'title',
-      subtitle: 'description',
-    },
-  },
+  preview: titleDescriptionPreview(),
 })

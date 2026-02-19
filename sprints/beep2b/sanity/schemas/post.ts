@@ -1,5 +1,5 @@
 import { defineField, defineType } from 'sanity'
-import { altTextField, slugField } from './fieldHelpers'
+import { altTextField, requiredValidation, slugField } from './fieldHelpers'
 
 export default defineType({
   name: 'post',
@@ -10,7 +10,7 @@ export default defineType({
       name: 'title',
       title: 'Title',
       type: 'string',
-      validation: (Rule) => Rule.required(),
+      validation: requiredValidation,
     }),
     slugField('title', 'URL slug for this post — used in /blog/[slug]'),
     defineField({
@@ -18,14 +18,14 @@ export default defineType({
       title: 'Author',
       type: 'reference',
       to: [{ type: 'author' }],
-      validation: (Rule) => Rule.required(),
+      validation: requiredValidation,
     }),
     defineField({
       name: 'publishedAt',
       title: 'Published At',
       type: 'datetime',
       description: 'Publication date and time',
-      validation: (Rule) => Rule.required(),
+      validation: requiredValidation,
     }),
     defineField({
       name: 'categories',
@@ -117,7 +117,7 @@ export default defineType({
           ],
         },
       ],
-      validation: (Rule) => Rule.required(),
+      validation: requiredValidation,
     }),
   ],
   preview: {

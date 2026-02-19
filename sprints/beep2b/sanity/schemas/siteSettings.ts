@@ -1,4 +1,5 @@
 import { defineField, defineType } from 'sanity'
+import { titleDescriptionPreview } from './fieldHelpers'
 
 export default defineType({
   name: 'siteSettings',
@@ -78,10 +79,5 @@ export default defineType({
       validation: (Rule) => Rule.uri({ scheme: ['http', 'https'] }),
     }),
   ],
-  preview: {
-    select: {
-      title: 'title',
-      subtitle: 'description',
-    },
-  },
+  preview: titleDescriptionPreview(),
 })

@@ -1,4 +1,5 @@
 import { defineField, defineType } from 'sanity'
+import { requiredValidation } from './fieldHelpers'
 
 // Section: Hero
 const heroSection = defineField({
@@ -10,7 +11,7 @@ const heroSection = defineField({
       name: 'heading',
       title: 'Heading',
       type: 'string',
-      validation: (Rule) => Rule.required(),
+      validation: requiredValidation,
     }),
     defineField({
       name: 'subheading',
@@ -66,7 +67,7 @@ const featureItemObject = {
       name: 'title',
       title: 'Title',
       type: 'string',
-      validation: (Rule) => Rule.required(),
+      validation: requiredValidation,
     }),
     defineField({
       name: 'description',
@@ -211,7 +212,7 @@ const ctaSection = defineField({
       name: 'heading',
       title: 'Heading',
       type: 'string',
-      validation: (Rule) => Rule.required(),
+      validation: requiredValidation,
     }),
     defineField({
       name: 'description',
@@ -259,7 +260,7 @@ export default defineType({
         maxLength: 96,
       },
       description: 'Must match route (e.g., "home", "about", "services")',
-      validation: (Rule) => Rule.required(),
+      validation: requiredValidation,
     }),
     defineField({
       name: 'sections',
