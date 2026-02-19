@@ -32,7 +32,16 @@
       "Bash(git -C /e/Projects/telic-loop diff --stat)",
       "Bash(git -C /e/Projects/telic-loop diff --cached --stat)",
       "Bash(git -C /e/Projects/telic-loop diff src/telic_loop/config.py src/telic_loop/phases/exit_gate.py src/telic_loop/phases/process_monitor.py src/telic_loop/state.py)",
-      "Bash(git -C /e/Projects/telic-loop status -sb)"
+      "Bash(git -C /e/Projects/telic-loop status -sb)",
+      "Bash(git -C /e/Projects/telic-loop diff -- src/)",
+      "Bash(git -C /e/Projects/telic-loop status -- src/)",
+      "Bash(git -C /e/Projects/telic-loop diff --name-only HEAD~1)",
+      "Bash(kill:*)",
+      "Bash(git -C /e/Projects/telic-loop diff -- src/telic_loop/tools.py src/telic_loop/phases/code_quality.py)",
+      "Bash(git -C /e/Projects/telic-loop diff -- src/telic_loop/tools.py)",
+      "Bash(git -C /e/Projects/telic-loop log --oneline -5 -- src/telic_loop/tools.py)",
+      "Bash(wmic process where \"processid=179204\" get commandline:*)",
+      "Bash(wmic process:*)"
     ]
   }
 }

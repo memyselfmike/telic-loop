@@ -878,6 +878,8 @@ def handle_task_complete(input_data: dict, state: LoopState, **_: Any) -> str:
     task = state.tasks.get(task_id)
     if not task:
         return f"Task {task_id} not found"
+    if task.status == "descoped":
+        return f"Task {task_id} is descoped — cannot mark complete"
     task.status = "done"
     task.completed_at = datetime.now().isoformat()
     # Normalize file paths: ensure sprint dir prefix is present

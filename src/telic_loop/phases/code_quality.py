@@ -683,6 +683,16 @@ def _upsert_task(
         if existing.status == "descoped":
             return 0  # Respect manual descope decisions
         if existing.status == "done":
+            if existing.retry_count >= 2:
+                # Task has been completed and reopened too many times —
+                # the underlying check may be a false positive. Auto-descope.
+                existing.status = "descoped"
+                existing.blocked_reason = (
+                    f"Auto-descoped: completed {existing.retry_count} times "
+                    f"but quality check keeps reopening"
+                )
+                print(f"    -> Auto-descoped {task_id} (retry_count={existing.retry_count})")
+                return 0
             existing.status = "pending"
             existing.retry_count += 1
             existing.description = reopen_description
