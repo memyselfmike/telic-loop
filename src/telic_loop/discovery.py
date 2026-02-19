@@ -731,7 +731,7 @@ def _research_vision_issues(
     issues_text = "\n".join(issue_lines)
 
     # Read vision for context
-    vision_text = config.vision_file.read_text() if config.vision_file.exists() else "(no vision file)"
+    vision_text = config.vision_file.read_text(encoding="utf-8") if config.vision_file.exists() else "(no vision file)"
 
     try:
         print("  Running RESEARCHER for vision issues...")
@@ -781,7 +781,7 @@ def _research_prd_rejection(
     issues_text = "\n".join(issue_lines)
 
     # Read PRD for context
-    prd_text = config.prd_file.read_text() if config.prd_file.exists() else "(no PRD file)"
+    prd_text = config.prd_file.read_text(encoding="utf-8") if config.prd_file.exists() else "(no PRD file)"
 
     try:
         print("  Running RESEARCHER for PRD rejection...")
@@ -1096,8 +1096,8 @@ def classify_vision_complexity(
     """
     from .claude import AgentRole
 
-    vision_text = config.vision_file.read_text() if config.vision_file.exists() else ""
-    prd_text = config.prd_file.read_text() if config.prd_file.exists() else ""
+    vision_text = config.vision_file.read_text(encoding="utf-8") if config.vision_file.exists() else ""
+    prd_text = config.prd_file.read_text(encoding="utf-8") if config.prd_file.exists() else ""
 
     # Quick heuristic: if both files are small, skip LLM classification
     combined_length = len(vision_text) + len(prd_text)
@@ -1154,8 +1154,8 @@ def decompose_into_epics(
     """
     from .claude import AgentRole, load_prompt
 
-    vision_text = config.vision_file.read_text() if config.vision_file.exists() else ""
-    prd_text = config.prd_file.read_text() if config.prd_file.exists() else ""
+    vision_text = config.vision_file.read_text(encoding="utf-8") if config.vision_file.exists() else ""
+    prd_text = config.prd_file.read_text(encoding="utf-8") if config.prd_file.exists() else ""
 
     session = claude.session(AgentRole.REASONER)
     prompt = load_prompt("epic_decompose",

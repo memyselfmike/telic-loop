@@ -719,7 +719,7 @@ def _exec_write_file(input_data: dict) -> str:
     path = Path(input_data["path"])
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(input_data["content"])
+        path.write_text(input_data["content"], encoding="utf-8")
         return f"[Wrote {len(input_data['content'])} chars to {path}]"
     except Exception as e:
         return f"[ERROR: {e}]"
@@ -730,7 +730,7 @@ def _exec_edit_file(input_data: dict) -> str:
     if not path.exists():
         return f"[ERROR: File not found: {path}]"
     try:
-        content = path.read_text()
+        content = path.read_text(encoding="utf-8")
         old = input_data["old_string"]
         new = input_data["new_string"]
         count = content.count(old)
@@ -739,7 +739,7 @@ def _exec_edit_file(input_data: dict) -> str:
         if count > 1:
             return f"[ERROR: old_string found {count} times in {path} — must be unique]"
         content = content.replace(old, new, 1)
-        path.write_text(content)
+        path.write_text(content, encoding="utf-8")
         return f"[Edited {path}]"
     except Exception as e:
         return f"[ERROR: {e}]"

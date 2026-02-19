@@ -54,7 +54,7 @@ def do_research(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
         FAILURES=json.dumps(failure_context, indent=2),
         SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),
         VISION_SUMMARY=(
-            config.vision_file.read_text()[:2000]
+            config.vision_file.read_text(encoding="utf-8")[:2000]
             if config.vision_file.exists() else ""
         ),
     )

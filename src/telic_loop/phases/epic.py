@@ -178,8 +178,8 @@ def _refine_epic_detail(
         SPRINT=config.sprint,
         SPRINT_DIR=str(config.sprint_dir),
         SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),
-        VISION=config.vision_file.read_text() if config.vision_file.exists() else "",
-        PRD=config.prd_file.read_text() if config.prd_file.exists() else "",
+        VISION=config.vision_file.read_text(encoding="utf-8") if config.vision_file.exists() else "",
+        PRD=config.prd_file.read_text(encoding="utf-8") if config.prd_file.exists() else "",
         PLAN="",
     )
     session.send(

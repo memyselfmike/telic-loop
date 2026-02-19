@@ -77,7 +77,7 @@ def load_prompt(name: str, **kwargs: str) -> str:
     Uses string replacement instead of str.format() to avoid conflicts
     with literal braces in JSON examples within prompt templates.
     """
-    template = (Path(__file__).parent / "prompts" / f"{name}.md").read_text()
+    template = (Path(__file__).parent / "prompts" / f"{name}.md").read_text(encoding="utf-8")
     for key, value in kwargs.items():
         template = template.replace(f"{{{key}}}", str(value))
     return template

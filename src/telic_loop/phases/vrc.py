@@ -108,7 +108,7 @@ def run_vrc(
         SPRINT_DIR=str(config.sprint_dir),
         IS_FULL_VRC="FULL" if is_full_vrc else "QUICK",
         ITERATION=state.iteration,
-        VISION=config.vision_file.read_text() if config.vision_file.exists() else "",
+        VISION=config.vision_file.read_text(encoding="utf-8") if config.vision_file.exists() else "",
         PLAN=render_plan_markdown(state),
         TASK_SUMMARY=build_task_summary(state),
         PREVIOUS_VRC=format_latest_vrc(state),

@@ -355,7 +355,7 @@ def _acquire_lock(lock_path: Path) -> bool:
     except FileExistsError:
         # Check if the PID in the lock file is still running
         try:
-            pid = int(lock_path.read_text().strip())
+            pid = int(lock_path.read_text(encoding="utf-8").strip())
             if pid == os.getpid():
                 # We hold this lock (e.g. from a parent frame) but refcount
                 # wasn't tracked (shouldn't happen, but be safe).
@@ -406,7 +406,7 @@ def _recover_interrupted_rollback(config: LoopConfig, state: LoopState) -> None:
 
     print("  WARNING: Recovering from interrupted rollback...")
     try:
-        wal_data = json.loads(wal_path.read_text())
+        wal_data = json.loads(wal_path.read_text(encoding="utf-8"))
         if wal_data.get("status") == "started":
             import subprocess
             # Complete the interrupted reset

@@ -62,7 +62,7 @@ def maybe_run_plan_health_check(
     prompt = load_prompt("plan_health_check",
         SPRINT=config.sprint,
         SPRINT_DIR=str(config.sprint_dir),
-        PRD=config.prd_file.read_text() if config.prd_file.exists() else "",
+        PRD=config.prd_file.read_text(encoding="utf-8") if config.prd_file.exists() else "",
         PLAN=render_plan_markdown(state),
         EXISTING_TASKS=existing_summary,
         NEW_TASKS=delta_summary,

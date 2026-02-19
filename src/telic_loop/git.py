@@ -122,7 +122,7 @@ def execute_rollback(
         "iteration": state.iteration,
     }
     wal_path.parent.mkdir(parents=True, exist_ok=True)
-    wal_path.write_text(json.dumps(wal_data, indent=2))
+    wal_path.write_text(json.dumps(wal_data, indent=2), encoding="utf-8")
 
     # 1. Git reset
     subprocess.run(["git", "reset", "--hard", checkpoint.commit_hash], check=True)
@@ -195,11 +195,11 @@ def ensure_gitignore(sprint_dir: Path) -> None:
     ]
     existing = set()
     if gitignore.exists():
-        existing = set(gitignore.read_text().splitlines())
+        existing = set(gitignore.read_text(encoding="utf-8").splitlines())
 
     new_patterns = [p for p in patterns if p not in existing]
     if new_patterns:
-        with open(gitignore, "a") as f:
+        with open(gitignore, "a", encoding="utf-8") as f:
             for p in new_patterns:
                 f.write(f"\n{p}")
 

@@ -408,13 +408,13 @@ class LoopState:
 
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp_path = path.with_suffix(".json.tmp")
-        tmp_path.write_text(json.dumps(data, indent=2, default=_serialize))
+        tmp_path.write_text(json.dumps(data, indent=2, default=_serialize), encoding="utf-8")
         tmp_path.replace(path)  # atomic on POSIX; near-atomic on Windows NTFS
 
     @classmethod
     def load(cls, path: Path) -> LoopState:
         from dacite import Config, from_dict
-        data = json.loads(path.read_text())
+        data = json.loads(path.read_text(encoding="utf-8"))
         # Normalize VRC gaps: agents sometimes report strings instead of dicts
         for vrc in data.get("vrc_history", []):
             gaps = vrc.get("gaps", [])

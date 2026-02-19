@@ -24,9 +24,9 @@ def do_generate_qc(config: LoopConfig, state: LoopState, claude: Claude) -> bool
     prompt = load_prompt("generate_verifications",
         SPRINT=config.sprint,
         SPRINT_DIR=str(config.sprint_dir),
-        PLAN=config.plan_file.read_text() if config.plan_file.exists() else "",
-        PRD=config.prd_file.read_text() if config.prd_file.exists() else "",
-        VISION=config.vision_file.read_text() if config.vision_file.exists() else "",
+        PLAN=config.plan_file.read_text(encoding="utf-8") if config.plan_file.exists() else "",
+        PRD=config.prd_file.read_text(encoding="utf-8") if config.prd_file.exists() else "",
+        VISION=config.vision_file.read_text(encoding="utf-8") if config.vision_file.exists() else "",
         VERIFICATION_STRATEGY=json.dumps(state.context.verification_strategy, indent=2),
         SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),
     )
@@ -153,7 +153,7 @@ def do_fix(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
                 "verification_id": v.verification_id,
                 "last_error": v.last_error,
                 "attempt_history": v.attempt_history,
-                "script": Path(v.script_path).read_text() if v.script_path else "",
+                "script": Path(v.script_path).read_text(encoding="utf-8") if v.script_path else "",
             }
             for v in affected
         ]
@@ -206,7 +206,7 @@ def do_fix(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
 def _parse_requires(script: Path) -> list[str]:
     """Parse '# requires: category1, category2' from verification script header."""
     try:
-        first_line = script.read_text().split("\n", 1)[0]
+        first_line = script.read_text(encoding="utf-8").split("\n", 1)[0]
     except Exception:
         return []
     if first_line.startswith("# requires:"):
