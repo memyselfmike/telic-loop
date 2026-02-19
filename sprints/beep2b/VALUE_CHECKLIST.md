@@ -1,12 +1,12 @@
 # Value Checklist: beep2b
-Generated: 2026-02-19T08:47:50.869243
+Generated: 2026-02-19T08:55:01.703306
 
 ## VRC Status
-- Value Score: 100%
-- Verified: 8/8
+- Value Score: 29%
+- Verified: 2/7
 - Blocked: 0
-- Recommendation: SHIP_READY
-- Summary: Fallback VRC: carried forward from iteration 36 (100%)
+- Recommendation: CONTINUE
+- Summary: Fallback VRC: carried forward from iteration 40 (29%)
 
 ## Tasks
 - [x] **1.1**: Verify Astro project configuration: astro.config.mjs has React integration and Tailwind v4 via @tailwindcss/vite plugin, tsconfig.json extends astro/tsconfigs/strict with jsx:react-jsx, package.json has dev/build/preview scripts. Confirm npm run dev starts on port 4321 and npm run build produces dist/ with zero errors. This is brownfield verification -- all config files already exist.
@@ -19,7 +19,7 @@ Generated: 2026-02-19T08:47:50.869243
 - [x] **1.8**: Verify blog listing page (blog/[...page].astro) with placeholder content: BlogCard.astro component showing image area, title, date, category badges, excerpt. Responsive card grid (1 col mobile, 2 col tablet, 3 col desktop). Pagination via paginate() with prev/next links. Category filter nav with links to /blog/category/[slug]. Confirm no conflicting blog/index.astro exists.
 - [x] **2.1**: Create Sanity Studio project in sanity/ directory. Set up sanity.config.ts with project ID and dataset. Note: Sanity Studio only exposes env vars prefixed SANITY_STUDIO_ to browser code -- either hardcode project ID in config or use SANITY_STUDIO_PROJECT_ID. Create sanity.cli.ts. Add package.json with sanity and @sanity/vision dependencies. Configure npm scripts for sanity dev (port 3333). Use defineConfig from sanity, defineType/defineField for schema API. Verify npx sanity dev launches Studio UI.
 - [x] **2.2**: Create 4 Sanity TypeScript schemas in sanity/schemas/: post.ts (title, slug, author ref, publishedAt, categories refs, featuredImage with alt text, excerpt max 200 chars, body as Portable Text), author.ts (name, slug, image, bio), category.ts (title, slug, description), page.ts (title, slug, sections array with hero/features/testimonials/textBlock/cta object types per PRD 2.4). Create schemas/index.ts registering these 4 schemas. Task 2.2b handles the remaining 3 schemas (testimonial, siteSettings, navigation).
-- [ ] **2.2b**: Create 3 remaining Sanity schemas: testimonial.ts (name required, company optional, role optional, quote required, image optional), siteSettings.ts (title, description, logo, socialLinks object with linkedin/twitter/facebook string fields, footerText, ctaDefaultLink), navigation.ts (items array where each item has label string, href string, optional children array of same shape). Update schemas/index.ts to register all 7 schemas (4 from task 2.2 + these 3). Verify Studio sidebar shows all 7 document types.
+- [x] **2.2b**: Create 3 remaining Sanity schemas: testimonial.ts (name required, company optional, role optional, quote required, image optional), siteSettings.ts (title, description, logo, socialLinks object with linkedin/twitter/facebook string fields, footerText, ctaDefaultLink), navigation.ts (items array where each item has label string, href string, optional children array of same shape). Update schemas/index.ts to register all 7 schemas (4 from task 2.2 + these 3). Verify Studio sidebar shows all 7 document types.
 - [ ] **2.3**: Create Sanity client library at src/lib/sanity.ts. Configure @sanity/client with project ID, dataset, API version, and useCdn:true from env vars. Create GROQ query helpers: getAllPosts (paginated), getPostBySlug, getPostsByCategory, getAllCategories, getPageBySlug, getSiteSettings, getNavigation. Add @sanity/image-url builder for image URLs.
 - [ ] **2.4**: Wire blog listing page (blog/[...page].astro) to Sanity. Replace placeholder data with real Sanity posts via getAllPosts GROQ query in getStaticPaths. Use paginate() with pageSize:10 to generate /blog, /blog/2, /blog/3 etc. Render BlogCard.astro for each post with real data (featured image via image-url, title, publishedAt formatted date, category Badges, excerpt). Prev/next links from page.url.prev/next.
 - [ ] **2.5**: Create individual blog post page at blog/[slug].astro (named param, NOT rest param -- rest param [...slug] would conflict with [...page] pagination route). Use getStaticPaths to generate a page per Sanity post slug. Fetch full post data including body (Portable Text), author, categories. Render Portable Text body using astro-portabletext. Display featured image, title, author name, date, category badges. Style for long-form reading with proper typography.
@@ -43,5 +43,7 @@ Generated: 2026-02-19T08:47:50.869243
 - [ ] **DEDUP-aad4ccf4-author-post**: Extract duplicate code block into shared module. Found in: sanity/schemas/author.ts, sanity/schemas/post.ts, sanity/schemas/siteSettings.ts, sanity/schemas/testimonial.ts. Block starts with: options: {
 - [ ] **DEDUP-69fedb44-author-post**: Extract duplicate code block into shared module. Found in: sanity/schemas/author.ts, sanity/schemas/post.ts, sanity/schemas/testimonial.ts. Block starts with: hotspot: true,
 - [ ] **DEDUP-402067d2-category-siteSettings**: Extract duplicate code block into shared module. Found in: sanity/schemas/category.ts, sanity/schemas/siteSettings.ts. Block starts with: }),
+- [ ] **DEDUP-9aa6fa7b-page-post**: Extract duplicate code block into shared module. Found in: sanity/schemas/page.ts, sanity/schemas/post.ts. Block starts with: { title: 'Quote', value: 'blockquote' },
+- [ ] **DEDUP-aad4ccf4-siteSettings-testimonial**: Extract duplicate code block into shared module. Found in: sanity/schemas/siteSettings.ts, sanity/schemas/testimonial.ts. Block starts with: options: {
 
 ## Verifications
