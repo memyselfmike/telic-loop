@@ -374,8 +374,8 @@ class LoopState:
 
     def add_task(self, task: TaskState) -> None:
         existing = self.tasks.get(task.task_id)
-        if existing and existing.status in ("done", "in_progress"):
-            # Don't overwrite completed or in-progress tasks
+        if existing and existing.status in ("done", "in_progress", "descoped"):
+            # Don't overwrite completed, in-progress, or descoped tasks
             return
         self.tasks[task.task_id] = task
 

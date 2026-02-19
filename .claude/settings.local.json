@@ -28,7 +28,11 @@
       "Bash(find:*)",
       "Bash(py:*)",
       "WebFetch(domain:beep2b.com)",
-      "Bash(ps:*)"
+      "Bash(ps:*)",
+      "Bash(git -C /e/Projects/telic-loop diff --stat)",
+      "Bash(git -C /e/Projects/telic-loop diff --cached --stat)",
+      "Bash(git -C /e/Projects/telic-loop diff src/telic_loop/config.py src/telic_loop/phases/exit_gate.py src/telic_loop/phases/process_monitor.py src/telic_loop/state.py)",
+      "Bash(git -C /e/Projects/telic-loop status -sb)"
     ]
   }
 }
