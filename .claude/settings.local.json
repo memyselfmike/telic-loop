@@ -27,7 +27,8 @@
       "Bash(done)",
       "Bash(find:*)",
       "Bash(py:*)",
-      "WebFetch(domain:beep2b.com)"
+      "WebFetch(domain:beep2b.com)",
+      "Bash(ps:*)"
     ]
   }
 }
