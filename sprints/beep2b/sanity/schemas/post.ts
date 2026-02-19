@@ -1,4 +1,5 @@
 import { defineField, defineType } from 'sanity'
+import { altTextField } from './fieldHelpers'
 
 export default defineType({
   name: 'post',
@@ -55,14 +56,7 @@ export default defineType({
       options: {
         hotspot: true,
       },
-      fields: [
-        defineField({
-          name: 'alt',
-          title: 'Alt Text',
-          type: 'string',
-          description: 'Describe the image for accessibility and SEO',
-        }),
-      ],
+      fields: [altTextField()],
     }),
     defineField({
       name: 'excerpt',
@@ -124,12 +118,7 @@ export default defineType({
           type: 'image',
           options: { hotspot: true },
           fields: [
-            {
-              name: 'alt',
-              type: 'string',
-              title: 'Alt Text',
-              description: 'Describe the image for accessibility and SEO',
-            },
+            altTextField(),
             {
               name: 'caption',
               type: 'string',
