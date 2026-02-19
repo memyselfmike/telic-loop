@@ -44,6 +44,32 @@ export const slugField = (source: string, description?: string) =>
   })
 
 /**
+ * Standard image field with hotspot and alt text.
+ * Use this helper for consistent image field configuration across schemas.
+ * @param name - Field name (e.g., 'image', 'logo', 'featuredImage')
+ * @param title - Field title displayed in Sanity Studio
+ * @param description - Field description/help text
+ * @param altDescription - Optional custom description for the alt text field
+ * @returns Complete image field definition with hotspot and alt text
+ */
+export const imageFieldWithAlt = (
+  name: string,
+  title: string,
+  description?: string,
+  altDescription?: string
+) =>
+  defineField({
+    name,
+    title,
+    type: 'image',
+    description,
+    options: {
+      hotspot: true,
+    },
+    fields: [altTextField(altDescription)],
+  })
+
+/**
  * Standard preview configuration for documents with title and description.
  * Use this helper for consistent preview display across schemas.
  * @returns Preview object with title and description selection

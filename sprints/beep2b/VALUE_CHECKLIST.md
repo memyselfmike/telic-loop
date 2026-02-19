@@ -1,12 +1,12 @@
 # Value Checklist: beep2b
-Generated: 2026-02-19T09:29:40.391296
+Generated: 2026-02-19T09:35:54.585594
 
 ## VRC Status
 - Value Score: 100%
 - Verified: 7/7
 - Blocked: 0
 - Recommendation: SHIP_READY
-- Summary: FULL VRC at iteration 45: Epic 2 (Sanity CMS Integration with Working Blog) is fully delivered. All 7 deliverables independently verified at EXISTS/WORKS/VALUE levels. (1) Sanity Studio: sanity/ directory complete with sanity.config.ts reading SANITY_STUDIO_PROJECT_ID from env, sanity.cli.ts, package.json with sanity v5.10.0 and @sanity/vision, and all 7 TypeScript schemas (post, author, category, page, testimonial, siteSettings, navigation) registered in schemas/index.ts. Post schema has all 8 PRD-specified fields including Portable Text body with H2-H4, lists, blockquotes, link annotations, and image blocks. siteSettings has socialLinks object with linkedin/twitter/facebook. navigation has hierarchical items with children. (2) Sanity client library: src/lib/sanity.ts exports configured @sanity/client with env vars, 9 GROQ query helpers (getAllPosts paginated, getPostBySlug, getPostsByCategory, getAllCategories, getPageBySlug, getSiteSettings, getNavigation, getPostCount, getRelatedPosts), @sanity/image-url builder, and comprehensive TypeScript types. All query functions guard against missing SANITY_PROJECT_ID returning empty/null safely. (3) Blog listing: blog/[...page].astro uses getStaticPaths with paginate() at pageSize:10, fetches from Sanity, renders responsive BlogCard grid (1/2/3 columns), has CategoryFilter React island, and shows friendly empty state when no posts. (4) Blog post page: blog/[slug].astro (named param, no route conflict with pagination) generates from Sanity slugs, renders Portable Text via astro-portabletext, displays featured image, title, author with bio, date, category badges, related posts section, and handles 404 gracefully. (5) Category filter pages: blog/category/[category].astro generates per-category routes, filters posts via GROQ, shows category title and description, has horizontal category nav bar, and handles empty categories. (6) BlogCard.astro: shows featured image with fallback placeholder, title, formatted date, up to 3 category badges with links, truncated excerpt, and read more link. (7) Empty-state handling: npm run build confirmed exit 0 with empty SANITY_PROJECT_ID in 4.78s producing 8 HTML pages -- all CMS-dependent pages log warnings and show placeholder content instead of crashing. All Epic 2 completion criteria met.
+- Summary: Fallback VRC: carried forward from iteration 46 (100%)
 
 ## Tasks
 - [x] **1.1**: Verify Astro project configuration: astro.config.mjs has React integration and Tailwind v4 via @tailwindcss/vite plugin, tsconfig.json extends astro/tsconfigs/strict with jsx:react-jsx, package.json has dev/build/preview scripts. Confirm npm run dev starts on port 4321 and npm run build produces dist/ with zero errors. This is brownfield verification -- all config files already exist.
@@ -39,9 +39,10 @@ Generated: 2026-02-19T09:29:40.391296
 - [x] **SPLIT-FN-sanity-schemas-page-ts**: Split long functions in sanity/schemas/page.ts: featuresSection(53L), textBlockSection(61L). Extract helper functions to keep each function under 50 lines.
 - [x] **VRC-40-gap-1**: Task 2.5 already exists
 - [x] **DEDUP-6494f0e7-author-post**: Extract duplicate code block into shared module. Found in: sanity/schemas/author.ts, sanity/schemas/post.ts. Block starts with: type: 'string',
-- [ ] **DEDUP-544d65da-category-page**: Extract duplicate code block into shared module. Found in: sanity/schemas/category.ts, sanity/schemas/page.ts, sanity/schemas/post.ts. Block starts with: validation: (Rule) => Rule.required(),
-- [ ] **DEDUP-402067d2-category-siteSettings**: Extract duplicate code block into shared module. Found in: sanity/schemas/category.ts, sanity/schemas/siteSettings.ts. Block starts with: }),
+- [x] **DEDUP-544d65da-category-page**: Extract duplicate code block into shared module. Found in: sanity/schemas/category.ts, sanity/schemas/page.ts, sanity/schemas/post.ts. Block starts with: validation: (Rule) => Rule.required(),
+- [x] **DEDUP-402067d2-category-siteSettings**: Extract duplicate code block into shared module. Found in: sanity/schemas/category.ts, sanity/schemas/siteSettings.ts. Block starts with: }),
 - [ ] **DEDUP-9aa6fa7b-page-post**: Extract duplicate code block into shared module. Found in: sanity/schemas/page.ts, sanity/schemas/post.ts. Block starts with: { title: 'Quote', value: 'blockquote' },
 - [ ] **DEDUP-aad4ccf4-siteSettings-testimonial**: Extract duplicate code block into shared module. Found in: sanity/schemas/siteSettings.ts, sanity/schemas/testimonial.ts. Block starts with: options: {
+- [ ] **DEDUP-ccbf2070-category-page**: Extract duplicate code block into shared module. Found in: sanity/schemas/category.ts, sanity/schemas/page.ts. Block starts with: }),
 
 ## Verifications

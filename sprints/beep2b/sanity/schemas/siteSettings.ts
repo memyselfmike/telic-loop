@@ -1,5 +1,5 @@
 import { defineField, defineType } from 'sanity'
-import { titleDescriptionPreview } from './fieldHelpers'
+import { imageFieldWithAlt, titleDescriptionPreview } from './fieldHelpers'
 
 export default defineType({
   name: 'siteSettings',
@@ -21,23 +21,7 @@ export default defineType({
       description: 'Default meta description',
       validation: (Rule) => Rule.required(),
     }),
-    defineField({
-      name: 'logo',
-      title: 'Logo',
-      type: 'image',
-      description: 'Site logo',
-      options: {
-        hotspot: true,
-      },
-      fields: [
-        defineField({
-          name: 'alt',
-          title: 'Alt Text',
-          type: 'string',
-          description: 'Describe the logo for accessibility',
-        }),
-      ],
-    }),
+    imageFieldWithAlt('logo', 'Logo', 'Site logo', 'Describe the logo for accessibility'),
     defineField({
       name: 'socialLinks',
       title: 'Social Links',

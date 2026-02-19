@@ -1,0 +1,156 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e4]:
+      - link "Beep2B — Home" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e6]: B2B
+        - generic [ref=e7]: Beep2B
+      - navigation "Main navigation" [ref=e8]:
+        - list [ref=e9]:
+          - listitem [ref=e10]:
+            - link "Home" [ref=e11] [cursor=pointer]:
+              - /url: /
+          - listitem [ref=e12]:
+            - link "How It Works" [ref=e13] [cursor=pointer]:
+              - /url: /how-it-works
+          - listitem [ref=e14]:
+            - link "Services" [ref=e15] [cursor=pointer]:
+              - /url: /services
+          - listitem [ref=e16]:
+            - link "About" [ref=e17] [cursor=pointer]:
+              - /url: /about
+          - listitem [ref=e18]:
+            - link "Blog" [ref=e19] [cursor=pointer]:
+              - /url: /blog
+          - listitem [ref=e20]:
+            - link "Contact" [ref=e21] [cursor=pointer]:
+              - /url: /contact
+      - link "Get Started" [ref=e22] [cursor=pointer]:
+        - /url: /contact
+  - main [ref=e23]:
+    - generic [ref=e25]:
+      - paragraph [ref=e26]: Our Story
+      - heading "About Beep2B" [level=1] [ref=e27]
+      - paragraph [ref=e28]: Founded in 2014, Beep2B has helped hundreds of B2B businesses across 22 countries build predictable lead generation systems on LinkedIn.
+    - generic [ref=e31]:
+      - generic [ref=e32]:
+        - heading "Why We Built Beep2B" [level=2] [ref=e33]
+        - paragraph [ref=e34]: LinkedIn is the most powerful B2B platform in the world — but most businesses use it wrong. They spam connection requests, blast promotional messages, and then wonder why no one responds.
+        - paragraph [ref=e35]: "We started Beep2B in 2014 to change that. The BEEP methodology was born from a simple insight: the businesses getting results on LinkedIn weren't the loudest ones — they were the most systematic, most helpful, and most relationship-focused."
+        - paragraph [ref=e36]: Today, we serve B2B entrepreneurs, marketers, and sales professionals across 22 countries. Our clients consistently generate qualified leads because they lead with value, not volume.
+      - generic [ref=e37]:
+        - generic [ref=e38]:
+          - generic [ref=e39]: "2014"
+          - generic [ref=e40]: Founded
+        - generic [ref=e41]:
+          - generic [ref=e42]: "22"
+          - generic [ref=e43]: Countries
+        - generic [ref=e44]:
+          - generic [ref=e45]: 500+
+          - generic [ref=e46]: Clients Served
+        - generic [ref=e47]:
+          - generic [ref=e48]: "4"
+          - generic [ref=e49]: BEEP Steps
+    - generic [ref=e51]:
+      - heading "Our Mission" [level=2] [ref=e52]
+      - blockquote [ref=e53]: "\"To make systematic B2B lead generation on LinkedIn accessible to every entrepreneur and marketer — regardless of their following, budget, or technical background.\""
+    - generic [ref=e55]:
+      - heading "How We Work" [level=2] [ref=e56]
+      - generic [ref=e57]:
+        - generic [ref=e58]:
+          - generic [ref=e59]: 🤝
+          - heading "Relationships Over Reach" [level=3] [ref=e60]
+          - paragraph [ref=e61]: We measure success by qualified conversations, not connection count. Meaningful relationships convert; vanity metrics don't.
+        - generic [ref=e62]:
+          - generic [ref=e63]: ⚙️
+          - heading "Systems Over Hustle" [level=3] [ref=e64]
+          - paragraph [ref=e65]: Consistent results come from repeatable systems, not unpredictable effort. BEEP is a framework you can rely on month after month.
+        - generic [ref=e66]:
+          - generic [ref=e67]: 🔍
+          - heading "Transparency Always" [level=3] [ref=e68]
+          - paragraph [ref=e69]: We share exactly what we do and why. No black boxes, no mystery. If you want to learn and own the process, we'll teach you.
+        - generic [ref=e70]:
+          - generic [ref=e71]: 🚀
+          - heading "Built by Marketers, for Marketers" [level=3] [ref=e72]
+          - paragraph [ref=e73]: Our team are practitioners who generate leads for real businesses — including our own. We only recommend what we use ourselves.
+    - generic [ref=e75]:
+      - heading "Our Journey" [level=2] [ref=e76]
+      - generic [ref=e79]:
+        - generic [ref=e80]:
+          - generic [ref=e81]: "2014"
+          - generic [ref=e82]:
+            - generic [ref=e83]: "2014"
+            - paragraph [ref=e84]: Beep2B founded with a mission to make LinkedIn lead generation systematic and accessible for B2B businesses.
+        - generic [ref=e85]:
+          - generic [ref=e86]: "2016"
+          - generic [ref=e87]:
+            - generic [ref=e88]: "2016"
+            - paragraph [ref=e89]: The BEEP methodology formalised after testing across 50+ client campaigns.
+        - generic [ref=e90]:
+          - generic [ref=e91]: "2018"
+          - generic [ref=e92]:
+            - generic [ref=e93]: "2018"
+            - paragraph [ref=e94]: Expanded internationally — clients across Europe, North America, and Australasia.
+        - generic [ref=e95]:
+          - generic [ref=e96]: "2022"
+          - generic [ref=e97]:
+            - generic [ref=e98]: "2022"
+            - paragraph [ref=e99]: Community grows to members in 22 countries, cementing BEEP as a globally proven system.
+        - generic [ref=e100]:
+          - generic [ref=e101]: To
+          - generic [ref=e102]:
+            - generic [ref=e103]: Today
+            - paragraph [ref=e104]: Hundreds of B2B entrepreneurs and marketers generate qualified LinkedIn leads with Beep2B every month.
+    - generic [ref=e106]:
+      - heading "Join Hundreds of B2B Businesses" [level=2] [ref=e107]
+      - paragraph [ref=e108]: Take the first step towards a predictable LinkedIn lead generation system. Book a no-obligation discovery call and let's talk about your goals.
+      - link "Book a Discovery Call" [ref=e109] [cursor=pointer]:
+        - /url: /contact
+  - contentinfo [ref=e110]:
+    - generic [ref=e112]:
+      - generic [ref=e113]:
+        - link "Beep2B — Home" [ref=e114] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e115]: B2B
+          - generic [ref=e116]: Beep2B
+        - paragraph [ref=e117]: LinkedIn lead generation for B2B entrepreneurs and marketers. The BEEP methodology delivers qualified prospects — not vanity metrics.
+        - link "Follow Beep2B on LinkedIn" [ref=e119] [cursor=pointer]:
+          - /url: https://linkedin.com
+          - img [ref=e120]
+      - generic [ref=e122]:
+        - heading "Company" [level=3] [ref=e123]
+        - list [ref=e124]:
+          - listitem [ref=e125]:
+            - link "About Us" [ref=e126] [cursor=pointer]:
+              - /url: /about
+          - listitem [ref=e127]:
+            - link "How It Works" [ref=e128] [cursor=pointer]:
+              - /url: /how-it-works
+          - listitem [ref=e129]:
+            - link "Services" [ref=e130] [cursor=pointer]:
+              - /url: /services
+          - listitem [ref=e131]:
+            - link "Contact" [ref=e132] [cursor=pointer]:
+              - /url: /contact
+      - generic [ref=e133]:
+        - heading "Resources" [level=3] [ref=e134]
+        - list [ref=e135]:
+          - listitem [ref=e136]:
+            - link "Blog" [ref=e137] [cursor=pointer]:
+              - /url: /blog
+      - generic [ref=e138]:
+        - heading "Legal" [level=3] [ref=e139]
+        - list [ref=e140]:
+          - listitem [ref=e141]:
+            - link "Privacy Policy" [ref=e142] [cursor=pointer]:
+              - /url: /privacy
+          - listitem [ref=e143]:
+            - link "Terms of Service" [ref=e144] [cursor=pointer]:
+              - /url: /terms
+    - generic [ref=e146]:
+      - paragraph [ref=e147]: © 2026 Beep2B. All rights reserved.
+      - paragraph [ref=e148]: Built with the BEEP Methodology
+```

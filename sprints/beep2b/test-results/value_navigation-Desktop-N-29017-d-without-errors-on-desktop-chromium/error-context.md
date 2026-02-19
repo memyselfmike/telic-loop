@@ -1,0 +1,193 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e4]:
+      - link "Beep2B — Home" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e6]: B2B
+        - generic [ref=e7]: Beep2B
+      - navigation "Main navigation" [ref=e8]:
+        - list [ref=e9]:
+          - listitem [ref=e10]:
+            - link "Home" [ref=e11] [cursor=pointer]:
+              - /url: /
+          - listitem [ref=e12]:
+            - link "How It Works" [ref=e13] [cursor=pointer]:
+              - /url: /how-it-works
+          - listitem [ref=e14]:
+            - link "Services" [ref=e15] [cursor=pointer]:
+              - /url: /services
+          - listitem [ref=e16]:
+            - link "About" [ref=e17] [cursor=pointer]:
+              - /url: /about
+          - listitem [ref=e18]:
+            - link "Blog" [ref=e19] [cursor=pointer]:
+              - /url: /blog
+          - listitem [ref=e20]:
+            - link "Contact" [ref=e21] [cursor=pointer]:
+              - /url: /contact
+      - link "Get Started" [ref=e22] [cursor=pointer]:
+        - /url: /contact
+  - main [ref=e23]:
+    - generic [ref=e26]:
+      - paragraph [ref=e27]: LinkedIn Lead Generation for B2B
+      - heading "Consistent B2B Leads From LinkedIn" [level=1] [ref=e28]:
+        - text: Consistent B2B Leads
+        - text: From LinkedIn
+      - paragraph [ref=e29]: Stop guessing. The BEEP methodology gives you a repeatable system for generating qualified leads on LinkedIn — without cold calls, spam, or unpredictable results.
+      - generic [ref=e30]:
+        - link "Book a Discovery Call" [ref=e31] [cursor=pointer]:
+          - /url: /contact
+        - link "See How It Works" [ref=e32] [cursor=pointer]:
+          - /url: /how-it-works
+      - generic [ref=e33]:
+        - generic [ref=e34]:
+          - img [ref=e35]
+          - text: 500+ clients served
+        - generic [ref=e37]:
+          - img [ref=e38]
+          - text: 22 countries
+        - generic [ref=e40]:
+          - img [ref=e41]
+          - text: Est. 2014
+    - generic [ref=e44]:
+      - generic [ref=e45]:
+        - heading "Everything You Need to Generate B2B Leads on LinkedIn" [level=2] [ref=e46]
+        - paragraph [ref=e47]: Beep2B combines strategy, execution, and training to deliver qualified prospects into your pipeline — consistently.
+      - generic [ref=e48]:
+        - generic [ref=e49]:
+          - generic [ref=e50]: 🎯
+          - heading "Precision Targeting" [level=3] [ref=e51]
+          - paragraph [ref=e52]: We identify and connect with prospects who match your exact ideal customer profile — no broad blasting, no wasted time.
+        - generic [ref=e53]:
+          - generic [ref=e54]: 🤝
+          - heading "Relationship-First" [level=3] [ref=e55]
+          - paragraph [ref=e56]: BEEP builds trust before pitching. When you promote, you're talking to a warm audience that already sees your value.
+        - generic [ref=e57]:
+          - generic [ref=e58]: 📈
+          - heading "Predictable Pipeline" [level=3] [ref=e59]
+          - paragraph [ref=e60]: Systematic outreach means consistent results month after month — not spikes and droughts driven by random effort.
+        - generic [ref=e61]:
+          - generic [ref=e62]: ✍️
+          - heading "Thought Leadership" [level=3] [ref=e63]
+          - paragraph [ref=e64]: Position yourself as the go-to authority in your niche with expert content that attracts inbound enquiries.
+        - generic [ref=e65]:
+          - generic [ref=e66]: 📊
+          - heading "Transparent Reporting" [level=3] [ref=e67]
+          - paragraph [ref=e68]: Monthly performance reports show exactly what activity was done, what results it produced, and what's planned next.
+        - generic [ref=e69]:
+          - generic [ref=e70]: 🎓
+          - heading "Training and Playbooks" [level=3] [ref=e71]
+          - paragraph [ref=e72]: Prefer to run it in-house? We train your team with the exact same systems we use for managed clients.
+    - generic [ref=e74]:
+      - generic [ref=e75]:
+        - paragraph [ref=e76]: Our Methodology
+        - heading "The BEEP Method" [level=2] [ref=e77]
+        - paragraph [ref=e78]: Four steps. One system. Repeatable results. BEEP works because it mirrors how real buying decisions happen.
+      - generic [ref=e79]:
+        - generic [ref=e80]:
+          - generic [ref=e81]: B
+          - generic [ref=e82]: Step 01
+          - heading "Build" [level=3] [ref=e83]
+          - paragraph [ref=e84]: Grow your network with precision-targeted connections.
+        - generic [ref=e85]:
+          - generic [ref=e86]: E
+          - generic [ref=e87]: Step 02
+          - heading "Engage" [level=3] [ref=e88]
+          - paragraph [ref=e89]: Start authentic, goal-based conversations.
+        - generic [ref=e90]:
+          - generic [ref=e91]: E
+          - generic [ref=e92]: Step 03
+          - heading "Educate" [level=3] [ref=e93]
+          - paragraph [ref=e94]: Deliver valuable content that builds authority.
+        - generic [ref=e95]:
+          - generic [ref=e96]: P
+          - generic [ref=e97]: Step 04
+          - heading "Promote" [level=3] [ref=e98]
+          - paragraph [ref=e99]: Present offers to a warm, trusting audience.
+      - link "Learn the full BEEP methodology" [ref=e101] [cursor=pointer]:
+        - /url: /how-it-works
+        - text: Learn the full BEEP methodology
+        - img [ref=e102]
+    - generic [ref=e105]:
+      - generic [ref=e106]:
+        - heading "What Our Clients Say" [level=2] [ref=e107]
+        - paragraph [ref=e108]: Real results from real B2B businesses using the BEEP methodology.
+      - generic [ref=e109]:
+        - generic [ref=e110]:
+          - generic [ref=e111]: “
+          - paragraph [ref=e112]: Within 3 months of implementing BEEP, I was having 4 to 5 qualified discovery calls a week. Before, I was lucky to get one a month.
+          - generic [ref=e113]:
+            - generic [ref=e114]: S
+            - generic [ref=e115]:
+              - generic [ref=e116]: Sarah M.
+              - generic [ref=e117]: Founder, B2B SaaS · UK
+        - generic [ref=e118]:
+          - generic [ref=e119]: “
+          - paragraph [ref=e120]: The methodology is so systematic. I knew exactly what to do every day, and the results were predictable. That is rare in marketing.
+          - generic [ref=e121]:
+            - generic [ref=e122]: J
+            - generic [ref=e123]:
+              - generic [ref=e124]: James K.
+              - generic [ref=e125]: Sales Director · Australia
+        - generic [ref=e126]:
+          - generic [ref=e127]: “
+          - paragraph [ref=e128]: We trained our whole team. Within 6 weeks, 3 reps had LinkedIn as their top lead source. The ROI on the training was obvious.
+          - generic [ref=e129]:
+            - generic [ref=e130]: A
+            - generic [ref=e131]:
+              - generic [ref=e132]: Anja W.
+              - generic [ref=e133]: VP Marketing · Germany
+    - generic [ref=e135]:
+      - heading "Ready to Grow Your B2B Pipeline?" [level=2] [ref=e136]
+      - paragraph [ref=e137]: Book a free 30-minute discovery call. We'll review your current LinkedIn presence and show you exactly how BEEP would work for your business.
+      - link "Book Your Free Discovery Call" [ref=e138] [cursor=pointer]:
+        - /url: /contact
+      - paragraph [ref=e139]: No commitment. No pressure. Just an honest conversation.
+  - contentinfo [ref=e140]:
+    - generic [ref=e142]:
+      - generic [ref=e143]:
+        - link "Beep2B — Home" [ref=e144] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e145]: B2B
+          - generic [ref=e146]: Beep2B
+        - paragraph [ref=e147]: LinkedIn lead generation for B2B entrepreneurs and marketers. The BEEP methodology delivers qualified prospects — not vanity metrics.
+        - link "Follow Beep2B on LinkedIn" [ref=e149] [cursor=pointer]:
+          - /url: https://linkedin.com
+          - img [ref=e150]
+      - generic [ref=e152]:
+        - heading "Company" [level=3] [ref=e153]
+        - list [ref=e154]:
+          - listitem [ref=e155]:
+            - link "About Us" [ref=e156] [cursor=pointer]:
+              - /url: /about
+          - listitem [ref=e157]:
+            - link "How It Works" [ref=e158] [cursor=pointer]:
+              - /url: /how-it-works
+          - listitem [ref=e159]:
+            - link "Services" [ref=e160] [cursor=pointer]:
+              - /url: /services
+          - listitem [ref=e161]:
+            - link "Contact" [ref=e162] [cursor=pointer]:
+              - /url: /contact
+      - generic [ref=e163]:
+        - heading "Resources" [level=3] [ref=e164]
+        - list [ref=e165]:
+          - listitem [ref=e166]:
+            - link "Blog" [ref=e167] [cursor=pointer]:
+              - /url: /blog
+      - generic [ref=e168]:
+        - heading "Legal" [level=3] [ref=e169]
+        - list [ref=e170]:
+          - listitem [ref=e171]:
+            - link "Privacy Policy" [ref=e172] [cursor=pointer]:
+              - /url: /privacy
+          - listitem [ref=e173]:
+            - link "Terms of Service" [ref=e174] [cursor=pointer]:
+              - /url: /terms
+    - generic [ref=e176]:
+      - paragraph [ref=e177]: © 2026 Beep2B. All rights reserved.
+      - paragraph [ref=e178]: Built with the BEEP Methodology
+```

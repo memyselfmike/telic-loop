@@ -1,5 +1,6 @@
 import { defineField, defineType } from 'sanity'
 import { altTextField, requiredValidation, slugField } from './fieldHelpers'
+import { createPortableTextBlock } from './portableTextConfig'
 
 export default defineType({
   name: 'post',
@@ -61,49 +62,11 @@ export default defineType({
       title: 'Body',
       type: 'array',
       of: [
-        {
-          type: 'block',
-          styles: [
-            { title: 'Normal', value: 'normal' },
-            { title: 'H2', value: 'h2' },
-            { title: 'H3', value: 'h3' },
-            { title: 'H4', value: 'h4' },
-            { title: 'Quote', value: 'blockquote' },
-          ],
-          lists: [
-            { title: 'Bullet', value: 'bullet' },
-            { title: 'Numbered', value: 'number' },
-          ],
-          marks: {
-            decorators: [
-              { title: 'Strong', value: 'strong' },
-              { title: 'Emphasis', value: 'em' },
-              { title: 'Code', value: 'code' },
-              { title: 'Underline', value: 'underline' },
-            ],
-            annotations: [
-              {
-                name: 'link',
-                type: 'object',
-                title: 'Link',
-                fields: [
-                  {
-                    name: 'href',
-                    type: 'url',
-                    title: 'URL',
-                    validation: (Rule) =>
-                      Rule.uri({ scheme: ['http', 'https', 'mailto'] }),
-                  },
-                  {
-                    name: 'blank',
-                    type: 'boolean',
-                    title: 'Open in new tab',
-                  },
-                ],
-              },
-            ],
-          },
-        },
+        createPortableTextBlock({
+          includeH4: true,
+          includeCode: true,
+          includeLinkBlank: true,
+        }),
         {
           type: 'image',
           options: { hotspot: true },

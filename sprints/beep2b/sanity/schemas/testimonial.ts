@@ -1,4 +1,5 @@
 import { defineField, defineType } from 'sanity'
+import { imageFieldWithAlt } from './fieldHelpers'
 
 export default defineType({
   name: 'testimonial',
@@ -32,23 +33,7 @@ export default defineType({
       description: 'Testimonial text',
       validation: (Rule) => Rule.required(),
     }),
-    defineField({
-      name: 'image',
-      title: 'Image',
-      type: 'image',
-      description: 'Headshot',
-      options: {
-        hotspot: true,
-      },
-      fields: [
-        defineField({
-          name: 'alt',
-          title: 'Alt Text',
-          type: 'string',
-          description: 'Describe the image for accessibility and SEO',
-        }),
-      ],
-    }),
+    imageFieldWithAlt('image', 'Image', 'Headshot'),
   ],
   preview: {
     select: {

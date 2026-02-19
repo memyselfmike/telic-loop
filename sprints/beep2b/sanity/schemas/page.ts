@@ -1,5 +1,6 @@
 import { defineField, defineType } from 'sanity'
 import { requiredValidation } from './fieldHelpers'
+import { createPortableTextBlock } from './portableTextConfig'
 
 // Section: Hero
 const heroSection = defineField({
@@ -139,42 +140,7 @@ const testimonialsSection = defineField({
 })
 
 // Helper: Portable Text block configuration
-const portableTextBlock = {
-  type: 'block' as const,
-  styles: [
-    { title: 'Normal', value: 'normal' },
-    { title: 'H2', value: 'h2' },
-    { title: 'H3', value: 'h3' },
-    { title: 'Quote', value: 'blockquote' },
-  ],
-  lists: [
-    { title: 'Bullet', value: 'bullet' },
-    { title: 'Numbered', value: 'number' },
-  ],
-  marks: {
-    decorators: [
-      { title: 'Strong', value: 'strong' },
-      { title: 'Emphasis', value: 'em' },
-      { title: 'Underline', value: 'underline' },
-    ],
-    annotations: [
-      {
-        name: 'link',
-        type: 'object',
-        title: 'Link',
-        fields: [
-          {
-            name: 'href',
-            type: 'url',
-            title: 'URL',
-            validation: (Rule) =>
-              Rule.uri({ scheme: ['http', 'https', 'mailto'] }),
-          },
-        ],
-      },
-    ],
-  },
-}
+const portableTextBlock = createPortableTextBlock()
 
 // Section: Text Block
 const textBlockSection = defineField({
