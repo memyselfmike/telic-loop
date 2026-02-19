@@ -1,12 +1,12 @@
 # Value Checklist: beep2b
-Generated: 2026-02-19T08:59:14.142679
+Generated: 2026-02-19T09:05:26.825713
 
 ## VRC Status
-- Value Score: 29%
-- Verified: 2/7
+- Value Score: 57%
+- Verified: 4/7
 - Blocked: 0
 - Recommendation: CONTINUE
-- Summary: Fallback VRC: carried forward from iteration 39 (29%)
+- Summary: Epic 2 is 57% complete (4/7 deliverables verified). Strong foundation: Sanity Studio with all 7 schemas fully matching PRD specs, Sanity client library with 9 GROQ query helpers and robust error handling, blog listing page successfully wired to Sanity with pagination and graceful empty state, and BlogCard component displaying all required fields. Three blocking gaps remain: individual blog post pages with Portable Text rendering (task 2.5), category filter pages (task 2.6), and comprehensive empty-state handling across all CMS pages (task 2.7). All gaps have existing tasks with clear acceptance criteria. Blog listing page (task 2.4 in-progress) appears functionally complete -- code imports from sanity.ts, calls getAllPosts/getPostCount, uses paginate with pageSize:10, and builds successfully showing empty state when no CMS data available. The build passes cleanly. No external blockers -- all remaining work is code the loop can execute.
 
 ## Tasks
 - [x] **1.1**: Verify Astro project configuration: astro.config.mjs has React integration and Tailwind v4 via @tailwindcss/vite plugin, tsconfig.json extends astro/tsconfigs/strict with jsx:react-jsx, package.json has dev/build/preview scripts. Confirm npm run dev starts on port 4321 and npm run build produces dist/ with zero errors. This is brownfield verification -- all config files already exist.
@@ -20,7 +20,7 @@ Generated: 2026-02-19T08:59:14.142679
 - [x] **2.1**: Create Sanity Studio project in sanity/ directory. Set up sanity.config.ts with project ID and dataset. Note: Sanity Studio only exposes env vars prefixed SANITY_STUDIO_ to browser code -- either hardcode project ID in config or use SANITY_STUDIO_PROJECT_ID. Create sanity.cli.ts. Add package.json with sanity and @sanity/vision dependencies. Configure npm scripts for sanity dev (port 3333). Use defineConfig from sanity, defineType/defineField for schema API. Verify npx sanity dev launches Studio UI.
 - [x] **2.2**: Create 4 Sanity TypeScript schemas in sanity/schemas/: post.ts (title, slug, author ref, publishedAt, categories refs, featuredImage with alt text, excerpt max 200 chars, body as Portable Text), author.ts (name, slug, image, bio), category.ts (title, slug, description), page.ts (title, slug, sections array with hero/features/testimonials/textBlock/cta object types per PRD 2.4). Create schemas/index.ts registering these 4 schemas. Task 2.2b handles the remaining 3 schemas (testimonial, siteSettings, navigation).
 - [x] **2.2b**: Create 3 remaining Sanity schemas: testimonial.ts (name required, company optional, role optional, quote required, image optional), siteSettings.ts (title, description, logo, socialLinks object with linkedin/twitter/facebook string fields, footerText, ctaDefaultLink), navigation.ts (items array where each item has label string, href string, optional children array of same shape). Update schemas/index.ts to register all 7 schemas (4 from task 2.2 + these 3). Verify Studio sidebar shows all 7 document types.
-- [ ] **2.3**: Create Sanity client library at src/lib/sanity.ts. Configure @sanity/client with project ID, dataset, API version, and useCdn:true from env vars. Create GROQ query helpers: getAllPosts (paginated), getPostBySlug, getPostsByCategory, getAllCategories, getPageBySlug, getSiteSettings, getNavigation. Add @sanity/image-url builder for image URLs.
+- [x] **2.3**: Create Sanity client library at src/lib/sanity.ts. Configure @sanity/client with project ID, dataset, API version, and useCdn:true from env vars. Create GROQ query helpers: getAllPosts (paginated), getPostBySlug, getPostsByCategory, getAllCategories, getPageBySlug, getSiteSettings, getNavigation. Add @sanity/image-url builder for image URLs.
 - [ ] **2.4**: Wire blog listing page (blog/[...page].astro) to Sanity. Replace placeholder data with real Sanity posts via getAllPosts GROQ query in getStaticPaths. Use paginate() with pageSize:10 to generate /blog, /blog/2, /blog/3 etc. Render BlogCard.astro for each post with real data (featured image via image-url, title, publishedAt formatted date, category Badges, excerpt). Prev/next links from page.url.prev/next.
 - [ ] **2.5**: Create individual blog post page at blog/[slug].astro (named param, NOT rest param -- rest param [...slug] would conflict with [...page] pagination route). Use getStaticPaths to generate a page per Sanity post slug. Fetch full post data including body (Portable Text), author, categories. Render Portable Text body using astro-portabletext. Display featured image, title, author name, date, category badges. Style for long-form reading with proper typography.
 - [ ] **2.6**: Create category filter pages at blog/category/[category].astro. Use getStaticPaths to generate a page per Sanity category slug. Fetch posts filtered by category via GROQ. Render same BlogCard grid layout as main blog listing. Display category title as page heading. Add CategoryFilter.tsx React island (or static Astro links) as category nav bar on blog pages.
@@ -45,5 +45,8 @@ Generated: 2026-02-19T08:59:14.142679
 - [ ] **DEDUP-402067d2-category-siteSettings**: Extract duplicate code block into shared module. Found in: sanity/schemas/category.ts, sanity/schemas/siteSettings.ts. Block starts with: }),
 - [ ] **DEDUP-9aa6fa7b-page-post**: Extract duplicate code block into shared module. Found in: sanity/schemas/page.ts, sanity/schemas/post.ts. Block starts with: { title: 'Quote', value: 'blockquote' },
 - [ ] **DEDUP-aad4ccf4-siteSettings-testimonial**: Extract duplicate code block into shared module. Found in: sanity/schemas/siteSettings.ts, sanity/schemas/testimonial.ts. Block starts with: options: {
+- [ ] **VRC-40-gap-1**: Task 2.5 already exists
+- [ ] **VRC-40-gap-2**: Task 2.6 already exists
+- [ ] **VRC-40-gap-3**: Task 2.7 already exists
 
 ## Verifications

@@ -8,21 +8,38 @@ const dataset = import.meta.env.SANITY_DATASET || 'production'
 const apiVersion = '2024-01-01' // Use current date for stable API behavior
 const token = import.meta.env.SANITY_API_TOKEN || ''
 
-// Sanity client configuration
-export const client = createClient({
-  projectId,
-  dataset,
-  apiVersion,
-  useCdn: true, // Use CDN for fast, cached reads
-  token, // Optional - needed for draft content or mutations
-  perspective: 'published', // Only fetch published content (not drafts)
+// Lazy client initialization to avoid errors when SANITY_PROJECT_ID is missing
+let _client: ReturnType<typeof createClient> | null = null
+
+function getClient() {
+  if (!projectId) {
+    throw new Error('SANITY_PROJECT_ID is required')
+  }
+  if (!_client) {
+    _client = createClient({
+      projectId,
+      dataset,
+      apiVersion,
+      useCdn: true, // Use CDN for fast, cached reads
+      token, // Optional - needed for draft content or mutations
+      perspective: 'published', // Only fetch published content (not drafts)
+    })
+  }
+  return _client
+}
+
+// Export for backwards compatibility (will throw if projectId is missing)
+export const client = new Proxy({} as ReturnType<typeof createClient>, {
+  get(_target, prop) {
+    return (getClient() as any)[prop]
+  }
 })
 
 // Image URL builder for optimized image URLs
-const builder = imageUrlBuilder(client)
-
 export function urlForImage(source: SanityImageSource) {
   if (!source) return ''
+  if (!projectId) return ''
+  const builder = imageUrlBuilder(getClient())
   return builder.image(source).url()
 }
 
@@ -173,7 +190,7 @@ export async function getAllPosts(start = 0, end = 10): Promise<Post[]> {
       body
     }`
 
-    const posts = await client.fetch<Post[]>(query)
+    const posts = await getClient().fetch<Post[]>(query)
     return posts || []
   } catch (error) {
     console.error('[sanity.ts] Error fetching posts:', error)
@@ -192,7 +209,7 @@ export async function getPostCount(): Promise<number> {
 
   try {
     const query = `count(*[_type == "post"])`
-    const count = await client.fetch<number>(query)
+    const count = await getClient().fetch<number>(query)
     return count || 0
   } catch (error) {
     console.error('[sanity.ts] Error fetching post count:', error)
@@ -237,7 +254,7 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
       body
     }`
 
-    const post = await client.fetch<Post | null>(query, { slug })
+    const post = await getClient().fetch<Post | null>(query, { slug })
     return post
   } catch (error) {
     console.error(`[sanity.ts] Error fetching post by slug "${slug}":`, error)
@@ -288,7 +305,7 @@ export async function getPostsByCategory(
       body
     }`
 
-    const posts = await client.fetch<Post[]>(query, { categorySlug })
+    const posts = await getClient().fetch<Post[]>(query, { categorySlug })
     return posts || []
   } catch (error) {
     console.error(`[sanity.ts] Error fetching posts by category "${categorySlug}":`, error)
@@ -314,7 +331,7 @@ export async function getAllCategories(): Promise<Category[]> {
       description
     }`
 
-    const categories = await client.fetch<Category[]>(query)
+    const categories = await getClient().fetch<Category[]>(query)
     return categories || []
   } catch (error) {
     console.error('[sanity.ts] Error fetching categories:', error)
@@ -356,7 +373,7 @@ export async function getPageBySlug(slug: string): Promise<Page | null> {
       }
     }`
 
-    const page = await client.fetch<Page | null>(query, { slug })
+    const page = await getClient().fetch<Page | null>(query, { slug })
     return page
   } catch (error) {
     console.error(`[sanity.ts] Error fetching page by slug "${slug}":`, error)
@@ -385,7 +402,7 @@ export async function getSiteSettings(): Promise<SiteSettings | null> {
       ctaDefaultLink
     }`
 
-    const settings = await client.fetch<SiteSettings | null>(query)
+    const settings = await getClient().fetch<SiteSettings | null>(query)
     return settings
   } catch (error) {
     console.error('[sanity.ts] Error fetching site settings:', error)
@@ -409,7 +426,7 @@ export async function getNavigation(): Promise<Navigation | null> {
       items
     }`
 
-    const navigation = await client.fetch<Navigation | null>(query)
+    const navigation = await getClient().fetch<Navigation | null>(query)
     return navigation
   } catch (error) {
     console.error('[sanity.ts] Error fetching navigation:', error)
@@ -460,7 +477,7 @@ export async function getRelatedPosts(
       excerpt
     }`
 
-    const posts = await client.fetch<Post[]>(query, { currentPostId, categoryIds })
+    const posts = await getClient().fetch<Post[]>(query, { currentPostId, categoryIds })
     return posts || []
   } catch (error) {
     console.error('[sanity.ts] Error fetching related posts:', error)

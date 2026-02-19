@@ -2,104 +2,42 @@
 import type { GetStaticPaths, Page } from 'astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import BlogCard from '../../components/BlogCard.astro';
+import { getAllPosts, getPostCount, urlForImage, type Post } from '../../lib/sanity';
 
-// Post type definition
+// Blog post interface for page data
 interface BlogPost {
   title: string;
   slug: string;
   date: string;
   excerpt: string;
   categories: string[];
+  imageUrl?: string;
+  imageAlt?: string;
 }
 
 export const getStaticPaths: GetStaticPaths = async ({ paginate }) => {
-  // Placeholder posts — will be replaced with Sanity data in Epic 2
-  const posts: BlogPost[] = [
-    {
-      title: 'How to Optimise Your LinkedIn Profile for B2B Lead Generation',
-      slug: 'optimise-linkedin-profile-b2b',
-      date: '2024-11-15',
-      excerpt: 'Your LinkedIn profile is your digital business card. Here is how to make it work harder for your lead generation efforts.',
-      categories: ['LinkedIn Profile', 'LinkedIn Tips'],
-    },
-    {
-      title: 'The BEEP Method Explained: A Step-by-Step Guide',
-      slug: 'beep-method-explained',
-      date: '2024-11-08',
-      excerpt: 'Build, Engage, Educate, Promote — we break down each phase of our proven methodology and explain why the order matters.',
-      categories: ['LinkedIn Marketing', 'B2B'],
-    },
-    {
-      title: '5 LinkedIn Connection Request Mistakes That Kill Your Response Rate',
-      slug: 'linkedin-connection-request-mistakes',
-      date: '2024-11-01',
-      excerpt: 'Most people get ignored on LinkedIn because they lead with the wrong message. Avoid these five common errors.',
-      categories: ['LinkedIn Tips', 'Social Selling'],
-    },
-    {
-      title: 'Thought Leadership on LinkedIn: From Zero to Authority in 90 Days',
-      slug: 'thought-leadership-linkedin-90-days',
-      date: '2024-10-25',
-      excerpt: 'Authority is built by consistently sharing valuable insight. Here is the exact content framework we use for our thought leadership clients.',
-      categories: ['Thought Leadership', 'Authority Marketing'],
-    },
-    {
-      title: 'Why Relationship Selling Beats Cold Outreach Every Time',
-      slug: 'relationship-selling-vs-cold-outreach',
-      date: '2024-10-18',
-      excerpt: 'Cold messages get a 1 to 3 percent response rate. Warm relationship-based outreach gets 20 to 40 percent. The data speaks for itself.',
-      categories: ['Relationship Selling', 'B2B'],
-    },
-    {
-      title: 'LinkedIn Training for Sales Teams: What Works and What Doesnt',
-      slug: 'linkedin-training-sales-teams',
-      date: '2024-10-11',
-      excerpt: 'After training hundreds of sales professionals, here are the techniques that actually change behaviour and the ones that do not.',
-      categories: ['LinkedIn Training', 'Social Selling'],
-    },
-    {
-      title: 'How to Use LinkedIn Analytics to Improve Your Content Strategy',
-      slug: 'linkedin-analytics-content-strategy',
-      date: '2024-10-04',
-      excerpt: 'Most LinkedIn users ignore their analytics. Here is how to read the data and use it to double your organic reach.',
-      categories: ['LinkedIn Tips', 'LinkedIn Marketing'],
-    },
-    {
-      title: 'B2B Lead Generation in 2025: What Has Changed on LinkedIn',
-      slug: 'b2b-lead-generation-2025',
-      date: '2024-09-27',
-      excerpt: 'LinkedIn algorithm and audience behaviour has shifted. Here is what is working now and what you should stop doing immediately.',
-      categories: ['B2B', 'LinkedIn Marketing'],
-    },
-    {
-      title: 'The Social Selling Index: Does It Actually Matter?',
-      slug: 'social-selling-index-does-it-matter',
-      date: '2024-09-20',
-      excerpt: 'LinkedIn SSI score gets a lot of attention. We take an honest look at whether it correlates with real lead generation results.',
-      categories: ['Social Selling', 'LinkedIn Tips'],
-    },
-    {
-      title: 'Building a B2B Content Calendar for LinkedIn',
-      slug: 'b2b-content-calendar-linkedin',
-      date: '2024-09-13',
-      excerpt: 'Consistency is the single biggest factor in LinkedIn content success. Here is how to build a realistic content calendar you will actually follow.',
-      categories: ['B2B', 'Thought Leadership'],
-    },
-    {
-      title: 'How to Write a LinkedIn Post That Gets Engagement',
-      slug: 'linkedin-post-engagement-guide',
-      date: '2024-09-06',
-      excerpt: 'Structure, hooks, and the algorithm — these are the three levers that determine whether your posts get seen or ignored.',
-      categories: ['LinkedIn Tips', 'Authority Marketing'],
-    },
-    {
-      title: 'LinkedIn Premium vs Sales Navigator: Which Should You Use?',
-      slug: 'linkedin-premium-vs-sales-navigator',
-      date: '2024-08-30',
-      excerpt: 'Both tools cost money. Here is an honest comparison of what you get for your budget and which is right for your business stage.',
-      categories: ['LinkedIn Marketing', 'B2B'],
-    },
-  ];
+  // Fetch total post count from Sanity
+  const totalPosts = await getPostCount();
+
+  // If no posts in Sanity, return a single page with empty data
+  if (totalPosts === 0) {
+    console.warn('[blog/[...page].astro] No posts found in Sanity CMS - rendering empty state');
+    return paginate([], { pageSize: 10 });
+  }
+
+  // Fetch all posts from Sanity
+  const sanityPosts = await getAllPosts(0, totalPosts);
+
+  // Transform Sanity posts to BlogPost format for the page
+  const posts: BlogPost[] = sanityPosts.map((post: Post) => ({
+    title: post.title,
+    slug: post.slug.current,
+    date: post.publishedAt,
+    excerpt: post.excerpt || '',
+    categories: post.categories?.map((cat) => cat.title) || [],
+    imageUrl: post.featuredImage ? urlForImage(post.featuredImage) : undefined,
+    imageAlt: post.featuredImage?.alt || post.title,
+  }));
 
   return paginate(posts, { pageSize: 10 });
 };
@@ -196,6 +134,8 @@ const isFirstPage = !currentPath.includes('/blog/') || currentPath === '/blog/1'
                 date={post.date}
                 excerpt={post.excerpt}
                 categories={post.categories}
+                imageUrl={post.imageUrl}
+                imageAlt={post.imageAlt}
               />
             ))}
           </div>
