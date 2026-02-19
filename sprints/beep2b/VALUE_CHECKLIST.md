@@ -1,12 +1,12 @@
 # Value Checklist: beep2b
-Generated: 2026-02-19T09:43:11.433427
+Generated: 2026-02-19T10:16:32.618743
 
 ## VRC Status
 - Value Score: 100%
 - Verified: 7/7
 - Blocked: 0
 - Recommendation: SHIP_READY
-- Summary: Fallback VRC: carried forward from iteration 47 (100%)
+- Summary: Epic 2 (Sanity CMS Integration with Working Blog) remains fully delivered at iteration 46. All 7 deliverables verified at EXISTS/WORKS/VALUE levels: (1) Sanity Studio project with sanity.config.ts, sanity.cli.ts, package.json, and all 7 TypeScript schemas (post, author, category, page, testimonial, siteSettings, navigation) registered in index.ts, enhanced with fieldHelpers.ts and portableTextConfig.ts for code deduplication; (2) Sanity client library at src/lib/sanity.ts with configured @sanity/client (lazy init, useCdn:true, env vars), all 7 required GROQ query helpers plus getPostCount and getRelatedPosts, @sanity/image-url builder, complete TypeScript types, and graceful error handling returning empty results on missing env vars; (3) Blog listing page (blog/[...page].astro) with paginate() at pageSize:10, Sanity data fetching, responsive 1/2/3-column BlogCard grid, CategoryFilter React island (client:load), and empty state UI; (4) Blog post page (blog/[slug].astro) using named param (no route conflict) with astro-portabletext Portable Text rendering covering headings, paragraphs, images, links, lists, blockquotes, code -- plus featured image, metadata display, author bio card, related posts section, and 404 redirect; (5) Category filter pages (blog/category/[category].astro) generating per-category routes with filtered posts, active-state category nav bar, and empty state messaging; (6) BlogCard.astro component with featured image (gradient fallback), title hover effect, formatted date, category badges (max 3), excerpt with line-clamp-2, and read more link; (7) Graceful empty-state handling across all CMS-dependent pages -- npm run build succeeds with 8 pages and zero errors when SANITY_PROJECT_ID is empty/missing. All Epic 2 completion criteria met. No gaps.
 
 ## Tasks
 - [x] **1.1**: Verify Astro project configuration: astro.config.mjs has React integration and Tailwind v4 via @tailwindcss/vite plugin, tsconfig.json extends astro/tsconfigs/strict with jsx:react-jsx, package.json has dev/build/preview scripts. Confirm npm run dev starts on port 4321 and npm run build produces dist/ with zero errors. This is brownfield verification -- all config files already exist.
@@ -43,7 +43,7 @@ Generated: 2026-02-19T09:43:11.433427
 - [x] **DEDUP-402067d2-category-siteSettings**: Extract duplicate code block into shared module. Found in: sanity/schemas/category.ts, sanity/schemas/siteSettings.ts. Block starts with: }),
 - [x] **DEDUP-9aa6fa7b-page-post**: Extract duplicate code block into shared module. Found in: sanity/schemas/page.ts, sanity/schemas/post.ts. Block starts with: { title: 'Quote', value: 'blockquote' },
 - [x] **DEDUP-aad4ccf4-siteSettings-testimonial**: Extract duplicate code block into shared module. Found in: sanity/schemas/siteSettings.ts, sanity/schemas/testimonial.ts. Block starts with: options: {
-- [ ] **DEDUP-ccbf2070-category-page**: Extract duplicate code block into shared module. Found in: sanity/schemas/category.ts, sanity/schemas/page.ts. Block starts with: }),
-- [ ] **SPLIT-FN-sanity-schemas-portableTextConfig-ts**: Split long functions in sanity/schemas/portableTextConfig.ts: createPortableTextBlock(57L). Extract helper functions to keep each function under 50 lines.
+- [x] **DEDUP-ccbf2070-category-page**: Extract duplicate code block into shared module. Found in: sanity/schemas/category.ts, sanity/schemas/page.ts. Block starts with: }),
+- [x] **SPLIT-FN-sanity-schemas-portableTextConfig-ts**: Split long functions in sanity/schemas/portableTextConfig.ts: createPortableTextBlock(57L). Extract helper functions to keep each function under 50 lines.
 
 ## Verifications

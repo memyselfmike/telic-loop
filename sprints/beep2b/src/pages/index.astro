@@ -1,5 +1,112 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import Hero from '../components/Hero.astro';
+import FeatureCard from '../components/FeatureCard.astro';
+import TestimonialCard from '../components/TestimonialCard.astro';
+import { getPageBySlug, urlForImage, type Testimonial } from '../lib/sanity';
+
+// Fetch home page content from CMS
+const pageData = await getPageBySlug('home');
+
+// Extract sections from CMS data
+const heroSection = pageData?.sections?.find((s) => s._type === 'hero');
+const featuresSection = pageData?.sections?.find((s) => s._type === 'features');
+const testimonialsSection = pageData?.sections?.find((s) => s._type === 'testimonials');
+const ctaSection = pageData?.sections?.find((s) => s._type === 'cta');
+
+// Fallback content when CMS is unavailable
+const fallbackHero = {
+  eyebrow: 'LinkedIn Lead Generation for B2B',
+  heading: 'Consistent B2B Leads\nFrom LinkedIn',
+  subheading: 'Stop guessing. The BEEP methodology gives you a repeatable system for generating qualified leads on LinkedIn — without cold calls, spam, or unpredictable results.',
+  primaryCta: 'Book a Discovery Call',
+  primaryCtaHref: '/contact',
+  secondaryCta: 'See How It Works',
+  secondaryCtaHref: '/how-it-works',
+  trustItems: ['500+ clients served', '22 countries', 'Est. 2014'],
+};
+
+const fallbackFeatures = [
+  {
+    icon: '🎯',
+    title: 'Precision Targeting',
+    description: 'We identify and connect with prospects who match your exact ideal customer profile — no broad blasting, no wasted time.',
+  },
+  {
+    icon: '🤝',
+    title: 'Relationship-First',
+    description: 'BEEP builds trust before pitching. When you promote, you\'re talking to a warm audience that already sees your value.',
+  },
+  {
+    icon: '📈',
+    title: 'Predictable Pipeline',
+    description: 'Systematic outreach means consistent results month after month — not spikes and droughts driven by random effort.',
+  },
+  {
+    icon: '✍️',
+    title: 'Thought Leadership',
+    description: 'Position yourself as the go-to authority in your niche with expert content that attracts inbound enquiries.',
+  },
+  {
+    icon: '📊',
+    title: 'Transparent Reporting',
+    description: 'Monthly performance reports show exactly what activity was done, what results it produced, and what\'s planned next.',
+  },
+  {
+    icon: '🎓',
+    title: 'Training and Playbooks',
+    description: 'Prefer to run it in-house? We train your team with the exact same systems we use for managed clients.',
+  },
+];
+
+const fallbackTestimonials = [
+  {
+    quote: 'Within 3 months of implementing BEEP, I was having 4 to 5 qualified discovery calls a week. Before, I was lucky to get one a month.',
+    name: 'Sarah M.',
+    role: 'Founder, B2B SaaS',
+    country: 'UK',
+  },
+  {
+    quote: 'The methodology is so systematic. I knew exactly what to do every day, and the results were predictable. That is rare in marketing.',
+    name: 'James K.',
+    role: 'Sales Director',
+    country: 'Australia',
+  },
+  {
+    quote: 'We trained our whole team. Within 6 weeks, 3 reps had LinkedIn as their top lead source. The ROI on the training was obvious.',
+    name: 'Anja W.',
+    role: 'VP Marketing',
+    country: 'Germany',
+  },
+];
+
+const fallbackCta = {
+  heading: 'Ready to Grow Your B2B Pipeline?',
+  description: "Book a free 30-minute discovery call. We'll review your current LinkedIn presence and show you exactly how BEEP would work for your business.",
+  buttonText: 'Book Your Free Discovery Call',
+  buttonLink: '/contact',
+};
+
+// Prepare hero props (CMS or fallback)
+const heroProps = heroSection ? {
+  eyebrow: undefined, // CMS hero doesn't have eyebrow field
+  heading: heroSection.heading,
+  subheading: heroSection.subheading,
+  primaryCta: heroSection.ctaText,
+  primaryCtaHref: heroSection.ctaLink,
+  secondaryCta: undefined, // CMS hero only has one CTA
+  secondaryCtaHref: undefined,
+  trustItems: fallbackHero.trustItems, // Trust items not in CMS schema, use fallback
+} : fallbackHero;
+
+// Prepare features (CMS or fallback)
+const features = featuresSection?.items || fallbackFeatures;
+
+// Prepare testimonials (CMS or fallback)
+const testimonials = testimonialsSection?.items as Testimonial[] | undefined || fallbackTestimonials;
+
+// Prepare CTA (CMS or fallback)
+const cta = ctaSection || fallbackCta;
 ---
 
 <BaseLayout
@@ -8,60 +115,24 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 >
   <main>
 
-    <!-- Hero -->
-    <section class="bg-brand py-20 px-4">
-      <div class="max-w-5xl mx-auto">
-        <div class="max-w-3xl">
-          <p class="text-primary-300 text-sm font-semibold uppercase tracking-widest mb-4">
-            LinkedIn Lead Generation for B2B
-          </p>
-          <h1 class="text-4xl md:text-6xl font-extrabold text-white leading-tight mb-6">
-            Consistent B2B Leads<br class="hidden md:block" /> From LinkedIn
-          </h1>
-          <p class="text-xl text-primary-100 mb-8 max-w-2xl leading-relaxed">
-            Stop guessing. The BEEP methodology gives you a repeatable system for
-            generating qualified leads on LinkedIn — without cold calls, spam, or
-            unpredictable results.
-          </p>
-          <div class="flex flex-col sm:flex-row gap-4">
-            <a
-              href="/contact"
-              class="inline-flex items-center justify-center px-8 py-3.5 bg-white text-primary-800 font-bold rounded-md hover:bg-primary-50 transition-colors text-lg shadow"
-            >
-              Book a Discovery Call
-            </a>
-            <a
-              href="/how-it-works"
-              class="inline-flex items-center justify-center px-8 py-3.5 border-2 border-primary-300 text-white font-semibold rounded-md hover:bg-primary-700 transition-colors text-lg"
-            >
-              See How It Works
-            </a>
-          </div>
-          <!-- Trust indicators -->
-          <div class="mt-10 flex flex-wrap gap-6 text-primary-200 text-sm">
-            <span class="flex items-center gap-2">
-              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-              500+ clients served
-            </span>
-            <span class="flex items-center gap-2">
-              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-              22 countries
-            </span>
-            <span class="flex items-center gap-2">
-              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
-              Est. 2014
-            </span>
-          </div>
-        </div>
-      </div>
-    </section>
+    <!-- Hero Section -->
+    <Hero
+      eyebrow={heroProps.eyebrow}
+      heading={heroProps.heading}
+      subheading={heroProps.subheading}
+      primaryCta={heroProps.primaryCta}
+      primaryCtaHref={heroProps.primaryCtaHref}
+      secondaryCta={heroProps.secondaryCta}
+      secondaryCtaHref={heroProps.secondaryCtaHref}
+      trustItems={heroProps.trustItems}
+    />
 
     <!-- What We Do — Feature Cards -->
     <section class="py-16 px-4 bg-white">
       <div class="max-w-5xl mx-auto">
         <div class="text-center mb-10">
           <h2 class="text-3xl font-bold text-slate-900 mb-3">
-            Everything You Need to Generate B2B Leads on LinkedIn
+            {featuresSection?.heading || 'Everything You Need to Generate B2B Leads on LinkedIn'}
           </h2>
           <p class="text-slate-600 max-w-2xl mx-auto">
             Beep2B combines strategy, execution, and training to deliver qualified
@@ -69,43 +140,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           </p>
         </div>
         <div class="grid md:grid-cols-3 gap-6">
-          {[
-            {
-              icon: '🎯',
-              title: 'Precision Targeting',
-              description: 'We identify and connect with prospects who match your exact ideal customer profile — no broad blasting, no wasted time.',
-            },
-            {
-              icon: '🤝',
-              title: 'Relationship-First',
-              description: 'BEEP builds trust before pitching. When you promote, you\'re talking to a warm audience that already sees your value.',
-            },
-            {
-              icon: '📈',
-              title: 'Predictable Pipeline',
-              description: 'Systematic outreach means consistent results month after month — not spikes and droughts driven by random effort.',
-            },
-            {
-              icon: '✍️',
-              title: 'Thought Leadership',
-              description: 'Position yourself as the go-to authority in your niche with expert content that attracts inbound enquiries.',
-            },
-            {
-              icon: '📊',
-              title: 'Transparent Reporting',
-              description: 'Monthly performance reports show exactly what activity was done, what results it produced, and what\'s planned next.',
-            },
-            {
-              icon: '🎓',
-              title: 'Training and Playbooks',
-              description: 'Prefer to run it in-house? We train your team with the exact same systems we use for managed clients.',
-            },
-          ].map((feature) => (
-            <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-              <div class="text-3xl mb-3">{feature.icon}</div>
-              <h3 class="text-lg font-semibold text-slate-900 mb-2">{feature.title}</h3>
-              <p class="text-slate-600 text-sm leading-relaxed">{feature.description}</p>
-            </div>
+          {features.map((feature) => (
+            <FeatureCard
+              icon={feature.icon}
+              title={feature.title}
+              description={feature.description}
+            />
           ))}
         </div>
       </div>
@@ -161,49 +201,33 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <div class="max-w-5xl mx-auto">
         <div class="text-center mb-10">
           <h2 class="text-3xl font-bold text-slate-900 mb-3">
-            What Our Clients Say
+            {testimonialsSection?.heading || 'What Our Clients Say'}
           </h2>
           <p class="text-slate-600">
             Real results from real B2B businesses using the BEEP methodology.
           </p>
         </div>
         <div class="grid md:grid-cols-3 gap-6">
-          {[
-            {
-              quote: 'Within 3 months of implementing BEEP, I was having 4 to 5 qualified discovery calls a week. Before, I was lucky to get one a month.',
-              name: 'Sarah M.',
-              role: 'Founder, B2B SaaS',
-              country: 'UK',
-            },
-            {
-              quote: 'The methodology is so systematic. I knew exactly what to do every day, and the results were predictable. That is rare in marketing.',
-              name: 'James K.',
-              role: 'Sales Director',
-              country: 'Australia',
-            },
-            {
-              quote: 'We trained our whole team. Within 6 weeks, 3 reps had LinkedIn as their top lead source. The ROI on the training was obvious.',
-              name: 'Anja W.',
-              role: 'VP Marketing',
-              country: 'Germany',
-            },
-          ].map((testimonial) => (
-            <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-              <div class="text-primary-500 text-3xl mb-3 font-serif">&ldquo;</div>
-              <p class="text-slate-700 leading-relaxed mb-5 text-sm italic">
-                {testimonial.quote}
-              </p>
-              <div class="flex items-center gap-3 border-t border-slate-200 pt-4">
-                <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-sm flex-shrink-0">
-                  {testimonial.name.charAt(0)}
-                </div>
-                <div>
-                  <div class="text-sm font-semibold text-slate-900">{testimonial.name}</div>
-                  <div class="text-xs text-slate-500">{testimonial.role} &middot; {testimonial.country}</div>
-                </div>
-              </div>
-            </div>
-          ))}
+          {testimonials.map((testimonial) => {
+            // Handle both CMS testimonials (with image field) and fallback testimonials
+            const isCmsTestimonial = '_id' in testimonial;
+            const avatarUrl = isCmsTestimonial && testimonial.image
+              ? urlForImage(testimonial.image)
+              : undefined;
+            const role = isCmsTestimonial && testimonial.company
+              ? `${testimonial.role || ''}, ${testimonial.company}`.trim()
+              : testimonial.role || '';
+
+            return (
+              <TestimonialCard
+                quote={testimonial.quote}
+                name={testimonial.name}
+                role={role}
+                country={'country' in testimonial ? testimonial.country : undefined}
+                avatarUrl={avatarUrl}
+              />
+            );
+          })}
         </div>
       </div>
     </section>
@@ -212,17 +236,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     <section class="bg-brand py-16 px-4 text-center">
       <div class="max-w-2xl mx-auto">
         <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
-          Ready to Grow Your B2B Pipeline?
+          {cta.heading}
         </h2>
         <p class="text-primary-100 text-lg mb-8 leading-relaxed">
-          Book a free 30-minute discovery call. We'll review your current LinkedIn
-          presence and show you exactly how BEEP would work for your business.
+          {cta.description || cta.buttonText}
         </p>
         <a
-          href="/contact"
+          href={cta.buttonLink}
           class="inline-flex items-center px-10 py-4 bg-white text-primary-800 font-bold rounded-md hover:bg-primary-50 transition-colors text-lg shadow-lg"
         >
-          Book Your Free Discovery Call
+          {cta.buttonText}
         </a>
         <p class="text-primary-300 text-sm mt-4">No commitment. No pressure. Just an honest conversation.</p>
       </div>
