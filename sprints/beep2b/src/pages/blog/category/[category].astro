@@ -16,7 +16,7 @@ interface BlogPost {
   slug: string;
   date: string;
   excerpt: string;
-  categories: string[];
+  categories: Array<{ title: string; slug: string }>;
   imageUrl?: string;
   imageAlt?: string;
 }
@@ -43,7 +43,7 @@ export const getStaticPaths: GetStaticPaths = async () => {
         slug: post.slug.current,
         date: post.publishedAt,
         excerpt: post.excerpt || '',
-        categories: post.categories?.map((cat) => cat.title) || [],
+        categories: post.categories?.map((cat) => ({ title: cat.title, slug: cat.slug.current })) || [],
         imageUrl: post.featuredImage ? urlForImage(post.featuredImage) : undefined,
         imageAlt: post.featuredImage?.alt || post.title,
       }));

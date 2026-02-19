@@ -2,7 +2,8 @@
 import type { GetStaticPaths, Page } from 'astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import BlogCard from '../../components/BlogCard.astro';
-import { getAllPosts, getPostCount, urlForImage, type Post } from '../../lib/sanity';
+import CategoryFilter from '../../components/CategoryFilter';
+import { getAllPosts, getPostCount, getAllCategories, urlForImage, type Post } from '../../lib/sanity';
 
 // Blog post interface for page data
 interface BlogPost {
@@ -10,7 +11,7 @@ interface BlogPost {
   slug: string;
   date: string;
   excerpt: string;
-  categories: string[];
+  categories: Array<{ title: string; slug: string }>;
   imageUrl?: string;
   imageAlt?: string;
 }
@@ -34,7 +35,7 @@ export const getStaticPaths: GetStaticPaths = async ({ paginate }) => {
     slug: post.slug.current,
     date: post.publishedAt,
     excerpt: post.excerpt || '',
-    categories: post.categories?.map((cat) => cat.title) || [],
+    categories: post.categories?.map((cat) => ({ title: cat.title, slug: cat.slug.current })) || [],
     imageUrl: post.featuredImage ? urlForImage(post.featuredImage) : undefined,
     imageAlt: post.featuredImage?.alt || post.title,
   }));
@@ -48,20 +49,9 @@ type Props = {
 
 const { page } = Astro.props;
 
-const categories = [
-  'Authority Marketing',
-  'B2B',
-  'LinkedIn Marketing',
-  'LinkedIn Profile',
-  'LinkedIn Tips',
-  'LinkedIn Training',
-  'Relationship Selling',
-  'Social Selling',
-  'Thought Leadership',
-];
-
+// Fetch all categories for the filter bar
+const allCategories = await getAllCategories();
 const currentPath = Astro.url.pathname;
-const isFirstPage = !currentPath.includes('/blog/') || currentPath === '/blog/1';
 ---
 
 <BaseLayout
@@ -86,34 +76,7 @@ const isFirstPage = !currentPath.includes('/blog/') || currentPath === '/blog/1'
     </section>
 
     <!-- Category filter bar -->
-    <nav aria-label="Blog categories" class="bg-white border-b border-slate-200 px-4 py-3 sticky top-16 z-30">
-      <div class="max-w-5xl mx-auto overflow-x-auto">
-        <ul class="flex gap-2 min-w-max">
-          <li>
-            <a
-              href="/blog"
-              class={`inline-block px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                isFirstPage
-                  ? 'bg-primary-800 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              All Posts
-            </a>
-          </li>
-          {categories.map((cat) => (
-            <li>
-              <a
-                href={`/blog/category/${cat.toLowerCase().replace(/\s+/g, '-')}`}
-                class="inline-block px-3 py-1 rounded-full text-sm font-medium bg-slate-100 text-slate-600 hover:bg-primary-50 hover:text-primary-700 transition-colors"
-              >
-                {cat}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </nav>
+    <CategoryFilter categories={allCategories} currentPath={currentPath} client:load />
 
     <!-- Post grid -->
     <section class="py-12 px-4 bg-slate-50">

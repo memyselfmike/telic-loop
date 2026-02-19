@@ -1,5 +1,5 @@
 import { defineField, defineType } from 'sanity'
-import { altTextField } from './fieldHelpers'
+import { altTextField, slugField } from './fieldHelpers'
 
 export default defineType({
   name: 'author',
@@ -12,16 +12,7 @@ export default defineType({
       type: 'string',
       validation: (Rule) => Rule.required(),
     }),
-    defineField({
-      name: 'slug',
-      title: 'Slug',
-      type: 'slug',
-      options: {
-        source: 'name',
-        maxLength: 96,
-      },
-      validation: (Rule) => Rule.required(),
-    }),
+    slugField('name'),
     defineField({
       name: 'image',
       title: 'Image',

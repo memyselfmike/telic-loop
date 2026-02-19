@@ -4,7 +4,7 @@ export interface Props {
   slug: string;
   date: string;
   excerpt?: string;
-  categories?: string[];
+  categories?: Array<{ title: string; slug: string }>;
   imageUrl?: string;
   imageAlt?: string;
 }
@@ -54,10 +54,10 @@ const displayDate = new Date(date).toLocaleDateString('en-GB', {
       <div class="flex flex-wrap gap-1.5 mb-3">
         {categories.slice(0, 3).map((cat) => (
           <a
-            href={`/blog/category/${cat.toLowerCase().replace(/\s+/g, '-')}`}
+            href={`/blog/category/${cat.slug}`}
             class="inline-block px-2 py-0.5 bg-primary-50 text-primary-700 text-xs font-medium rounded-full border border-primary-200 hover:bg-primary-100 transition-colors"
           >
-            {cat}
+            {cat.title}
           </a>
         ))}
       </div>
