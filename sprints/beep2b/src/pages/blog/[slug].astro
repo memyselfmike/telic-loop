@@ -1,0 +1,209 @@
+---
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import BlogCard from '../../components/BlogCard.astro';
+import { PortableText } from 'astro-portabletext';
+import {
+  getAllPosts,
+  getPostBySlug,
+  getRelatedPosts,
+  urlForImage,
+  type Post,
+} from '../../lib/sanity';
+
+// Generate static paths for all published posts
+export const getStaticPaths: GetStaticPaths = async () => {
+  // Fetch all posts to get their slugs
+  const posts = await getAllPosts(0, 1000); // Fetch up to 1000 posts
+
+  // If no posts in Sanity, return empty paths
+  if (!posts || posts.length === 0) {
+    console.warn('[blog/[slug].astro] No posts found in Sanity CMS');
+    return [];
+  }
+
+  // Generate a path for each post slug
+  return posts.map((post) => ({
+    params: { slug: post.slug.current },
+    props: {}, // We'll fetch the full post data in the page component
+  }));
+};
+
+// Get the slug from the URL params
+const { slug } = Astro.params;
+
+// Fetch the full post data
+const post = await getPostBySlug(slug!);
+
+// Handle 404 - post not found
+if (!post) {
+  return Astro.redirect('/404', 404);
+}
+
+// Extract author name and bio
+const authorName = post.author?.name || 'Anonymous';
+const authorBio = post.author?.bio || '';
+const authorImageUrl = post.author?.image ? urlForImage(post.author.image) : '';
+
+// Format date for display
+const displayDate = new Date(post.publishedAt).toLocaleDateString('en-GB', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+});
+
+// Get category titles and IDs for related posts
+const categoryTitles = post.categories?.map((cat) => cat.title) || [];
+const categoryIds = post.categories?.map((cat) => cat._id) || [];
+
+// Fetch related posts from the same categories
+const relatedPosts = await getRelatedPosts(post._id, categoryIds, 3);
+
+// Generate featured image URL
+const featuredImageUrl = post.featuredImage ? urlForImage(post.featuredImage) : '';
+const featuredImageAlt = post.featuredImage?.alt || post.title;
+
+// SEO metadata
+const pageTitle = `${post.title} | Beep2B Blog`;
+const pageDescription = post.excerpt || `Read ${post.title} on the Beep2B blog.`;
+---
+
+<BaseLayout
+  title={pageTitle}
+  description={pageDescription}
+  ogTitle={post.title}
+  ogDescription={pageDescription}
+  ogImage={featuredImageUrl}
+>
+  <main class="bg-slate-50">
+
+    <!-- Article Header -->
+    <article class="max-w-3xl mx-auto px-4 py-8">
+
+      <!-- Back to blog link -->
+      <nav aria-label="Breadcrumb" class="mb-6">
+        <a
+          href="/blog"
+          class="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-primary-700 transition-colors"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Blog
+        </a>
+      </nav>
+
+      <!-- Category badges -->
+      {categoryTitles.length > 0 && (
+        <div class="flex flex-wrap gap-2 mb-4">
+          {categoryTitles.map((cat) => (
+            <a
+              href={`/blog/category/${cat.toLowerCase().replace(/\s+/g, '-')}`}
+              class="inline-block px-3 py-1 bg-primary-50 text-primary-700 text-xs font-semibold uppercase tracking-wide rounded-full border border-primary-200 hover:bg-primary-100 transition-colors"
+            >
+              {cat}
+            </a>
+          ))}
+        </div>
+      )}
+
+      <!-- Article title -->
+      <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 leading-tight mb-4">
+        {post.title}
+      </h1>
+
+      <!-- Article metadata -->
+      <div class="flex items-center gap-4 text-sm text-slate-500 mb-8 pb-8 border-b border-slate-200">
+        {authorImageUrl && (
+          <img
+            src={authorImageUrl}
+            alt={authorName}
+            class="w-10 h-10 rounded-full object-cover"
+            loading="lazy"
+          />
+        )}
+        <div>
+          <p class="font-medium text-slate-700">{authorName}</p>
+          <time datetime={post.publishedAt}>{displayDate}</time>
+        </div>
+      </div>
+
+      <!-- Featured image -->
+      {featuredImageUrl && (
+        <figure class="mb-8 -mx-4 sm:mx-0">
+          <img
+            src={featuredImageUrl}
+            alt={featuredImageAlt}
+            class="w-full rounded-none sm:rounded-lg aspect-video object-cover"
+            loading="eager"
+          />
+        </figure>
+      )}
+
+      <!-- Article body (Portable Text) -->
+      <div class="prose prose-slate prose-lg max-w-none
+        prose-headings:font-bold prose-headings:text-slate-900 prose-headings:tracking-tight
+        prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4
+        prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3
+        prose-p:text-slate-600 prose-p:leading-relaxed prose-p:mb-6
+        prose-a:text-primary-700 prose-a:no-underline hover:prose-a:underline
+        prose-strong:text-slate-800 prose-strong:font-semibold
+        prose-ul:list-disc prose-ul:pl-5 prose-ul:mb-6
+        prose-ol:list-decimal prose-ol:pl-5 prose-ol:mb-6
+        prose-li:text-slate-600 prose-li:mb-2
+        prose-blockquote:border-l-4 prose-blockquote:border-primary-300 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-slate-600
+        prose-code:bg-slate-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm
+        prose-img:rounded-lg prose-img:shadow-md
+      ">
+        <PortableText value={post.body} />
+      </div>
+
+    </article>
+
+    <!-- Author bio section -->
+    {authorBio && (
+      <section class="max-w-3xl mx-auto px-4 py-8 mb-8">
+        <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500 mb-4">
+            About the Author
+          </h2>
+          <div class="flex items-start gap-4">
+            {authorImageUrl && (
+              <img
+                src={authorImageUrl}
+                alt={authorName}
+                class="w-16 h-16 rounded-full object-cover flex-shrink-0"
+                loading="lazy"
+              />
+            )}
+            <div>
+              <p class="font-semibold text-slate-900 mb-2">{authorName}</p>
+              <p class="text-sm text-slate-600 leading-relaxed">{authorBio}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- Related posts section -->
+    {relatedPosts.length > 0 && (
+      <section class="max-w-5xl mx-auto px-4 py-12 mb-12">
+        <h2 class="text-2xl font-bold text-slate-900 mb-6">Related Articles</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {relatedPosts.map((relatedPost) => (
+            <BlogCard
+              title={relatedPost.title}
+              slug={relatedPost.slug.current}
+              date={relatedPost.publishedAt}
+              excerpt={relatedPost.excerpt}
+              categories={relatedPost.categories?.map((cat) => cat.title) || []}
+              imageUrl={relatedPost.featuredImage ? urlForImage(relatedPost.featuredImage) : undefined}
+              imageAlt={relatedPost.featuredImage?.alt || relatedPost.title}
+            />
+          ))}
+        </div>
+      </section>
+    )}
+
+  </main>
+</BaseLayout>

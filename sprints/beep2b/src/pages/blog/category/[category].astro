@@ -1,0 +1,186 @@
+---
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import BlogCard from '../../../components/BlogCard.astro';
+import {
+  getAllCategories,
+  getPostsByCategory,
+  urlForImage,
+  type Post,
+  type Category
+} from '../../../lib/sanity';
+
+// Blog post interface for page data
+interface BlogPost {
+  title: string;
+  slug: string;
+  date: string;
+  excerpt: string;
+  categories: string[];
+  imageUrl?: string;
+  imageAlt?: string;
+}
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  // Fetch all categories from Sanity
+  const categories = await getAllCategories();
+
+  // If no categories in Sanity, return empty array (no routes generated)
+  if (!categories || categories.length === 0) {
+    console.warn('[blog/category/[category].astro] No categories found in Sanity CMS');
+    return [];
+  }
+
+  // Generate a page for each category
+  const paths = await Promise.all(
+    categories.map(async (category: Category) => {
+      // Fetch all posts for this category (no pagination for category pages)
+      const sanityPosts = await getPostsByCategory(category.slug.current, 0, 100);
+
+      // Transform Sanity posts to BlogPost format
+      const posts: BlogPost[] = sanityPosts.map((post: Post) => ({
+        title: post.title,
+        slug: post.slug.current,
+        date: post.publishedAt,
+        excerpt: post.excerpt || '',
+        categories: post.categories?.map((cat) => cat.title) || [],
+        imageUrl: post.featuredImage ? urlForImage(post.featuredImage) : undefined,
+        imageAlt: post.featuredImage?.alt || post.title,
+      }));
+
+      return {
+        params: { category: category.slug.current },
+        props: {
+          category: {
+            title: category.title,
+            slug: category.slug.current,
+            description: category.description,
+          },
+          posts
+        },
+      };
+    })
+  );
+
+  return paths;
+};
+
+type Props = {
+  category: {
+    title: string;
+    slug: string;
+    description?: string;
+  };
+  posts: BlogPost[];
+};
+
+const { category, posts } = Astro.props;
+
+// Get all categories for the filter bar
+const allCategories = await getAllCategories();
+---
+
+<BaseLayout
+  title={`${category.title} — Blog | Beep2B`}
+  description={category.description || `Browse all ${category.title} articles on LinkedIn lead generation and B2B marketing from Beep2B.`}
+>
+  <main>
+
+    <!-- Page Hero -->
+    <section class="bg-brand py-12 px-4">
+      <div class="max-w-4xl mx-auto">
+        <p class="text-primary-300 text-sm font-semibold uppercase tracking-widest mb-2">
+          Resources / Category
+        </p>
+        <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">
+          {category.title}
+        </h1>
+        {category.description && (
+          <p class="text-primary-100 max-w-xl">
+            {category.description}
+          </p>
+        )}
+      </div>
+    </section>
+
+    <!-- Category filter bar -->
+    <nav aria-label="Blog categories" class="bg-white border-b border-slate-200 px-4 py-3 sticky top-16 z-30">
+      <div class="max-w-5xl mx-auto overflow-x-auto">
+        <ul class="flex gap-2 min-w-max">
+          <li>
+            <a
+              href="/blog"
+              class="inline-block px-3 py-1 rounded-full text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+            >
+              All Posts
+            </a>
+          </li>
+          {allCategories.map((cat) => (
+            <li>
+              <a
+                href={`/blog/category/${cat.slug.current}`}
+                class={`inline-block px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                  cat.slug.current === category.slug
+                    ? 'bg-primary-800 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-primary-50 hover:text-primary-700'
+                }`}
+              >
+                {cat.title}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </nav>
+
+    <!-- Post grid -->
+    <section class="py-12 px-4 bg-slate-50">
+      <div class="max-w-5xl mx-auto">
+
+        {posts.length === 0 ? (
+          <!-- Empty state when category has no posts -->
+          <div class="text-center py-20">
+            <div class="text-4xl mb-4">📂</div>
+            <h2 class="text-xl font-semibold text-slate-700 mb-2">No posts in this category yet</h2>
+            <p class="text-slate-500 mb-6">
+              Check back soon — we publish new {category.title.toLowerCase()} articles regularly.
+            </p>
+            <a
+              href="/blog"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-primary-700 text-white rounded-md text-sm font-medium hover:bg-primary-800 transition-colors"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              View all posts
+            </a>
+          </div>
+        ) : (
+          <>
+            <!-- Post count -->
+            <p class="text-sm text-slate-500 mb-6">
+              {posts.length} {posts.length === 1 ? 'post' : 'posts'} in {category.title}
+            </p>
+
+            <!-- Post grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {posts.map((post) => (
+                <BlogCard
+                  title={post.title}
+                  slug={post.slug}
+                  date={post.date}
+                  excerpt={post.excerpt}
+                  categories={post.categories}
+                  imageUrl={post.imageUrl}
+                  imageAlt={post.imageAlt}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+      </div>
+    </section>
+
+  </main>
+</BaseLayout>
