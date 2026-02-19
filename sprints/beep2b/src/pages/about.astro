@@ -1,5 +1,25 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { getPageBySlug, getSiteSettings } from '../lib/sanity';
+
+// Try to fetch from CMS, fall back to hardcoded content
+const cmsPage = await getPageBySlug('about');
+const siteSettings = await getSiteSettings();
+
+// Hardcoded fallback content
+const fallbackStory = "LinkedIn is the most powerful B2B platform in the world — but most businesses use it wrong. They spam connection requests, blast promotional messages, and then wonder why no one responds. We started Beep2B in 2014 to change that. The BEEP methodology was born from a simple insight: the businesses getting results on LinkedIn weren't the loudest ones — they were the most systematic, most helpful, and most relationship-focused. Today, we serve B2B entrepreneurs, marketers, and sales professionals across 22 countries. Our clients consistently generate qualified leads because they lead with value, not volume.";
+
+const fallbackMission = "To make systematic B2B lead generation on LinkedIn accessible to every entrepreneur and marketer — regardless of their following, budget, or technical background.";
+
+const fallbackPhilosophy = "We believe in relationships over reach, systems over hustle, and transparency always. Built by marketers for marketers, we only recommend what we use ourselves.";
+
+// Use CMS data if available, otherwise use fallback
+const companyStory = cmsPage?.sections?.find((s: any) => s._type === 'textBlock' && s.heading?.includes('Story'))?.body || fallbackStory;
+const missionStatement = cmsPage?.sections?.find((s: any) => s._type === 'textBlock' && s.heading?.includes('Mission'))?.body || fallbackMission;
+const philosophyText = cmsPage?.sections?.find((s: any) => s._type === 'textBlock' && s.heading?.includes('Philosophy'))?.body || fallbackPhilosophy;
+
+// CTA link from siteSettings or fallback
+const ctaLink = siteSettings?.ctaDefaultLink || '/contact';
 
 const milestones = [
   { year: '2014', event: 'Beep2B founded with a mission to make LinkedIn lead generation systematic and accessible for B2B businesses.' },
@@ -162,7 +182,7 @@ const values = [
           system. Book a no-obligation discovery call and let's talk about your goals.
         </p>
         <a
-          href="/contact"
+          href={ctaLink}
           class="inline-flex items-center px-8 py-3 bg-white text-primary-800 font-semibold rounded-md hover:bg-primary-50 transition-colors text-lg"
         >
           Book a Discovery Call
