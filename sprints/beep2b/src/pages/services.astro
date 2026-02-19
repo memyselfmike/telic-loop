@@ -1,7 +1,12 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { getPageBySlug } from '../lib/sanity';
 
-const services = [
+// Fetch services page content from CMS
+const pageData = await getPageBySlug('services');
+
+// Fallback services data when CMS is unavailable
+const fallbackServices = [
   {
     id: 'linkedin-marketing',
     heading: 'LinkedIn Marketing',
@@ -60,6 +65,32 @@ const services = [
     icon: `<svg class="w-8 h-8 text-primary-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>`,
   },
 ];
+
+// Extract services sections from CMS
+// If CMS has a 'services' page with feature sections, map them to the services array
+// Otherwise use fallback
+let services = fallbackServices;
+
+if (pageData?.sections) {
+  // Look for feature sections that represent services
+  const featuresSection = pageData.sections.find((s) => s._type === 'features');
+
+  if (featuresSection?.items && featuresSection.items.length > 0) {
+    // Map CMS feature items to services format
+    services = featuresSection.items.map((item: any, index: number) => ({
+      id: `service-${index + 1}`,
+      heading: item.title || fallbackServices[index]?.heading || 'Service',
+      subheading: item.description?.split('\n')[0] || fallbackServices[index]?.subheading || '',
+      description: item.description || fallbackServices[index]?.description || '',
+      benefits: fallbackServices[index]?.benefits || [], // Benefits not in CMS feature schema, use fallback
+      cta: fallbackServices[index]?.cta || 'Learn More',
+      ctaHref: fallbackServices[index]?.ctaHref || '/contact',
+      accent: fallbackServices[index]?.accent || 'bg-blue-50',
+      iconBg: fallbackServices[index]?.iconBg || 'bg-primary-100',
+      icon: fallbackServices[index]?.icon || '',
+    }));
+  }
+}
 ---
 
 <BaseLayout
