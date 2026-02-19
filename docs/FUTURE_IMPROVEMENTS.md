@@ -56,17 +56,19 @@ See `phases/process_monitor.py:scan_file_line_counts()/format_code_health()/crea
 
 # Backlog — Beep2b Post-Mortem (2026-02-19)
 
-Sprint stats: 63 iterations, 1.1M tokens, 6.2 hrs wall clock. **53% of time wasted** on timeouts, crashes, and concurrent instances. Despite this, delivered 35/36 tasks at 100% VRC. Analysis below identifies 6 improvements ranked by impact.
+Sprint stats: 63 iterations, 1.1M tokens, 6.2 hrs wall clock. **53% of time wasted** on timeouts, crashes, and concurrent instances. Despite this, delivered 35/36 tasks at 100% VRC. Analysis below identifies improvements ranked by impact.
+
+Quality-gated: CRAP + CONNECT + project-agnostic review applied 2026-02-19. Original P1 merged into P5, original P7 merged into P5, P3/P5/P8 revised to remove framework-specific logic.
 
 ---
 
-## P0: Fix Exit Gate Timeouts
+## P0: Exit Gate Fail-Fast and Timeout Control
 
-**Problem**: Exit gate is the #1 time sink — 6 attempts, ALL failed as `no_progress`, 100 min wasted (27% of total runtime), 106K tokens burned. Each attempt takes 17-20 min. The gate eventually only passed via the safety valve (auto-pass after `max_exit_gate_attempts`), meaning it **never actually verified** the output.
+**Problem**: Exit gate is the #1 time sink — 6 attempts, ALL failed as `no_progress`, 100 min wasted (27% of total runtime), 106K tokens. Each attempt takes 17-20 min. The gate only passed via safety valve, meaning it **never actually verified** the output.
 
-**Root cause**: The gate runs 5 checks sequentially, each spawning a full SDK session: coherence eval → regression sweep → fresh VRC → critical eval → code quality. Critical eval alone takes 10+ min (Playwright browser evaluation). The total consistently exceeds any reasonable timeout.
+**Root cause**: The gate runs 5 checks sequentially (coherence → regression → VRC → critical eval → code quality), each spawning a full SDK session. If an early check fails, the later (expensive) checks still run. No wall-clock cap exists.
 
-**Evidence** (from progress log):
+**Evidence**:
 ```
 iter=29  exit_gate  1036s (17min) no_progress
 iter=30  exit_gate  1096s (18min) no_progress
@@ -77,197 +79,169 @@ iter=63  exit_gate  1155s (19min) no_progress
 ```
 
 **Fix**:
-1. **Fail fast**: If coherence or regression fails, skip later checks and return immediately (currently runs all 5 even after early failure).
-2. **Lightweight critical eval at exit gate**: Replace full Playwright browser evaluation with a build-only check (`npm run build` exit code 0). Reserve heavy browser eval for epic boundaries only.
-3. **Wall-clock cap**: Add a total timeout on the entire exit gate function (e.g. 10 min). If it hasn't passed all checks by then, fail and move on.
-4. **Per-check timeouts**: Give each sub-check its own timeout (e.g. coherence=2min, regression=3min, VRC=2min, critical=3min, quality=1min) instead of letting one check consume all time.
+1. **Fail fast**: If coherence or regression fails, return immediately — skip VRC, critical eval, and code quality. Currently runs all 5 even after early failure.
+2. **Wall-clock cap**: Add a configurable total timeout on the exit gate function (default 15 min). If checks haven't all passed by then, fail and move on. `exit_gate_wall_clock_sec: int = 900` in LoopConfig.
+3. **Budget-aware short-circuit**: If token budget > 95%, skip non-essential checks (coherence, code quality) and run only regression + VRC.
 
-**Files**: `phases/exit_gate.py`, `phases/critical_eval.py`, `config.py`
+**Files**: `phases/exit_gate.py`, `config.py`
 
 **Expected savings**: ~100 min per multi-epic sprint
 
 ---
 
-## P1: Fix Critical Eval Timeouts
+## P1: Per-Role SDK Timeout Configuration
 
-**Problem**: Critical eval timed out at 600s (SDK timeout) on **every single invocation** — 4 attempts, 39 min wasted, 33K tokens. It never successfully completed. This means critical evaluation provided zero value during the entire sprint.
+**Problem**: A single global `sdk_query_timeout_sec` (300s) doesn't fit all roles. CLASSIFIER needs 60s. EVALUATOR needs 900s. BUILDER is fine at 300s. Multiple proposals (P0, P5) depend on role-appropriate timeouts.
 
-**Root cause**: Critical eval likely spawns Playwright to evaluate the live site, requiring: start dev server → wait for ready → navigate pages → take screenshots → analyze. This exceeds the 5-min SDK timeout.
-
-**Evidence**:
-```
-iter=28  critical_eval  600s (10min) no_progress
-iter=46  critical_eval  600s (10min) no_progress
-iter=54  critical_eval  600s (10min) no_progress
-iter=58  critical_eval  536s  (9min) no_progress
-```
+**Root cause**: `ClaudeSession.timeout_sec` is set from the single `config.sdk_query_timeout_sec` value at `claude.py:151`. No per-role override exists.
 
 **Fix**:
-1. **Increase timeout for critical eval**: Use a role-specific timeout (e.g. 900s) rather than the global `sdk_query_timeout_sec`.
-2. **Break into stages**: Static analysis first (file structure, imports, build check) — fast, reliable. Browser evaluation second as a separate SDK session with its own timeout — optional, can fail gracefully.
-3. **Pre-warm dev server**: Start the dev server before the SDK session so Playwright doesn't waste time waiting for startup.
-4. **Consider skipping browser eval for static sites**: Astro builds to static HTML — `npm run build` success + file content checks may be sufficient. Browser eval adds most value for dynamic SPAs.
+1. Add `sdk_timeout_by_role: dict[str, int]` to LoopConfig with sensible defaults:
+   ```python
+   sdk_timeout_by_role: dict[str, int] = field(default_factory=lambda: {
+       "CLASSIFIER": 60,
+       "BUILDER": 300,
+       "FIXER": 300,
+       "QC": 300,
+       "REASONER": 300,
+       "EVALUATOR": 900,
+       "RESEARCHER": 300,
+   })
+   ```
+2. In `Claude.session()`, look up `role.name` in the dict, falling back to the global default.
 
-**Files**: `phases/critical_eval.py`, `claude.py` (per-role timeout), `config.py`
+**Files**: `config.py`, `claude.py`
 
-**Expected savings**: ~40 min per sprint
+**Expected savings**: Enables P0 and P5 to work correctly. Prevents EVALUATOR timeouts without bloating timeout for fast roles.
 
 ---
 
 ## P2: Prevent Concurrent Loop Instances
 
-**Problem**: 10 iterations ran as duplicates (up to 4x concurrent), causing 58 min wasted time, 93K wasted tokens, and state file corruption. User saw "playwright firing up over and over" from multiple competing instances.
+**Problem**: 10 iterations ran as duplicates (up to 4x concurrent), causing 58 min wasted time, 93K wasted tokens, and state file corruption.
 
-**Root cause**: `run_beep2b.py` (custom launcher) calls `run_epic_loop()` directly, bypassing the lock file mechanism in `main.py:_acquire_lock()`. Multiple background Task tool invocations each launched a separate `python run_beep2b.py` process.
+**Root cause**: `run_beep2b.py` (custom launcher) calls `run_epic_loop()` directly, bypassing the lock file in `main.py:_acquire_lock()`. The lock mechanism works correctly — it's just not applied at the right level.
 
-**Evidence** (duplicate iterations in progress log):
+**Evidence**:
 ```
 Iteration 40: 2 entries
 Iteration 42: 3 entries
-Iteration 43: 2 entries
 Iteration 45: 4 entries  ← four concurrent instances!
-Iteration 46: 3 entries
 ```
 
 **Fix**:
-1. **Move lock acquisition into `run_epic_loop()`**: Lock at the epic loop level, not just `main()`. Any entry point (main, run_e2e.py, custom launchers) gets locking for free.
-2. **OS-level file locking**: Replace the current PID-based lock with `fcntl.flock()` (Unix) / `msvcrt.locking()` (Windows) for atomic lock acquisition. Current PID check has TOCTOU race conditions.
-3. **Startup process check**: On launch, scan for existing `python run_*.py` or `telic_loop` processes and abort if found.
+1. **Move lock acquisition into `run_value_loop()` and `run_epic_loop()`**: Any entry point (main, run_e2e.py, custom launchers) gets locking for free. Accept `lock_path` as parameter, default to `config.sprint_dir / ".loop.lock"`.
 
-**Files**: `main.py`, `phases/epic.py`, potentially a new `locking.py` module
+That's it. The locking mechanism itself (PID-based `O_CREAT | O_EXCL` with stale PID check) is adequate. The bug is **where** it's called, not **how** it works.
+
+**Files**: `main.py`, `phases/epic.py`
 
 **Expected savings**: ~58 min per sprint + prevents state corruption
 
 ---
 
-## P3: Reduce Startup Tax
+## P3: Smarter VRC Frequency
 
-**Problem**: Iterations 1-10 achieved only 40% progress rate, burning 52 min before real execution began. Service fixes and QC generation failures dominate early iterations.
+**Problem**: 70 VRC evaluations for 63 iterations. VRC runs after every action — including timeouts, crashes, and failed service fixes. VRC #6 through #15 all returned 25% (10 identical runs).
 
-**Root cause**:
-- `service_fix` triggers at iter 1 before any tasks exist — tries to start dev servers that aren't needed yet
-- `generate_qc` triggers at iters 8-10 despite the `min 3 tasks` guard in decision.py — possibly the guard counts tasks from a previous epic or the counter wasn't properly scoped
+**Root cause**: `run_vrc()` called unconditionally after every action in the value loop (main.py line 144).
 
-**Evidence**:
-```
-Epic 1 startup (iters 1-10): 4/10 progress (40%), 52 min
-Epic 1 execution (iters 11-27): 15/16 progress (94%), 49 min  ← night and day
-```
+**Fix** (implement in order):
+1. **Skip VRC after failed actions**: If `progress=False`, no work was done — VRC score can't have changed.
+2. **Skip VRC when no tasks changed**: Track task status hash. If no task changed status since last VRC, skip.
+3. **Minimum interval**: Don't run VRC more than once every 60s unless a task was completed. `vrc_min_interval_sec: int = 60` in LoopConfig.
 
-**Fix**:
-1. **Defer service discovery**: Don't run service detection until after the first EXECUTE action creates something to serve. Context discovery already identifies project type — don't try to start servers until files exist.
-2. **QC generation guard audit**: Trace why `generate_qc` fired at iter 8 with no completed tasks. The `min 3 tasks` guard may not be counting correctly for the first epic.
-3. **Brownfield detection**: Beep2b was brownfield (existing scaffold). The service fixer tried to start servers for a project that was already configured. Detect existing `package.json` scripts and skip service setup.
+Note: Sub-item 4 from original plan ("lightweight vs full heuristic") already exists at `vrc.py` lines 29-39. No change needed.
 
-**Files**: `phases/execute.py` (service detection), `decision.py` (QC guard), `discovery.py`
+**Files**: `main.py` (VRC call site), `state.py` (task status hash)
 
-**Expected savings**: ~30 min per sprint
+**Expected savings**: ~30 VRC calls eliminated per sprint (~50K tokens)
 
 ---
 
-## P4: Smarter VRC Frequency
+## P4: Quality Task Auto-Descope Fix
 
-**Problem**: 70 VRC evaluations for 63 iterations. VRC runs after every action — including timeouts, crashes, and failed service fixes. Many consecutive VRCs return identical scores (e.g. VRC #6 through #15 all returned 25%).
+**Problem**: STRUCTURE-prd-conformance task reopened 5 times before auto-descoping. The `_upsert_task()` retry cap (`retry_count >= 2`) was added mid-sprint and the counter wasn't correct. Additionally, `_has_architectural_alternative()` in code_quality.py contains Astro-specific patterns (lines 324-345) that violate project-agnosticism.
 
-**Root cause**: `run_vrc()` is called unconditionally after every action in the value loop (main.py line 144), skipping only after `exit_gate` and during `pause`.
+**Root cause**: Two separate issues:
+1. Auto-descope counter wasn't incrementing correctly — task hit `retry_count=5` despite a cap of 2.
+2. `_has_architectural_alternative()` hardcodes framework-specific file patterns (`.astro`, `[...slug].astro`) instead of using a generic mechanism.
 
 **Fix**:
-1. **Skip VRC when no tasks changed**: Track `last_vrc_task_hash` (hash of task statuses). If no task changed status since last VRC, skip.
-2. **Skip VRC after failed actions**: If `progress=False`, no work was done — VRC score can't have changed.
-3. **Minimum interval**: Don't run VRC more than once every N minutes (e.g. 3 min) unless a task was completed.
-4. **Lightweight vs full**: Currently uses `force_full` after critical eval and course correction. For regular heartbeats, use a cheaper "did any tasks complete since last check?" heuristic before spawning a full LLM evaluation.
+1. **Audit `_upsert_task()` retry counting**: Verify `retry_count` increments on every done→pending reopen. Add logging to trace the lifecycle. The cap should have worked at 2; find out why it didn't.
+2. **Builder override mechanism**: Replace framework-specific `_has_architectural_alternative()` with a generic approach: when the builder marks a quality task as done, it can set a `resolution_note` field explaining why the violation is intentional (e.g. "Tailwind v4 uses CSS-first config, no tailwind.config.mjs needed"). If the quality check re-triggers but `resolution_note` is set and `retry_count >= 1`, auto-descope with "Builder provided architectural justification."
+3. **Remove Astro-specific code**: Delete the hardcoded Astro file patterns from `_has_architectural_alternative()`. The builder override mechanism replaces them generically.
 
-**Files**: `main.py` (VRC call site), `phases/vrc.py`, `state.py` (tracking hash)
+**Files**: `phases/code_quality.py`, `tools.py` (add `resolution_note` to task complete), `state.py` (TaskState field)
 
-**Expected savings**: ~20-30 VRC calls eliminated per sprint (~50K tokens)
+**Expected savings**: Eliminates infinite reopen cycles for any framework, not just Astro/Tailwind.
 
 ---
 
-## P5: PRD Structure False Positive Prevention
+## P5: Reliable Playwright Critical Evaluation
 
-**Problem**: The STRUCTURE-prd-conformance task was reopened 5 times before auto-descoping. It detected "missing" `tailwind.config.mjs` which doesn't exist in Tailwind v4 (uses `@tailwindcss/vite` instead). The infinite reopen cycle consumed execution iterations and delayed exit gate.
+*Absorbs original P1 (critical eval timeouts) and P7 (artifact cleanup).*
 
-**Root cause**: `_scan_prd_structure()` in code_quality.py parses the PRD's file tree literally. It doesn't understand framework-specific alternatives (e.g. Tailwind v4 removed the config file in favor of CSS-first configuration).
+**Problem**: Critical eval with Playwright timed out 4/4 times (39 min wasted) and never delivered value. However, visual review is **essential** for catching layout issues, broken responsive behavior, and UX gaps that code-only checks miss. The user spotted a dodgy category filter layout that a working critical evaluator should have caught. Additionally, 90+ Playwright screenshots and `.playwright-mcp/` logs littered the project root.
+
+**Root cause**: The evaluator tries to start a dev server, wait for it, navigate pages, screenshot, and analyze — all in one SDK session with a 5-min timeout. Screenshots save to CWD (project root) with no cleanup.
+
+**What the critical evaluator SHOULD do** (project-agnostic for any web deliverable):
+1. Navigate every page/route at desktop and mobile viewports
+2. Take screenshots and inspect for layout issues, broken components, missing content
+3. Test interactive elements (forms, navigation, modals)
+4. Compare against PRD/vision to catch intent-vs-implementation gaps
+5. File specific, actionable tasks for issues found
 
 **Fix**:
-1. **Framework-aware exceptions**: When the project uses `@tailwindcss/vite` (detected in astro.config or package.json), suppress `tailwind.config.mjs` from the required files list.
-2. **Builder feedback loop**: When the builder marks STRUCTURE-prd-conformance as done with a note like "not applicable — Tailwind v4", the code quality system should accept the explanation rather than reopening.
-3. **Reduce retry cap**: The auto-descope threshold of 2 retries eventually caught it, but the task had `retry_count=5` — suggesting the retry cap was added mid-sprint. Verify the cap is working correctly from the start.
+1. **Pre-warm dev server** (gated behind `_needs_browser_eval()`): Start the dev server as a background subprocess BEFORE the SDK session. Wait for port readiness. Pass the URL to the evaluator's prompt. This is project-agnostic — uses existing `state.context.services` which discovery already populated.
+2. **Per-role timeout**: EVALUATOR role gets 900s via P1's `sdk_timeout_by_role`. Enough time for a thorough page-by-page review.
+3. **Staged evaluation**: Two SDK sessions:
+   - (a) **Structural check**: Does it build? Do routes exist? Any console errors? (Fast, deterministic, ~60s)
+   - (b) **Visual review**: Playwright page-by-page at desktop + mobile viewports. (Slow, thorough, ~10 min)
+   - If (a) fails, skip (b) and return findings immediately.
+4. **Retry with narrower scope**: If (b) times out, retry with only the routes changed since the last successful eval (track in state).
+5. **Artifact cleanup**: After any phase using Playwright:
+   - Delete `*.png` from CWD that weren't there before the phase started
+   - Delete `.playwright-mcp/` directory
+   - Add `.playwright-mcp/` and `.loop/screenshots/` to `ensure_gitignore()` template
+6. **Screenshot directory**: Instruct Playwright to save screenshots to `sprints/<name>/.loop/screenshots/` via evaluator system prompt.
 
-**Files**: `phases/code_quality.py` (`_scan_prd_structure`, `_upsert_task`)
+**Files**: `phases/critical_eval.py`, `claude.py` (per-role timeout via P1), `config.py`, `prompts/critical_eval.md`, `prompts/critical_eval_browser.md`, `git.py` (gitignore)
 
-**Expected savings**: ~5-10 wasted iterations per sprint with novel frameworks
+**Expected impact**: Visual QC that actually runs. The difference between "it builds" and "it looks polished."
 
 ---
 
-## P6: Make Critical Eval with Playwright Reliable
+## P6: QC Generation Guard Audit
 
-**Problem**: Critical eval with Playwright browser evaluation timed out on every invocation (4/4) and never delivered value. However, the capability is **essential** — a visual review of the built site is the only way to catch layout issues, broken responsive behavior, dodgy-looking filter widgets, etc. In beep2b, the user spotted a layout issue on a category filter that a working critical evaluator should have caught and sent back for polish. The goal is not to remove browser evaluation but to make it work reliably. We're aiming for the best possible outcomes, not the median.
+**Problem**: QC generation fired 3 times at iterations 8-10 with no completed tasks, wasting 17 min.
 
-**Root cause**: The critical evaluator tries to start a dev server, wait for it, navigate every page, take screenshots, and analyze them — all within a single SDK session that has a 5-minute timeout. For a 6-page Astro site this is too tight, especially on Windows where subprocess startup is slower.
-
-**What the critical evaluator SHOULD do**:
-1. Navigate every page at desktop and mobile viewport sizes
-2. Take screenshots and visually inspect for layout issues, broken components, misaligned elements, missing content
-3. Test interactive elements (mobile menu toggle, contact form validation, pagination)
-4. Compare against the PRD/vision to catch gaps between intent and implementation
-5. File specific, actionable tasks for anything that doesn't look right
+**Root cause**: The `min 3 tasks` guard at decision.py line 82-87 should prevent premature QC, but it triggered anyway. Likely the guard counts tasks from across all epics rather than scoped to the current epic, or the `generate_verifications_after` config (default 1) overrides `min_for_qc`.
 
 **Fix**:
-1. **Pre-warm the dev server**: Start the dev server as a background process BEFORE launching the SDK session. Pass the URL to the evaluator. Don't make the evaluator waste time starting servers.
-2. **Longer SDK timeout for evaluator**: Critical eval needs 10-15 min, not 5. Add per-role timeout configuration (e.g. `sdk_query_timeout_evaluator_sec: 900`).
-3. **Staged evaluation**: Break into two SDK sessions: (a) Quick structural checks (does it build, do pages exist, are there console errors). (b) Deep visual review with screenshots at multiple viewports. If (a) fails, skip (b).
-4. **Retry with narrower scope**: If the full evaluation times out, retry with just the pages that changed since the last successful eval.
-5. **Screenshot management**: The evaluator takes screenshots via Playwright's `browser_take_screenshot` tool, which saves to the CWD. These need explicit cleanup (see P7).
+1. Audit `decide_next_action()` P3 logic (decision.py lines 78-88) to confirm it uses `_scoped_tasks()` for the done count, not global tasks.
+2. Ensure `min_for_qc = min(3, len(scoped))` cannot evaluate to 0 or 1 for a new epic with no completed tasks.
+3. Add a guard: don't attempt QC generation if 0 tasks have been completed in the current epic.
 
-**Files**: `phases/critical_eval.py`, `claude.py` (per-role timeout), `config.py`, `prompts/critical_eval.md`
+**Files**: `decision.py`
 
-**Expected impact**: Catch visual/UX issues that code-only checks miss. The difference between "it builds" and "it looks polished."
+**Expected savings**: ~17 min per sprint (eliminates pointless early QC attempts)
 
 ---
 
-## P7: Playwright Artifact Cleanup
+## P7: VRC Accuracy and Skepticism
 
-**Problem**: Playwright screenshots and temp files litter the project root directory during loop execution. In beep2b, 90+ PNG screenshots and `nul` files accumulated in the telic-loop root, requiring manual cleanup. This is messy and unprofessional — the loop should clean up after itself.
+**Problem**: VRC reported 100% SHIP_READY for beep2b, but the Sanity CMS integration was non-functional (`projectId='placeholder'`, no real project created). Graceful degradation (showing fallback content) masked the failure — pages rendered without errors, so VRC counted them as working. This is a systemic gap: VRC verifies that deliverables **render** but not that they **function**.
 
-**Root cause**: Playwright's `browser_take_screenshot` MCP tool saves screenshots to the current working directory. The SDK's `query()` runs from the telic-loop root, so screenshots land there. Neither the critical evaluator nor the exit gate cleans them up.
+**Root cause**: VRC evaluates deliverables by checking whether they exist and produce output, not whether external integrations actually connect. A page showing "No posts yet" scores the same as a page with real CMS data.
 
-**Artifacts observed**:
-- `homepage-desktop-full.png`, `homepage-mobile-375.png`, `contact-form-error.png`, etc.
-- `nul` files (Windows artifact from Playwright trying to write to `/dev/null`)
-- `.playwright-mcp/` directory with console logs from every Playwright session
+**Fix** (project-agnostic — applies to any project with external dependencies):
+1. **VRC service skepticism prompt**: When `state.context.services` is non-empty, add a VRC prompt clause: "External services are configured. Verify that deliverables show REAL data from these services, not fallback/placeholder content. A CMS page showing 'No posts yet' or a dashboard showing sample data is NOT verified — it may indicate a missing connection."
+2. **Integration smoke test in critical eval**: Before the visual review, the critical evaluator should check: are external services responding with real data? Does the CMS have content? Does the API return non-empty responses? Flag placeholder/fallback content as a `blocking` gap.
+3. **Exit gate service health upgrade**: Extend `_all_services_healthy()` (decision.py line 166) to check semantic correctness: not just "port is open" or "HTTP 200" but "response contains expected data structure." For example, a CMS health check should verify the content API returns at least one document.
+4. **VRC re-evaluation trigger**: If `exit_gate` has failed 2+ times but VRC still shows >= 90%, force VRC to re-evaluate with increased skepticism prompt weight.
 
-**Fix**:
-1. **Post-phase cleanup**: After any phase that uses Playwright (critical_eval, exit_gate), scan the working directory for `*.png` files and `.playwright-mcp/` and delete them.
-2. **Dedicated screenshot directory**: Configure Playwright to save screenshots to `sprints/<name>/.loop/screenshots/` instead of the root. Pass this path in the evaluator's system prompt.
-3. **End-of-loop cleanup**: Add a final cleanup step in `generate_delivery_report()` or the epic loop's completion handler to remove all temp artifacts.
-4. **`.gitignore` rule**: Add `*.png` and `.playwright-mcp/` to the sprint `.gitignore` template in `ensure_gitignore()`.
+**Files**: `prompts/vrc.md`, `phases/critical_eval.py`, `decision.py` (`_all_services_healthy`), `phases/exit_gate.py`
 
-**Files**: `phases/critical_eval.py`, `phases/exit_gate.py`, `render.py`, `git.py` (gitignore)
-
-**Expected impact**: Clean working directory. No manual cleanup needed.
-
----
-
-## P8: End-to-End Integration Verification
-
-**Problem**: The beep2b sprint delivered Sanity CMS integration at 100% VRC, but the CMS is completely non-functional. No real Sanity project was created. `projectId` is `'placeholder'`. No `.env` files exist. The user cannot log into Sanity Studio or edit blog posts. Every page renders with fallback/placeholder content. The VRC verified that the code exists, builds, and renders — but not that the integration actually works.
-
-This is a systemic gap: the loop can verify **static outcomes** (files exist, build passes, pages render) but not **dynamic ones** (can you log into the CMS? does the API return real data? does the contact form submit successfully?).
-
-**Root cause**: Multiple contributing factors:
-1. **No interactive credential flow**: The loop runs non-interactively. It can't prompt the user for a Sanity project ID mid-sprint, and `sanity init` is interactive (requires browser OAuth). The builder coded around this by adding graceful fallbacks everywhere — which made the VRC think everything was fine.
-2. **VRC doesn't verify service connectivity**: VRC checks whether deliverables exist and work, but "work" means "renders without errors", not "connects to a real backend." A page showing "No posts yet" technically "works."
-3. **Graceful degradation masks failures**: Task 2.7 ("graceful empty-state handling") was delivered successfully — but it makes it impossible to distinguish "CMS is empty" from "CMS is not connected."
-4. **PRD didn't specify credentials**: The vision/PRD said "Sanity CMS integration" but didn't include a project ID or setup instructions. The loop had no way to provision one.
-
-**Fix**:
-1. **Pre-sprint setup checklist**: Before the loop starts, scan the PRD for third-party service dependencies (Sanity, Stripe, Auth0, etc.). Present a checklist to the user: "This sprint requires: Sanity project ID, dataset name. Please provide or create one." Block loop start until credentials are provided.
-2. **Integration health check**: Add a new verification type beyond "does it build" — "does it connect?" For Sanity: attempt a GROQ query and verify non-empty response. For APIs: hit the health endpoint. Run this check during VRC and exit gate.
-3. **Credential provisioning in PRD template**: Update the PRD prompt to ask the user: "List any API keys, project IDs, or service credentials needed. Provide them now or note that they'll be needed during setup."
-4. **Service liveness in critical eval**: When evaluating a CMS-backed site, the critical evaluator should notice that all content is placeholder/fallback and flag it as a gap ("Blog page shows 'No posts yet' — is the CMS connected?").
-5. **Setup task generation**: If the planner detects a third-party service dependency, auto-generate a setup task (e.g. "Create Sanity project and configure .env") that requires human input and blocks the integration tasks.
-
-**Files**: `phases/preloop.py` (setup checklist), `phases/vrc.py` (connectivity check), `prompts/plan.md` (credential prompt), `prompts/critical_eval.md` (liveness check), `prompts/prd.md` (credential section)
-
-**Expected impact**: Prevents shipping "working" code that doesn't actually work. Catches integration gaps before exit gate rather than after delivery.
+**Expected impact**: Prevents shipping "working" code that doesn't actually work. Catches integration gaps where graceful degradation masks failures.
