@@ -1,12 +1,12 @@
 # Value Checklist: beep2b
-Generated: 2026-02-18T23:41:32.140321
+Generated: 2026-02-19T00:16:19.794497
 
 ## VRC Status
 - Value Score: 100%
 - Verified: 8/8
 - Blocked: 0
 - Recommendation: SHIP_READY
-- Summary: Fallback VRC: carried forward from iteration 32 (100%)
+- Summary: Fallback VRC: carried forward from iteration 33 (100%)
 
 ## Tasks
 - [x] **1.1**: Verify Astro project configuration: astro.config.mjs has React integration and Tailwind v4 via @tailwindcss/vite plugin, tsconfig.json extends astro/tsconfigs/strict with jsx:react-jsx, package.json has dev/build/preview scripts. Confirm npm run dev starts on port 4321 and npm run build produces dist/ with zero errors. This is brownfield verification -- all config files already exist.
@@ -17,7 +17,7 @@ Generated: 2026-02-18T23:41:32.140321
 - [x] **1.6**: Verify Home page (index.astro) placeholder content: hero section with headline, subheadline, CTA button; 6 feature cards with icons, titles, descriptions; BEEP method 4-step preview (Build, Engage, Educate, Promote); 3 testimonial cards with quotes; bottom CTA banner. Confirm page uses BaseLayout, applies blue theme consistently, and responsive grid layout works (1/2/3 columns).
 - [x] **1.7**: Verify 4 content pages have appropriate placeholder content. How It Works: 4-step BEEP method (Build, Engage, Educate, Promote) with visual layout and descriptions. Services: 3 service sections (LinkedIn Marketing, Thought Leadership, LinkedIn Training) with benefits lists. About: company story, stats, mission, values. Contact: form placeholder with ContactForm.tsx React island (client:load). All use BaseLayout.
 - [x] **1.8**: Verify blog listing page (blog/[...page].astro) with placeholder content: BlogCard.astro component showing image area, title, date, category badges, excerpt. Responsive card grid (1 col mobile, 2 col tablet, 3 col desktop). Pagination via paginate() with prev/next links. Category filter nav with links to /blog/category/[slug]. Confirm no conflicting blog/index.astro exists.
-- [ ] **2.1**: Create Sanity Studio project in sanity/ directory. Set up sanity.config.ts with project ID and dataset. Note: Sanity Studio only exposes env vars prefixed SANITY_STUDIO_ to browser code -- either hardcode project ID in config or use SANITY_STUDIO_PROJECT_ID. Create sanity.cli.ts. Add package.json with sanity and @sanity/vision dependencies. Configure npm scripts for sanity dev (port 3333). Use defineConfig from sanity, defineType/defineField for schema API. Verify npx sanity dev launches Studio UI.
+- [x] **2.1**: Create Sanity Studio project in sanity/ directory. Set up sanity.config.ts with project ID and dataset. Note: Sanity Studio only exposes env vars prefixed SANITY_STUDIO_ to browser code -- either hardcode project ID in config or use SANITY_STUDIO_PROJECT_ID. Create sanity.cli.ts. Add package.json with sanity and @sanity/vision dependencies. Configure npm scripts for sanity dev (port 3333). Use defineConfig from sanity, defineType/defineField for schema API. Verify npx sanity dev launches Studio UI.
 - [ ] **2.2**: Create 4 Sanity TypeScript schemas in sanity/schemas/: post.ts (title, slug, author ref, publishedAt, categories refs, featuredImage with alt text, excerpt max 200 chars, body as Portable Text), author.ts (name, slug, image, bio), category.ts (title, slug, description), page.ts (title, slug, sections array with hero/features/testimonials/textBlock/cta object types per PRD 2.4). Create schemas/index.ts registering these 4 schemas. Task 2.2b handles the remaining 3 schemas (testimonial, siteSettings, navigation).
 - [ ] **2.2b**: Create 3 remaining Sanity schemas: testimonial.ts (name required, company optional, role optional, quote required, image optional), siteSettings.ts (title, description, logo, socialLinks object with linkedin/twitter/facebook string fields, footerText, ctaDefaultLink), navigation.ts (items array where each item has label string, href string, optional children array of same shape). Update schemas/index.ts to register all 7 schemas (4 from task 2.2 + these 3). Verify Studio sidebar shows all 7 document types.
 - [ ] **2.3**: Create Sanity client library at src/lib/sanity.ts. Configure @sanity/client with project ID, dataset, API version, and useCdn:true from env vars. Create GROQ query helpers: getAllPosts (paginated), getPostBySlug, getPostsByCategory, getAllCategories, getPageBySlug, getSiteSettings, getNavigation. Add @sanity/image-url builder for image URLs.
