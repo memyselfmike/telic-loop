@@ -1,12 +1,12 @@
 # Value Checklist: beep2b
-Generated: 2026-02-19T00:16:19.794497
+Generated: 2026-02-19T08:47:50.869243
 
 ## VRC Status
 - Value Score: 100%
 - Verified: 8/8
 - Blocked: 0
 - Recommendation: SHIP_READY
-- Summary: Fallback VRC: carried forward from iteration 33 (100%)
+- Summary: Fallback VRC: carried forward from iteration 36 (100%)
 
 ## Tasks
 - [x] **1.1**: Verify Astro project configuration: astro.config.mjs has React integration and Tailwind v4 via @tailwindcss/vite plugin, tsconfig.json extends astro/tsconfigs/strict with jsx:react-jsx, package.json has dev/build/preview scripts. Confirm npm run dev starts on port 4321 and npm run build produces dist/ with zero errors. This is brownfield verification -- all config files already exist.
@@ -18,7 +18,7 @@ Generated: 2026-02-19T00:16:19.794497
 - [x] **1.7**: Verify 4 content pages have appropriate placeholder content. How It Works: 4-step BEEP method (Build, Engage, Educate, Promote) with visual layout and descriptions. Services: 3 service sections (LinkedIn Marketing, Thought Leadership, LinkedIn Training) with benefits lists. About: company story, stats, mission, values. Contact: form placeholder with ContactForm.tsx React island (client:load). All use BaseLayout.
 - [x] **1.8**: Verify blog listing page (blog/[...page].astro) with placeholder content: BlogCard.astro component showing image area, title, date, category badges, excerpt. Responsive card grid (1 col mobile, 2 col tablet, 3 col desktop). Pagination via paginate() with prev/next links. Category filter nav with links to /blog/category/[slug]. Confirm no conflicting blog/index.astro exists.
 - [x] **2.1**: Create Sanity Studio project in sanity/ directory. Set up sanity.config.ts with project ID and dataset. Note: Sanity Studio only exposes env vars prefixed SANITY_STUDIO_ to browser code -- either hardcode project ID in config or use SANITY_STUDIO_PROJECT_ID. Create sanity.cli.ts. Add package.json with sanity and @sanity/vision dependencies. Configure npm scripts for sanity dev (port 3333). Use defineConfig from sanity, defineType/defineField for schema API. Verify npx sanity dev launches Studio UI.
-- [ ] **2.2**: Create 4 Sanity TypeScript schemas in sanity/schemas/: post.ts (title, slug, author ref, publishedAt, categories refs, featuredImage with alt text, excerpt max 200 chars, body as Portable Text), author.ts (name, slug, image, bio), category.ts (title, slug, description), page.ts (title, slug, sections array with hero/features/testimonials/textBlock/cta object types per PRD 2.4). Create schemas/index.ts registering these 4 schemas. Task 2.2b handles the remaining 3 schemas (testimonial, siteSettings, navigation).
+- [x] **2.2**: Create 4 Sanity TypeScript schemas in sanity/schemas/: post.ts (title, slug, author ref, publishedAt, categories refs, featuredImage with alt text, excerpt max 200 chars, body as Portable Text), author.ts (name, slug, image, bio), category.ts (title, slug, description), page.ts (title, slug, sections array with hero/features/testimonials/textBlock/cta object types per PRD 2.4). Create schemas/index.ts registering these 4 schemas. Task 2.2b handles the remaining 3 schemas (testimonial, siteSettings, navigation).
 - [ ] **2.2b**: Create 3 remaining Sanity schemas: testimonial.ts (name required, company optional, role optional, quote required, image optional), siteSettings.ts (title, description, logo, socialLinks object with linkedin/twitter/facebook string fields, footerText, ctaDefaultLink), navigation.ts (items array where each item has label string, href string, optional children array of same shape). Update schemas/index.ts to register all 7 schemas (4 from task 2.2 + these 3). Verify Studio sidebar shows all 7 document types.
 - [ ] **2.3**: Create Sanity client library at src/lib/sanity.ts. Configure @sanity/client with project ID, dataset, API version, and useCdn:true from env vars. Create GROQ query helpers: getAllPosts (paginated), getPostBySlug, getPostsByCategory, getAllCategories, getPageBySlug, getSiteSettings, getNavigation. Add @sanity/image-url builder for image URLs.
 - [ ] **2.4**: Wire blog listing page (blog/[...page].astro) to Sanity. Replace placeholder data with real Sanity posts via getAllPosts GROQ query in getStaticPaths. Use paginate() with pageSize:10 to generate /blog, /blog/2, /blog/3 etc. Render BlogCard.astro for each post with real data (featured image via image-url, title, publishedAt formatted date, category Badges, excerpt). Prev/next links from page.url.prev/next.
@@ -36,5 +36,12 @@ Generated: 2026-02-19T00:16:19.794497
 - [x] **VRC-15-gap-2**: Add Inter font loading via Google Fonts link in BaseLayout head and update --font-sans in globals.css to use Inter as primary font
 - [x] **1.9**: Final build verification and responsive layout check. Run npm run build and confirm zero errors, dist/ contains HTML for all 6 routes (/, /how-it-works, /services, /about, /contact, /blog). Verify responsive behavior: Header desktop nav visible >1024px, hamburger <768px. Cards stack on mobile, grid on tablet/desktop. Footer consistent across pages. Blue theme applied uniformly. Fix any build warnings or layout issues.
 - [D] **STRUCTURE-prd-conformance**: PRD files still missing: astro.config.mjs          # Astro config with React + Tailwind, tailwind.config.mjs       # Tailwind config with shadcn theme, src/layouts/BaseLayout.astro  # HTML shell, head, nav, footer, src/components/ui/               # shadcn/ui components (Button, Card, etc.), src/components/Header.astro      # Site header with navigation, src/components/Footer.astro      # Site footer with links, social, newsletter, src/components/Hero.astro        # Hero section (reusable across pages), src/components/FeatureCard.astro # Feature/benefit card, src/components/BlogCard.astro    # Blog post preview card, src/components/ContactForm.tsx   # React island — interactive form
+- [x] **SPLIT-FN-sanity-schemas-page-ts**: Split long functions in sanity/schemas/page.ts: featuresSection(53L), textBlockSection(61L). Extract helper functions to keep each function under 50 lines.
+- [ ] **DEDUP-6494f0e7-author-post**: Extract duplicate code block into shared module. Found in: sanity/schemas/author.ts, sanity/schemas/post.ts. Block starts with: type: 'string',
+- [ ] **DEDUP-544d65da-category-page**: Extract duplicate code block into shared module. Found in: sanity/schemas/category.ts, sanity/schemas/page.ts, sanity/schemas/post.ts. Block starts with: validation: (Rule) => Rule.required(),
+- [ ] **DEDUP-e660aa8d-page-post**: Extract duplicate code block into shared module. Found in: sanity/schemas/page.ts, sanity/schemas/post.ts. Block starts with: }),
+- [ ] **DEDUP-aad4ccf4-author-post**: Extract duplicate code block into shared module. Found in: sanity/schemas/author.ts, sanity/schemas/post.ts, sanity/schemas/siteSettings.ts, sanity/schemas/testimonial.ts. Block starts with: options: {
+- [ ] **DEDUP-69fedb44-author-post**: Extract duplicate code block into shared module. Found in: sanity/schemas/author.ts, sanity/schemas/post.ts, sanity/schemas/testimonial.ts. Block starts with: hotspot: true,
+- [ ] **DEDUP-402067d2-category-siteSettings**: Extract duplicate code block into shared module. Found in: sanity/schemas/category.ts, sanity/schemas/siteSettings.ts. Block starts with: }),
 
 ## Verifications
