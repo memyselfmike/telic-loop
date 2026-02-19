@@ -113,6 +113,26 @@ const cta = ctaSection || fallbackCta;
   title="Beep2B — Consistent B2B Leads From LinkedIn"
   description="Beep2B helps B2B entrepreneurs and marketers generate high-quality LinkedIn leads through the proven BEEP methodology. Join 500+ businesses across 22 countries."
 >
+  <!-- Organization JSON-LD Structured Data -->
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Beep2B",
+    "url": "https://beep2b.com",
+    "logo": "https://beep2b.com/favicon.svg",
+    "description": "LinkedIn lead generation for B2B businesses using the proven BEEP methodology — Build, Engage, Educate, Promote.",
+    "foundingDate": "2014",
+    "sameAs": [
+      "https://linkedin.com/company/beep2b"
+    ],
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "contactType": "Sales",
+      "email": "hello@beep2b.com",
+      "url": "https://beep2b.com/contact"
+    }
+  })} />
+
   <main>
 
     <!-- Hero Section -->

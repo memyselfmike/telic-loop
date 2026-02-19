@@ -1,12 +1,12 @@
 # Value Checklist: beep2b
-Generated: 2026-02-19T10:39:51.812242
+Generated: 2026-02-19T10:43:15.745395
 
 ## VRC Status
 - Value Score: 56%
 - Verified: 5/9
 - Blocked: 0
 - Recommendation: CONTINUE
-- Summary: Fallback VRC: carried forward from iteration 51 (56%)
+- Summary: Fallback VRC: carried forward from iteration 52 (56%)
 
 ## Tasks
 - [x] **1.1**: Verify Astro project configuration: astro.config.mjs has React integration and Tailwind v4 via @tailwindcss/vite plugin, tsconfig.json extends astro/tsconfigs/strict with jsx:react-jsx, package.json has dev/build/preview scripts. Confirm npm run dev starts on port 4321 and npm run build produces dist/ with zero errors. This is brownfield verification -- all config files already exist.
@@ -28,8 +28,8 @@ Generated: 2026-02-19T10:39:51.812242
 - [x] **3.1**: Wire Home page (index.astro) to CMS content. Fetch page data from Sanity using getPageBySlug. Render hero section (headline, subheadline, CTA button), 3-4 feature cards (icon, title, description), BEEP method 4-step preview with link to How It Works, 2-3 testimonial cards from CMS, and bottom CTA banner. Fallback to placeholder content when CMS unavailable.
 - [x] **3.2**: Build How It Works page with 4-step BEEP method visual layout. Each step (Build, Engage, Educate, Promote) has number/icon, heading, 2-3 sentence description. Alternating left/right layout for visual interest. Wire to CMS page content with fallback to hardcoded BEEP descriptions. CTA button at bottom linking to discovery call.
 - [x] **3.3**: Build Services page with 3 service sections on one page: LinkedIn Marketing, Thought Leadership Marketing, LinkedIn Training. Each section has heading, description, key benefits list, and CTA link. Wire to CMS page content with fallback to hardcoded service descriptions. Professional layout with consistent spacing.
-- [ ] **3.4**: Build About page (/about) and Contact page (/contact). About page: company story paragraph (founded 2014, members in 22 countries), mission statement, philosophy paragraph on systematic social selling. Wire to CMS getPageBySlug with hardcoded fallback text. CTA button at bottom linking to siteSettings.ctaDefaultLink or fallback URL. Contact page: ContactForm.tsx React island with client:load. 4 fields: name (required, text input), email (required, type=email with regex validation), company (optional, text input), message (required, textarea). On submit: POST JSON body to import.meta.env.PUBLIC_FORM_ACTION. Success state: green text Message sent. Error state: red text Something went wrong. Disable submit button while request is pending.
-- [ ] **3.5**: Enhance blog post page with author bio card (name, image, bio text) at bottom and Related Posts section showing 3 posts from the same category. Fetch related posts via GROQ query filtering by shared category, excluding current post. Author bio card uses author reference data already in post query.
+- [x] **3.4**: Build About page (/about) and Contact page (/contact). About page: company story paragraph (founded 2014, members in 22 countries), mission statement, philosophy paragraph on systematic social selling. Wire to CMS getPageBySlug with hardcoded fallback text. CTA button at bottom linking to siteSettings.ctaDefaultLink or fallback URL. Contact page: ContactForm.tsx React island with client:load. 4 fields: name (required, text input), email (required, type=email with regex validation), company (optional, text input), message (required, textarea). On submit: POST JSON body to import.meta.env.PUBLIC_FORM_ACTION. Success state: green text Message sent. Error state: red text Something went wrong. Disable submit button while request is pending.
+- [x] **3.5**: Enhance blog post page with author bio card (name, image, bio text) at bottom and Related Posts section showing 3 posts from the same category. Fetch related posts via GROQ query filtering by shared category, excluding current post. Author bio card uses author reference data already in post query.
 - [ ] **3.6**: Implement SEO across all pages. Add page-specific <title> and <meta description> to BaseLayout via props. Add Open Graph tags (og:title, og:description, og:image, og:url) and canonical URL to every page. Add Organization structured data (JSON-LD) on home page. Install @astrojs/sitemap, configure in astro.config.mjs. Create public/robots.txt allowing all crawlers with sitemap reference.
 - [ ] **3.7**: Final build verification and layout consistency check. Run npm run build and confirm exit code 0. Verify in built dist/ output: all routes generate HTML files (index.html, how-it-works/index.html, services/index.html, about/index.html, contact/index.html, blog/index.html). Check every page includes Header and Footer components. Verify Tailwind blue-800 primary color (#1e40af) is applied to headings and CTAs. Fix any build errors, missing imports, or broken component references discovered during verification.
 - [x] **VRC-15-gap-1**: Install shadcn Sheet, NavigationMenu, and Pagination components and refactor MobileNav.tsx to use Sheet instead of custom dropdown
