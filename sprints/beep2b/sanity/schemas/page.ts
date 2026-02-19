@@ -50,6 +50,36 @@ const heroSection = defineField({
   },
 })
 
+// Helper: Feature Item object definition
+const featureItemObject = {
+  type: 'object' as const,
+  name: 'featureItem',
+  title: 'Feature Item',
+  fields: [
+    defineField({
+      name: 'icon',
+      title: 'Icon',
+      type: 'string',
+      description: 'Icon name or emoji (e.g., "chart", "users", "🚀")',
+    }),
+    defineField({
+      name: 'title',
+      title: 'Title',
+      type: 'string',
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: 'description',
+      title: 'Description',
+      type: 'text',
+      rows: 3,
+    }),
+  ],
+  preview: {
+    select: { title: 'title', subtitle: 'description' },
+  },
+}
+
 // Section: Features
 const featuresSection = defineField({
   name: 'features',
@@ -65,36 +95,7 @@ const featuresSection = defineField({
       name: 'items',
       title: 'Feature Items',
       type: 'array',
-      of: [
-        {
-          type: 'object',
-          name: 'featureItem',
-          title: 'Feature Item',
-          fields: [
-            defineField({
-              name: 'icon',
-              title: 'Icon',
-              type: 'string',
-              description: 'Icon name or emoji (e.g., "chart", "users", "🚀")',
-            }),
-            defineField({
-              name: 'title',
-              title: 'Title',
-              type: 'string',
-              validation: (Rule) => Rule.required(),
-            }),
-            defineField({
-              name: 'description',
-              title: 'Description',
-              type: 'text',
-              rows: 3,
-            }),
-          ],
-          preview: {
-            select: { title: 'title', subtitle: 'description' },
-          },
-        },
-      ],
+      of: [featureItemObject],
     }),
   ],
   preview: {
@@ -136,6 +137,44 @@ const testimonialsSection = defineField({
   },
 })
 
+// Helper: Portable Text block configuration
+const portableTextBlock = {
+  type: 'block' as const,
+  styles: [
+    { title: 'Normal', value: 'normal' },
+    { title: 'H2', value: 'h2' },
+    { title: 'H3', value: 'h3' },
+    { title: 'Quote', value: 'blockquote' },
+  ],
+  lists: [
+    { title: 'Bullet', value: 'bullet' },
+    { title: 'Numbered', value: 'number' },
+  ],
+  marks: {
+    decorators: [
+      { title: 'Strong', value: 'strong' },
+      { title: 'Emphasis', value: 'em' },
+      { title: 'Underline', value: 'underline' },
+    ],
+    annotations: [
+      {
+        name: 'link',
+        type: 'object',
+        title: 'Link',
+        fields: [
+          {
+            name: 'href',
+            type: 'url',
+            title: 'URL',
+            validation: (Rule) =>
+              Rule.uri({ scheme: ['http', 'https', 'mailto'] }),
+          },
+        ],
+      },
+    ],
+  },
+}
+
 // Section: Text Block
 const textBlockSection = defineField({
   name: 'textBlock',
@@ -151,44 +190,7 @@ const textBlockSection = defineField({
       name: 'body',
       title: 'Body',
       type: 'array',
-      of: [
-        {
-          type: 'block',
-          styles: [
-            { title: 'Normal', value: 'normal' },
-            { title: 'H2', value: 'h2' },
-            { title: 'H3', value: 'h3' },
-            { title: 'Quote', value: 'blockquote' },
-          ],
-          lists: [
-            { title: 'Bullet', value: 'bullet' },
-            { title: 'Numbered', value: 'number' },
-          ],
-          marks: {
-            decorators: [
-              { title: 'Strong', value: 'strong' },
-              { title: 'Emphasis', value: 'em' },
-              { title: 'Underline', value: 'underline' },
-            ],
-            annotations: [
-              {
-                name: 'link',
-                type: 'object',
-                title: 'Link',
-                fields: [
-                  {
-                    name: 'href',
-                    type: 'url',
-                    title: 'URL',
-                    validation: (Rule) =>
-                      Rule.uri({ scheme: ['http', 'https', 'mailto'] }),
-                  },
-                ],
-              },
-            ],
-          },
-        },
-      ],
+      of: [portableTextBlock],
     }),
   ],
   preview: {

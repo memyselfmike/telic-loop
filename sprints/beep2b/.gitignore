@@ -10,3 +10,5 @@ __pycache__/
 .loop_state.json.tmp
 .loop.lock
 .rollback_wal
+node_modules/
+sanity/node_modules/

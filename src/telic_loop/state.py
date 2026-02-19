@@ -419,11 +419,18 @@ class LoopState:
             gaps = vrc.get("gaps", [])
             if gaps and isinstance(gaps[0], str):
                 vrc["gaps"] = [{"description": g, "severity": "degraded"} for g in gaps]
+        # Normalize process_monitor.long_functions: JSON serializes tuples as lists
+        pm = data.get("process_monitor", {})
+        if "long_functions" in pm and isinstance(pm["long_functions"], dict):
+            pm["long_functions"] = {
+                k: [tuple(fn) for fn in v]
+                for k, v in pm["long_functions"].items()
+            }
         return from_dict(
             data_class=cls,
             data=data,
             config=Config(
-                cast=[Literal, set],
+                cast=[Literal, set, tuple],
                 strict=False,
             ),
         )
