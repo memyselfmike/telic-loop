@@ -38,6 +38,28 @@ def _build_playwright_config(config: LoopConfig) -> dict:
     return {"playwright": {"command": "npx", "args": args}}
 
 
+def _cleanup_playwright_artifacts(config: LoopConfig, pre_existing_pngs: set[str]) -> None:
+    """Remove Playwright screenshots and logs created during evaluation."""
+    import shutil
+
+    project_dir = config.effective_project_dir
+
+    # Delete .playwright-mcp/ directory (console logs)
+    pw_dir = project_dir / ".playwright-mcp"
+    if pw_dir.is_dir():
+        shutil.rmtree(pw_dir, ignore_errors=True)
+        print("    Cleaned .playwright-mcp/")
+
+    # Delete screenshots from project root that weren't there before
+    cleaned = 0
+    for png in project_dir.glob("*.png"):
+        if str(png) not in pre_existing_pngs:
+            png.unlink(missing_ok=True)
+            cleaned += 1
+    if cleaned:
+        print(f"    Cleaned {cleaned} screenshot(s) from project root")
+
+
 def do_critical_eval(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
     """Critical evaluation — Evaluator agent USES the deliverable as a real user.
 
@@ -125,7 +147,16 @@ def do_critical_eval(config: LoopConfig, state: LoopState, claude: Claude) -> bo
         BROWSER_SECTION=browser_section,
     )
 
-    session.send(prompt)
+    # Capture pre-existing screenshots for cleanup
+    from pathlib import Path
+    project_dir = Path(config.effective_project_dir)
+    pre_pngs = {str(p) for p in project_dir.glob("*.png")} if use_browser else set()
+
+    try:
+        session.send(prompt)
+    finally:
+        if use_browser:
+            _cleanup_playwright_artifacts(config, pre_pngs)
 
     # Findings arrive via report_eval_finding tool calls.
     # Critical/blocking findings auto-create CE-* tasks.

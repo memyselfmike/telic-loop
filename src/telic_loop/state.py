@@ -61,6 +61,7 @@ class TaskState:
     files_created: list[str] = field(default_factory=list)
     files_modified: list[str] = field(default_factory=list)
     completion_notes: str = ""
+    resolution_note: str = ""  # Builder justification for why a quality violation is intentional
     health_checked: bool = False
 
 

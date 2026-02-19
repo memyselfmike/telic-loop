@@ -322,24 +322,29 @@ def _scan_prd_structure(pm: ProcessMonitorState, config: LoopConfig) -> None:
 
 
 def _has_architectural_alternative(sprint_dir: Path, missing_path: str) -> bool:
-    """Check if a superior architectural alternative exists for a missing file.
+    """Check if a file-system routing alternative exists for a missing file.
 
-    Common patterns:
-    - blog/index.astro → blog/[...page].astro (paginated listing)
-    - blog/[...slug].astro → blog/[slug].astro (single param route)
+    Framework-agnostic: checks common patterns across Astro, Next.js, SvelteKit, etc.
+    - index.{ext} → [...page].{ext} or [...slug].{ext} (catch-all route)
+    - [...slug].{ext} → [slug].{ext} (single-param variant)
     """
     parent = sprint_dir / Path(missing_path).parent
+    name = Path(missing_path).name
+    stem, ext = (name.rsplit(".", 1) + [""])[:2]
+    if not ext:
+        return False
 
-    # Pattern 1: index.astro replaced by [...page].astro (pagination)
-    if missing_path.endswith("index.astro"):
-        paginated_version = parent / "[...page].astro"
-        if paginated_version.exists():
-            return True
+    # Pattern 1: index replaced by catch-all route
+    if stem == "index":
+        for alt in (f"[...page].{ext}", f"[...slug].{ext}"):
+            if (parent / alt).exists():
+                return True
 
-    # Pattern 2: [...slug].astro replaced by [slug].astro (single param)
-    if missing_path.endswith("[...slug].astro"):
-        single_param = parent / "[slug].astro"
-        if single_param.exists():
+    # Pattern 2: catch-all replaced by single-param
+    if stem.startswith("[..."):
+        inner = stem[4:].rstrip("]")
+        single_param = f"[{inner}].{ext}"
+        if (parent / single_param).exists():
             return True
 
     return False
@@ -683,6 +688,14 @@ def _upsert_task(
         if existing.status == "descoped":
             return 0  # Respect manual descope decisions
         if existing.status == "done":
+            # Builder provided architectural justification — auto-descope
+            if existing.resolution_note and existing.retry_count >= 1:
+                existing.status = "descoped"
+                existing.blocked_reason = (
+                    f"Builder justified: {existing.resolution_note}"
+                )
+                print(f"    -> Auto-descoped {task_id} (builder justification)")
+                return 0
             if existing.retry_count >= 2:
                 # Task has been completed and reopened too many times —
                 # the underlying check may be a false positive. Auto-descope.

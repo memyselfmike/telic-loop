@@ -14,74 +14,79 @@ if TYPE_CHECKING:
 
 def run_epic_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
     """Outer loop for multi_epic visions. Runs the value loop once per epic."""
+    from ..main import _acquire_lock, _release_lock, run_value_loop
     from ..render import generate_delivery_report
     from .coherence import do_full_coherence_eval
 
-    # Import here to avoid circular imports
-    # run_value_loop is defined in main.py
-    from ..main import run_value_loop
+    # Ensure lock is held (protects against direct callers like run_e2e.py)
+    lock_path = config.sprint_dir / ".loop.lock"
+    if not _acquire_lock(lock_path):
+        raise RuntimeError(f"Another loop instance is running (lock: {lock_path})")
 
-    for i, epic in enumerate(state.epics):
-        # Skip already-completed epics on resume
-        if epic.status == "completed":
-            print(f"\n  EPIC {i + 1}/{len(state.epics)}: {epic.title} — already completed, skipping")
-            continue
+    try:
+        for i, epic in enumerate(state.epics):
+            # Skip already-completed epics on resume
+            if epic.status == "completed":
+                print(f"\n  EPIC {i + 1}/{len(state.epics)}: {epic.title} — already completed, skipping")
+                continue
 
-        state.current_epic_index = i
-        epic.status = "in_progress"
-        print(f"\n{'=' * 60}")
-        print(f"  EPIC {i + 1}/{len(state.epics)}: {epic.title}")
-        print(f"  Value: {epic.value_statement}")
-        print(f"{'=' * 60}")
+            state.current_epic_index = i
+            epic.status = "in_progress"
+            print(f"\n{'=' * 60}")
+            print(f"  EPIC {i + 1}/{len(state.epics)}: {epic.title}")
+            print(f"  Value: {epic.value_statement}")
+            print(f"{'=' * 60}")
 
-        # Check if this epic already has tasks (resume scenario)
-        epic_has_tasks = any(
-            t.epic_id == epic.epic_id for t in state.tasks.values()
-        )
+            # Check if this epic already has tasks (resume scenario)
+            epic_has_tasks = any(
+                t.epic_id == epic.epic_id for t in state.tasks.values()
+            )
 
-        if not epic_has_tasks:
-            # Reset per-epic state for NEW epics (fresh QC and exit gate)
-            state.exit_gate_attempts = 0
-            state.verifications = {}
-            state.verification_categories = []
-            state.tasks_since_last_critical_eval = 0
-            if "verifications_generated" in state.gates_passed:
-                state.gates_passed.remove("verifications_generated")
+            if not epic_has_tasks:
+                # Reset per-epic state for NEW epics (fresh QC and exit gate)
+                state.exit_gate_attempts = 0
+                state.verifications = {}
+                state.verification_categories = []
+                state.tasks_since_last_critical_eval = 0
+                if "verifications_generated" in state.gates_passed:
+                    state.gates_passed.remove("verifications_generated")
 
-            # Refine epic detail if needed (just-in-time decomposition)
-            if epic.detail_level == "sketch":
-                _refine_epic_detail(config, state, claude, epic)
+                # Refine epic detail if needed (just-in-time decomposition)
+                if epic.detail_level == "sketch":
+                    _refine_epic_detail(config, state, claude, epic)
 
-            # Run pre-loop scoped to this epic's deliverables
-            _run_epic_preloop(config, state, claude, epic)
-        else:
-            print(f"  Epic already has tasks — skipping preloop (resume)")
+                # Run pre-loop scoped to this epic's deliverables
+                _run_epic_preloop(config, state, claude, epic)
+            else:
+                print(f"  Epic already has tasks — skipping preloop (resume)")
 
-        # Run value loop for this epic
-        run_value_loop(config, state, claude, inside_epic_loop=True)
+            # Run value loop for this epic
+            run_value_loop(config, state, claude, inside_epic_loop=True)
 
-        # Mark epic complete
-        epic.status = "completed"
+            # Mark epic complete
+            epic.status = "completed"
 
-        # Full coherence evaluation at epic boundary
-        if config.coherence_full_at_epic_boundary:
-            do_full_coherence_eval(config, state, claude)
+            # Full coherence evaluation at epic boundary
+            if config.coherence_full_at_epic_boundary:
+                do_full_coherence_eval(config, state, claude)
 
-        # Critical evaluation at epic boundary
-        from .critical_eval import do_critical_eval
-        print(f"  Running critical evaluation for completed epic: {epic.title}")
-        do_critical_eval(config, state, claude)
+            # Critical evaluation at epic boundary
+            from .critical_eval import do_critical_eval
+            print(f"  Running critical evaluation for completed epic: {epic.title}")
+            do_critical_eval(config, state, claude)
 
-        # Epic feedback checkpoint (skip for last epic)
-        if i < len(state.epics) - 1:
-            response = epic_feedback_checkpoint(config, state, claude, epic)
-            if response == "stop":
-                print("  Human requested stop. Shipping completed epics.")
-                break
-            elif response == "adjust":
-                _adjust_next_epic(config, state, claude, epic.feedback_notes)
+            # Epic feedback checkpoint (skip for last epic)
+            if i < len(state.epics) - 1:
+                response = epic_feedback_checkpoint(config, state, claude, epic)
+                if response == "stop":
+                    print("  Human requested stop. Shipping completed epics.")
+                    break
+                elif response == "adjust":
+                    _adjust_next_epic(config, state, claude, epic.feedback_notes)
 
-    generate_delivery_report(config, state)
+        generate_delivery_report(config, state)
+    finally:
+        _release_lock(lock_path)
 
 
 def epic_feedback_checkpoint(

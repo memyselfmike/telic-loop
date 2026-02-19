@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from dataclasses import asdict
 from datetime import datetime
 from typing import TYPE_CHECKING
@@ -30,14 +31,36 @@ def do_exit_gate(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
         print(f"  Max attempts ({config.max_exit_gate_attempts}) reached — partial report")
         return True
 
+    gate_t0 = time.perf_counter()
+    wall_clock_limit = config.exit_gate_wall_clock_sec
+
+    def _wall_clock_exceeded(step_name: str) -> bool:
+        elapsed = time.perf_counter() - gate_t0
+        if elapsed > wall_clock_limit:
+            print(f"  EXIT GATE TIMEOUT after {elapsed:.0f}s (limit: {wall_clock_limit}s) at step: {step_name}")
+            return True
+        return False
+
+    # Budget-aware short-circuit: at 95%+ budget, skip coherence and code quality
+    budget_pct = (
+        (state.total_tokens_used / config.token_budget * 100)
+        if config.token_budget else 0
+    )
+    budget_critical = budget_pct >= 95
+
     # 0. Full coherence evaluation (catch cross-feature interaction issues)
-    print("  Running full coherence evaluation...")
-    coherence_has_issues = do_full_coherence_eval(config, state, claude)
-    if coherence_has_issues and state.coherence_history:
-        latest = state.coherence_history[-1]
-        if latest.overall == "CRITICAL":
-            print("  EXIT GATE FAILED — coherence CRITICAL")
+    if not budget_critical:
+        print("  Running full coherence evaluation...")
+        coherence_has_issues = do_full_coherence_eval(config, state, claude)
+        if coherence_has_issues and state.coherence_history:
+            latest = state.coherence_history[-1]
+            if latest.overall == "CRITICAL":
+                print("  EXIT GATE FAILED — coherence CRITICAL")
+                return False
+        if _wall_clock_exceeded("coherence"):
             return False
+    else:
+        print("  Skipping coherence (budget critical)")
 
     # 1. Full regression sweep
     print("  Running full regression sweep...")
@@ -53,6 +76,9 @@ def do_exit_gate(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
         for v_id, (code, stdout, stderr) in results.items():
             if code != 0:
                 state.verifications[v_id].status = "failed"
+        return False
+
+    if _wall_clock_exceeded("regression"):
         return False
 
     # 2. Fresh-context VRC (Opus, forced full)
@@ -99,6 +125,9 @@ def do_exit_gate(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
                     ))
         return False
 
+    if _wall_clock_exceeded("vrc"):
+        return False
+
     # 3. Final critical evaluation
     print("  Running final critical evaluation...")
     do_critical_eval(config, state, claude)
@@ -111,8 +140,13 @@ def do_exit_gate(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
         print(f"  EXIT GATE FAILED — critical eval found {len(new_tasks)} issues")
         return False
 
+    if _wall_clock_exceeded("critical_eval"):
+        return False
+
     # 4. Comprehensive code quality enforcement
-    if config.code_health_enforce_at_exit:
+    if budget_critical:
+        print("  Skipping code quality (budget critical)")
+    elif config.code_health_enforce_at_exit:
         from .code_quality import create_quality_tasks, run_all_quality_checks
         from .process_monitor import scan_file_line_counts
 

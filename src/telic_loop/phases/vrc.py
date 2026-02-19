@@ -60,14 +60,46 @@ def run_vrc(
             f"completion criteria are met."
         )
 
-    if is_full_vrc:
-        session = claude.session(
-            AgentRole.REASONER,
-            system_extra=(
-                "You are evaluating progress toward VISION delivery. "
-                "This is a FULL VRC — thoroughly assess value delivery quality."
-            ),
+    # Build system_extra with optional skepticism clause
+    system_extra = (
+        "You are evaluating progress toward VISION delivery. "
+        "This is a FULL VRC — thoroughly assess value delivery quality."
+    )
+
+    # P7: Service skepticism — when external services are configured,
+    # verify they're actually connected and returning real data.
+    if state.context.services and is_full_vrc:
+        service_names = ", ".join(state.context.services.keys())
+        system_extra += (
+            f"\n\nSERVICE SKEPTICISM: External services are configured ({service_names}). "
+            "Verify that deliverables show REAL data from these services, not "
+            "fallback/placeholder content. A CMS page showing 'No posts yet' or "
+            "a dashboard showing sample data is NOT verified — it indicates a "
+            "missing connection. Check: (1) Are API calls returning real data? "
+            "(2) Is the UI populated with actual content, not placeholders? "
+            "(3) Would removing the fallback/graceful-degradation code break anything? "
+            "If a service has placeholder credentials (e.g. projectId='placeholder'), "
+            "that service is NOT connected and all deliverables depending on it "
+            "FAIL the VALUE check."
         )
+
+    # P7: Skepticism boost when exit gate keeps failing despite high VRC
+    if (state.exit_gate_attempts >= 2
+            and state.vrc_history
+            and state.vrc_history[-1].value_score >= 0.9):
+        system_extra += (
+            "\n\nSKEPTICISM BOOST: The exit gate has FAILED "
+            f"{state.exit_gate_attempts} times despite VRC showing >= 90%. "
+            "This strongly suggests VRC is over-counting verified deliverables. "
+            "Re-evaluate EVERY deliverable from scratch. Look for: "
+            "(1) Graceful degradation masking failures, "
+            "(2) Placeholder/mock data scored as real, "
+            "(3) Features that render but don't actually function. "
+            "Be more critical than previous evaluations."
+        )
+
+    if is_full_vrc:
+        session = claude.session(AgentRole.REASONER, system_extra=system_extra)
     else:
         session = claude.session(AgentRole.CLASSIFIER)
 

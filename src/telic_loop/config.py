@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 
@@ -41,6 +41,7 @@ class LoopConfig:
     # Safety limits
     max_exit_gate_attempts: int = 3
     max_course_corrections: int = 5
+    exit_gate_wall_clock_sec: int = 1800  # 30 min — generous default, tighten after observation
 
     # Plan health
     plan_health_after_n_tasks: int = 5
@@ -76,6 +77,9 @@ class LoopConfig:
     code_health_max_todo_count: int = 5         # TODO_DEBT threshold
     code_health_max_duplicate_tasks: int = 5    # cap on DEDUP tasks created
 
+    # VRC frequency control
+    vrc_min_interval_sec: int = 60  # minimum seconds between VRC runs (unless task completed)
+
     # Task granularity enforcement
     max_task_description_chars: int = 600      # reject tasks with longer descriptions
     max_files_per_task: int = 5                # reject tasks expecting more files
@@ -83,8 +87,19 @@ class LoopConfig:
     # Reliability
     max_task_retries: int = 3
     max_rollbacks_per_sprint: int = 3
-    sdk_query_timeout_sec: int = 300       # 5 min timeout per SDK query call
+    sdk_query_timeout_sec: int = 300       # 5 min default per SDK query call
     max_crash_restarts: int = 3            # auto-restart attempts on catastrophic crash
+
+    # Per-role SDK timeouts (generous defaults — tighten after observing real durations)
+    sdk_timeout_by_role: dict[str, int] = field(default_factory=lambda: {
+        "CLASSIFIER": 120,     # 2 min — fast triage, no tool use
+        "BUILDER": 600,        # 10 min — code generation + tool calls
+        "FIXER": 600,          # 10 min — similar to builder
+        "QC": 600,             # 10 min — test generation/execution
+        "REASONER": 600,       # 10 min — planning, course correction
+        "EVALUATOR": 1800,     # 30 min — Playwright page-by-page review
+        "RESEARCHER": 600,     # 10 min — web search + analysis
+    })
 
     # Derived paths
     @property

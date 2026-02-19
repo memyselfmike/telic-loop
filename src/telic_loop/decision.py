@@ -75,12 +75,14 @@ def decide_next_action(config: LoopConfig, state: LoopState) -> Action:
     # Require at least 3 done tasks (or all tasks done) to avoid premature QC
     # that produces nothing and wastes the generation opportunity.
     # Guard: if QC generation has failed 3+ times total, stop trying.
+    # Guard: need at least 1 done task (don't fire QC with nothing completed).
     total_qc_fails = sum(
         1 for e in state.progress_log
         if e.get("action") == "generate_qc" and e.get("result") == "no_progress"
     )
     min_for_qc = min(3, len(scoped))
     if (not state.verifications
+            and done_count > 0
             and done_count >= max(config.generate_verifications_after, min_for_qc)
             and state.gate_passed("plan_generated")
             and not state.gate_passed("verifications_generated")

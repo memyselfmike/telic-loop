@@ -33,131 +33,172 @@ def run_value_loop(
     from .phases.vrc import run_vrc
     from .phases.coherence import do_full_coherence_eval
 
-    print("\n" + "=" * 60)
-    print("  THE VALUE LOOP")
-    print("=" * 60)
+    # Ensure lock is held (protects against direct callers like run_e2e.py)
+    lock_path = config.sprint_dir / ".loop.lock"
+    if not _acquire_lock(lock_path):
+        raise RuntimeError(f"Another loop instance is running (lock: {lock_path})")
 
-    ACTION_HANDLERS = {
-        Action.EXECUTE: do_execute,
-        Action.GENERATE_QC: do_generate_qc,
-        Action.RUN_QC: do_run_qc,
-        Action.FIX: do_fix,
-        Action.CRITICAL_EVAL: do_critical_eval,
-        Action.COURSE_CORRECT: do_course_correct,
-        Action.SERVICE_FIX: do_service_fix,
-        Action.RESEARCH: do_research,
-        Action.COHERENCE_EVAL: do_full_coherence_eval,
-        Action.INTERACTIVE_PAUSE: do_interactive_pause,
-    }
+    try:
+        print("\n" + "=" * 60)
+        print("  THE VALUE LOOP")
+        print("=" * 60)
 
-    start_iter = max(state.iteration + 1, 1)
-    for iteration in range(start_iter, start_iter + config.max_loop_iterations):
-        state.iteration = iteration
+        # VRC frequency control (P3)
+        _last_vrc_time: float = 0.0
+        _last_vrc_task_hash: str = ""
 
-        # Budget check
-        if config.token_budget and state.total_tokens_used > config.token_budget:
-            print(f"TOKEN BUDGET EXHAUSTED ({state.total_tokens_used:,} tokens)")
-            break
+        ACTION_HANDLERS = {
+            Action.EXECUTE: do_execute,
+            Action.GENERATE_QC: do_generate_qc,
+            Action.RUN_QC: do_run_qc,
+            Action.FIX: do_fix,
+            Action.CRITICAL_EVAL: do_critical_eval,
+            Action.COURSE_CORRECT: do_course_correct,
+            Action.SERVICE_FIX: do_service_fix,
+            Action.RESEARCH: do_research,
+            Action.COHERENCE_EVAL: do_full_coherence_eval,
+            Action.INTERACTIVE_PAUSE: do_interactive_pause,
+        }
 
-        # Budget-aware action gating
-        budget_pct = (
-            (state.total_tokens_used / config.token_budget * 100)
-            if config.token_budget else 0
-        )
+        start_iter = max(state.iteration + 1, 1)
+        for iteration in range(start_iter, start_iter + config.max_loop_iterations):
+            state.iteration = iteration
 
-        action = decide_next_action(config, state)
+            # Budget check
+            if config.token_budget and state.total_tokens_used > config.token_budget:
+                print(f"TOKEN BUDGET EXHAUSTED ({state.total_tokens_used:,} tokens)")
+                break
 
-        if budget_pct >= 95:
-            print(f"  BUDGET CRITICAL: {budget_pct:.0f}% consumed — completing current work only")
-            if action not in (
-                Action.FIX, Action.RUN_QC, Action.EXIT_GATE,
-                Action.INTERACTIVE_PAUSE,
-            ):
-                action = Action.EXIT_GATE
-        elif budget_pct >= 80:
-            print(f"  BUDGET WARNING: {budget_pct:.0f}% consumed — economizing")
-
-        print(f"\n── Iteration {iteration} ── Action: {action.value}")
-
-        # Capture timing and token deltas for per-phase tracking
-        inp_before = state.total_input_tokens
-        out_before = state.total_output_tokens
-        t0 = time.perf_counter()
-
-        try:
-            # Exit gate is special — it can terminate the loop
-            if action == Action.EXIT_GATE:
-                exit_passed = do_exit_gate(config, state, claude)
-                if exit_passed:
-                    if not inside_epic_loop:
-                        # Only generate delivery report for single-run sprints.
-                        # Epic loop generates its own report after all epics complete.
-                        generate_delivery_report(config, state)
-                    print("\n  VALUE DELIVERED — exit gate passed")
-                    state.save(config.state_file)
-                    return
-                progress = True
-            else:
-                handler = ACTION_HANDLERS.get(action)
-                if handler:
-                    progress = handler(config, state, claude)
-                else:
-                    print(f"  WARNING: No handler for action {action.value}")
-                    progress = False
-        except Exception as exc:
-            print(f"\n  CRASH in {action.value}: {exc}")
-            progress = False
-            # Reset any in_progress tasks back to pending
-            for task in state.tasks.values():
-                if task.status == "in_progress":
-                    task.status = "pending"
-            state.save(config.state_file)
-
-        elapsed = round(time.perf_counter() - t0, 1)
-        phase_inp = state.total_input_tokens - inp_before
-        phase_out = state.total_output_tokens - out_before
-        state.record_progress(
-            action.value,
-            "progress" if progress else "no_progress",
-            progress,
-            input_tokens=phase_inp,
-            output_tokens=phase_out,
-            duration_sec=elapsed,
-        )
-
-        # Process monitor (after every action)
-        maybe_run_strategy_reasoner(
-            state, config, claude, action=action.value, made_progress=progress,
-        )
-
-        # Plan health check — force after course correction
-        if action == Action.COURSE_CORRECT and progress:
-            maybe_run_plan_health_check(config, state, claude, force=True)
-        else:
-            maybe_run_plan_health_check(config, state, claude)
-
-        # VRC heartbeat and coherence check — skip during pause and after exit gate
-        # (exit gate runs its own fresh VRC; pause should not burn tokens)
-        if state.pause is None and action != Action.EXIT_GATE:
-            # Force full VRC after critical eval or course correction
-            force_full_vrc = action in (Action.CRITICAL_EVAL, Action.COURSE_CORRECT)
-            vrc = run_vrc(config, state, claude, force_full=force_full_vrc)
-            print(
-                f"  VRC #{len(state.vrc_history)}: {vrc.value_score:.0%} value | "
-                f"{vrc.deliverables_verified}/{vrc.deliverables_total} | "
-                f"→ {vrc.recommendation}"
+            # Budget-aware action gating
+            budget_pct = (
+                (state.total_tokens_used / config.token_budget * 100)
+                if config.token_budget else 0
             )
 
-            # Quick coherence check
-            quick_coherence_check(config, state)
+            action = decide_next_action(config, state)
 
-        # Render updated value checklist
-        render_value_checklist(config, state)
+            if budget_pct >= 95:
+                print(f"  BUDGET CRITICAL: {budget_pct:.0f}% consumed — completing current work only")
+                if action not in (
+                    Action.FIX, Action.RUN_QC, Action.EXIT_GATE,
+                    Action.INTERACTIVE_PAUSE,
+                ):
+                    action = Action.EXIT_GATE
+            elif budget_pct >= 80:
+                print(f"  BUDGET WARNING: {budget_pct:.0f}% consumed — economizing")
 
-        state.save(config.state_file)
+            print(f"\n── Iteration {iteration} ── Action: {action.value}")
 
-    print("\n  MAX ITERATIONS REACHED — generating partial delivery report")
-    generate_delivery_report(config, state)
+            # Capture timing and token deltas for per-phase tracking
+            inp_before = state.total_input_tokens
+            out_before = state.total_output_tokens
+            t0 = time.perf_counter()
+
+            try:
+                # Exit gate is special — it can terminate the loop
+                if action == Action.EXIT_GATE:
+                    exit_passed = do_exit_gate(config, state, claude)
+                    if exit_passed:
+                        if not inside_epic_loop:
+                            # Only generate delivery report for single-run sprints.
+                            # Epic loop generates its own report after all epics complete.
+                            generate_delivery_report(config, state)
+                        print("\n  VALUE DELIVERED — exit gate passed")
+                        state.save(config.state_file)
+                        return
+                    progress = True
+                else:
+                    handler = ACTION_HANDLERS.get(action)
+                    if handler:
+                        progress = handler(config, state, claude)
+                    else:
+                        print(f"  WARNING: No handler for action {action.value}")
+                        progress = False
+            except Exception as exc:
+                print(f"\n  CRASH in {action.value}: {exc}")
+                progress = False
+                # Reset any in_progress tasks back to pending
+                for task in state.tasks.values():
+                    if task.status == "in_progress":
+                        task.status = "pending"
+                state.save(config.state_file)
+
+            elapsed = round(time.perf_counter() - t0, 1)
+            phase_inp = state.total_input_tokens - inp_before
+            phase_out = state.total_output_tokens - out_before
+            state.record_progress(
+                action.value,
+                "progress" if progress else "no_progress",
+                progress,
+                input_tokens=phase_inp,
+                output_tokens=phase_out,
+                duration_sec=elapsed,
+            )
+
+            # Process monitor (after every action)
+            maybe_run_strategy_reasoner(
+                state, config, claude, action=action.value, made_progress=progress,
+            )
+
+            # Plan health check — force after course correction
+            if action == Action.COURSE_CORRECT and progress:
+                maybe_run_plan_health_check(config, state, claude, force=True)
+            else:
+                maybe_run_plan_health_check(config, state, claude)
+
+            # VRC heartbeat and coherence check — skip during pause and after exit gate
+            # (exit gate runs its own fresh VRC; pause should not burn tokens)
+            if state.pause is None and action != Action.EXIT_GATE:
+                # Force full VRC after critical eval or course correction
+                force_full_vrc = action in (Action.CRITICAL_EVAL, Action.COURSE_CORRECT)
+
+                # P3: Skip VRC when it can't have changed
+                task_hash = _task_status_hash(state)
+                now = time.perf_counter()
+                skip_vrc = False
+                if not force_full_vrc:
+                    if not progress:
+                        skip_vrc = True  # No work done — score can't change
+                    elif task_hash == _last_vrc_task_hash:
+                        skip_vrc = True  # No task status changed
+                    elif (now - _last_vrc_time) < config.vrc_min_interval_sec:
+                        skip_vrc = True  # Too soon since last VRC
+
+                if skip_vrc:
+                    if state.vrc_history:
+                        vrc = state.vrc_history[-1]
+                        print(
+                            f"  VRC #{len(state.vrc_history)}: {vrc.value_score:.0%} value "
+                            f"(skipped — no change)"
+                        )
+                else:
+                    vrc = run_vrc(config, state, claude, force_full=force_full_vrc)
+                    _last_vrc_time = time.perf_counter()
+                    _last_vrc_task_hash = task_hash
+                    print(
+                        f"  VRC #{len(state.vrc_history)}: {vrc.value_score:.0%} value | "
+                        f"{vrc.deliverables_verified}/{vrc.deliverables_total} | "
+                        f"→ {vrc.recommendation}"
+                    )
+
+                # Quick coherence check
+                quick_coherence_check(config, state)
+
+            # Render updated value checklist
+            render_value_checklist(config, state)
+
+            state.save(config.state_file)
+
+        print("\n  MAX ITERATIONS REACHED — generating partial delivery report")
+        generate_delivery_report(config, state)
+    finally:
+        _release_lock(lock_path)
+
+
+def _task_status_hash(state: LoopState) -> str:
+    """Quick hash of all task statuses — changes when any task changes state."""
+    parts = sorted(f"{tid}:{t.status}" for tid, t in state.tasks.items())
+    return "|".join(parts)
 
 
 def main() -> None:
@@ -288,20 +329,38 @@ def _run_main() -> None:
 # Infrastructure helpers
 # ---------------------------------------------------------------------------
 
+# Re-entrant lock: ref-count per resolved path so nested acquire/release
+# (e.g. _run_main → run_value_loop) work correctly.
+_lock_refcount: dict[str, int] = {}
+
+
 def _acquire_lock(lock_path: Path) -> bool:
-    """Acquire a file-based lock. Returns True if acquired."""
+    """Acquire a file-based lock. Re-entrant for the same process."""
     import os
+
+    key = str(lock_path.resolve())
+
+    # Already held by us — bump refcount
+    if key in _lock_refcount:
+        _lock_refcount[key] += 1
+        return True
 
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     try:
         fd = os.open(str(lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         os.write(fd, str(os.getpid()).encode())
         os.close(fd)
+        _lock_refcount[key] = 1
         return True
     except FileExistsError:
         # Check if the PID in the lock file is still running
         try:
             pid = int(lock_path.read_text().strip())
+            if pid == os.getpid():
+                # We hold this lock (e.g. from a parent frame) but refcount
+                # wasn't tracked (shouldn't happen, but be safe).
+                _lock_refcount[key] = 1
+                return True
             try:
                 os.kill(pid, 0)  # Check if process exists
                 return False  # Process still running
@@ -316,7 +375,13 @@ def _acquire_lock(lock_path: Path) -> bool:
 
 
 def _release_lock(lock_path: Path) -> None:
-    """Release file-based lock."""
+    """Release file-based lock. Only deletes file when refcount reaches zero."""
+    key = str(lock_path.resolve())
+    count = _lock_refcount.get(key, 0)
+    if count > 1:
+        _lock_refcount[key] = count - 1
+        return  # Still held by outer scope
+    _lock_refcount.pop(key, None)
     lock_path.unlink(missing_ok=True)
 
 

@@ -60,6 +60,8 @@ Sprint stats: 63 iterations, 1.1M tokens, 6.2 hrs wall clock. **53% of time wast
 
 Quality-gated: CRAP + CONNECT + project-agnostic review applied 2026-02-19. Original P1 merged into P5, original P7 merged into P5, P3/P5/P8 revised to remove framework-specific logic.
 
+**Implementation status (2026-02-19)**: P0 DONE, P1 DONE, P2 DONE, P3 DONE, P4 DONE, P5 PARTIAL (artifact cleanup done; staged eval/pre-warm TODO), P6 DONE, P7 DONE.
+
 ### Implementation philosophy: Measure first, constrain second
 
 The beep2b sprint data is from a buggy run with concurrent instances, state corruption, and missing fixes. Timeouts derived from that data would be unreliable. For the next test sprint:
@@ -72,7 +74,7 @@ This means P0's wall-clock cap and P1's per-role timeouts should ship with **per
 
 ---
 
-## P0: Exit Gate Fail-Fast and Timeout Control
+## P0: Exit Gate Fail-Fast and Timeout Control (IMPLEMENTED)
 
 **Problem**: Exit gate is the #1 time sink — 6 attempts, ALL failed as `no_progress`, 100 min wasted (27% of total runtime), 106K tokens. Each attempt takes 17-20 min. The gate only passed via safety valve, meaning it **never actually verified** the output.
 
@@ -99,7 +101,7 @@ iter=63  exit_gate  1155s (19min) no_progress
 
 ---
 
-## P1: Per-Role SDK Timeout Configuration
+## P1: Per-Role SDK Timeout Configuration (IMPLEMENTED)
 
 **Problem**: A single global `sdk_query_timeout_sec` (300s) doesn't fit all roles. CLASSIFIER needs 60s. EVALUATOR needs 900s. BUILDER is fine at 300s. Multiple proposals (P0, P5) depend on role-appropriate timeouts.
 
@@ -127,7 +129,7 @@ iter=63  exit_gate  1155s (19min) no_progress
 
 ---
 
-## P2: Prevent Concurrent Loop Instances
+## P2: Prevent Concurrent Loop Instances (IMPLEMENTED)
 
 **Problem**: 10 iterations ran as duplicates (up to 4x concurrent), causing 58 min wasted time, 93K wasted tokens, and state file corruption.
 
@@ -151,7 +153,7 @@ That's it. The locking mechanism itself (PID-based `O_CREAT | O_EXCL` with stale
 
 ---
 
-## P3: Smarter VRC Frequency
+## P3: Smarter VRC Frequency (IMPLEMENTED)
 
 **Problem**: 70 VRC evaluations for 63 iterations. VRC runs after every action — including timeouts, crashes, and failed service fixes. VRC #6 through #15 all returned 25% (10 identical runs).
 
@@ -170,7 +172,7 @@ Note: Sub-item 4 from original plan ("lightweight vs full heuristic") already ex
 
 ---
 
-## P4: Quality Task Auto-Descope Fix
+## P4: Quality Task Auto-Descope Fix (IMPLEMENTED)
 
 **Problem**: STRUCTURE-prd-conformance task reopened 5 times before auto-descoping. The `_upsert_task()` retry cap (`retry_count >= 2`) was added mid-sprint and the counter wasn't correct. Additionally, `_has_architectural_alternative()` in code_quality.py contains Astro-specific patterns (lines 324-345) that violate project-agnosticism.
 
@@ -189,7 +191,7 @@ Note: Sub-item 4 from original plan ("lightweight vs full heuristic") already ex
 
 ---
 
-## P5: Reliable Playwright Critical Evaluation
+## P5: Reliable Playwright Critical Evaluation (PARTIAL — artifact cleanup done)
 
 *Absorbs original P1 (critical eval timeouts) and P7 (artifact cleanup).*
 
@@ -224,7 +226,7 @@ Note: Sub-item 4 from original plan ("lightweight vs full heuristic") already ex
 
 ---
 
-## P6: QC Generation Guard Audit
+## P6: QC Generation Guard Audit (IMPLEMENTED)
 
 **Problem**: QC generation fired 3 times at iterations 8-10 with no completed tasks, wasting 17 min.
 
@@ -241,7 +243,7 @@ Note: Sub-item 4 from original plan ("lightweight vs full heuristic") already ex
 
 ---
 
-## P7: VRC Accuracy and Skepticism
+## P7: VRC Accuracy and Skepticism (IMPLEMENTED)
 
 **Problem**: VRC reported 100% SHIP_READY for beep2b, but the Sanity CMS integration was non-functional (`projectId='placeholder'`, no real project created). Graceful degradation (showing fallback content) masked the failure — pages rendered without errors, so VRC counted them as working. This is a systemic gap: VRC verifies that deliverables **render** but not that they **function**.
 

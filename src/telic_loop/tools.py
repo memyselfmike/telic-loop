@@ -151,6 +151,10 @@ REPORT_TASK_COMPLETE_SCHEMA: dict = {
             "files_modified": {"type": "array", "items": {"type": "string"}},
             "value_verified": {"type": "string"},
             "completion_notes": {"type": "string"},
+            "resolution_note": {
+                "type": "string",
+                "description": "Architectural justification for why a quality violation is intentional (e.g. 'Tailwind v4 uses CSS-first config, no tailwind.config.mjs needed'). Set this when completing a quality task where the violation is by design.",
+            },
         },
         "required": ["task_id", "files_created", "files_modified"],
     },
@@ -887,6 +891,7 @@ def handle_task_complete(input_data: dict, state: LoopState, **_: Any) -> str:
     task.files_created = _normalize_paths(input_data.get("files_created", []), sprint_prefix)
     task.files_modified = _normalize_paths(input_data.get("files_modified", []), sprint_prefix)
     task.completion_notes = input_data.get("completion_notes", "")
+    task.resolution_note = input_data.get("resolution_note", "")
     return f"Task {task_id} marked complete"
 
 

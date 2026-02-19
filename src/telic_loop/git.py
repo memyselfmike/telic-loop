@@ -191,6 +191,7 @@ def ensure_gitignore(sprint_dir: Path) -> None:
         ".env", ".env.*", "*.pem", "*.key", "*.p12", "*.pfx",
         "__pycache__/", "*.pyc", ".loop_state.json.tmp",
         ".loop.lock", ".rollback_wal",
+        ".playwright-mcp/", ".loop/screenshots/",
     ]
     existing = set()
     if gitignore.exists():

@@ -140,6 +140,10 @@ class Claude:
         if extra_tools:
             builtin_tools.extend(extra_tools)
 
+        timeout = self.config.sdk_timeout_by_role.get(
+            role.name, self.config.sdk_query_timeout_sec,
+        )
+
         return ClaudeSession(
             model=model,
             system=system,
@@ -148,7 +152,7 @@ class Claude:
             state=self.state,
             config=self.config,
             mcp_servers=mcp_servers,
-            timeout_sec=self.config.sdk_query_timeout_sec,
+            timeout_sec=timeout,
         )
 
 
