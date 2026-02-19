@@ -16,7 +16,7 @@ sys.stderr.reconfigure(encoding='utf-8')
 
 from telic_loop.claude import Claude
 from telic_loop.config import LoopConfig
-from telic_loop.git import ensure_gitignore
+from telic_loop.git import ensure_gitignore, setup_sprint_branch
 from telic_loop.state import LoopState
 
 
@@ -50,6 +50,10 @@ def main():
 
     # Auto-maintain .gitignore
     ensure_gitignore(config.sprint_dir)
+
+    # Setup git branch (keeps sprint commits off master)
+    if not state.git.branch_name:
+        setup_sprint_branch(config, state)
 
     # Run phases
     if state.phase == "pre_loop":
