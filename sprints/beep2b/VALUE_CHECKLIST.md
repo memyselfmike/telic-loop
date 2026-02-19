@@ -1,12 +1,12 @@
 # Value Checklist: beep2b
-Generated: 2026-02-19T09:16:03.548524
+Generated: 2026-02-19T09:19:55.360545
 
 ## VRC Status
 - Value Score: 57%
 - Verified: 4/7
 - Blocked: 0
 - Recommendation: CONTINUE
-- Summary: Fallback VRC: carried forward from iteration 41 (57%)
+- Summary: Fallback VRC: carried forward from iteration 44 (57%)
 
 ## Tasks
 - [x] **1.1**: Verify Astro project configuration: astro.config.mjs has React integration and Tailwind v4 via @tailwindcss/vite plugin, tsconfig.json extends astro/tsconfigs/strict with jsx:react-jsx, package.json has dev/build/preview scripts. Confirm npm run dev starts on port 4321 and npm run build produces dist/ with zero errors. This is brownfield verification -- all config files already exist.
@@ -23,7 +23,7 @@ Generated: 2026-02-19T09:16:03.548524
 - [x] **2.3**: Create Sanity client library at src/lib/sanity.ts. Configure @sanity/client with project ID, dataset, API version, and useCdn:true from env vars. Create GROQ query helpers: getAllPosts (paginated), getPostBySlug, getPostsByCategory, getAllCategories, getPageBySlug, getSiteSettings, getNavigation. Add @sanity/image-url builder for image URLs.
 - [x] **2.4**: Wire blog listing page (blog/[...page].astro) to Sanity. Replace placeholder data with real Sanity posts via getAllPosts GROQ query in getStaticPaths. Use paginate() with pageSize:10 to generate /blog, /blog/2, /blog/3 etc. Render BlogCard.astro for each post with real data (featured image via image-url, title, publishedAt formatted date, category Badges, excerpt). Prev/next links from page.url.prev/next.
 - [x] **2.5**: Create individual blog post page at blog/[slug].astro (named param, NOT rest param -- rest param [...slug] would conflict with [...page] pagination route). Use getStaticPaths to generate a page per Sanity post slug. Fetch full post data including body (Portable Text), author, categories. Render Portable Text body using astro-portabletext. Display featured image, title, author name, date, category badges. Style for long-form reading with proper typography.
-- [ ] **2.6**: Create category filter pages at blog/category/[category].astro. Use getStaticPaths to generate a page per Sanity category slug. Fetch posts filtered by category via GROQ. Render same BlogCard grid layout as main blog listing. Display category title as page heading. Add CategoryFilter.tsx React island (or static Astro links) as category nav bar on blog pages.
+- [x] **2.6**: Create category filter pages at blog/category/[category].astro. Use getStaticPaths to generate a page per Sanity category slug. Fetch posts filtered by category via GROQ. Render same BlogCard grid layout as main blog listing. Display category title as page heading. Add CategoryFilter.tsx React island (or static Astro links) as category nav bar on blog pages.
 - [ ] **2.7**: Implement graceful empty-state handling on all CMS-dependent pages. Wrap Sanity fetch calls in try/catch. Blog listing shows No posts yet when empty. Blog post returns 404 gracefully. Category pages show empty message. Home page sections show placeholder when CMS unavailable. Ensure npm run build succeeds when SANITY_PROJECT_ID is empty or invalid.
 - [ ] **3.1**: Wire Home page (index.astro) to CMS content. Fetch page data from Sanity using getPageBySlug. Render hero section (headline, subheadline, CTA button), 3-4 feature cards (icon, title, description), BEEP method 4-step preview with link to How It Works, 2-3 testimonial cards from CMS, and bottom CTA banner. Fallback to placeholder content when CMS unavailable.
 - [ ] **3.2**: Build How It Works page with 4-step BEEP method visual layout. Each step (Build, Engage, Educate, Promote) has number/icon, heading, 2-3 sentence description. Alternating left/right layout for visual interest. Wire to CMS page content with fallback to hardcoded BEEP descriptions. CTA button at bottom linking to discovery call.
@@ -38,7 +38,7 @@ Generated: 2026-02-19T09:16:03.548524
 - [D] **STRUCTURE-prd-conformance**: PRD files still missing: astro.config.mjs          # Astro config with React + Tailwind, tailwind.config.mjs       # Tailwind config with shadcn theme, src/layouts/BaseLayout.astro  # HTML shell, head, nav, footer, src/components/ui/               # shadcn/ui components (Button, Card, etc.), src/components/Header.astro      # Site header with navigation, src/components/Footer.astro      # Site footer with links, social, newsletter, src/components/Hero.astro        # Hero section (reusable across pages), src/components/FeatureCard.astro # Feature/benefit card, src/components/BlogCard.astro    # Blog post preview card, src/components/ContactForm.tsx   # React island — interactive form
 - [x] **SPLIT-FN-sanity-schemas-page-ts**: Split long functions in sanity/schemas/page.ts: featuresSection(53L), textBlockSection(61L). Extract helper functions to keep each function under 50 lines.
 - [x] **VRC-40-gap-1**: Task 2.5 already exists
-- [ ] **DEDUP-6494f0e7-author-post**: Extract duplicate code block into shared module. Found in: sanity/schemas/author.ts, sanity/schemas/post.ts. Block starts with: type: 'string',
+- [x] **DEDUP-6494f0e7-author-post**: Extract duplicate code block into shared module. Found in: sanity/schemas/author.ts, sanity/schemas/post.ts. Block starts with: type: 'string',
 - [ ] **DEDUP-544d65da-category-page**: Extract duplicate code block into shared module. Found in: sanity/schemas/category.ts, sanity/schemas/page.ts, sanity/schemas/post.ts. Block starts with: validation: (Rule) => Rule.required(),
 - [ ] **DEDUP-402067d2-category-siteSettings**: Extract duplicate code block into shared module. Found in: sanity/schemas/category.ts, sanity/schemas/siteSettings.ts. Block starts with: }),
 - [ ] **DEDUP-9aa6fa7b-page-post**: Extract duplicate code block into shared module. Found in: sanity/schemas/page.ts, sanity/schemas/post.ts. Block starts with: { title: 'Quote', value: 'blockquote' },
