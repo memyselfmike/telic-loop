@@ -41,7 +41,9 @@
       "Bash(git -C /e/Projects/telic-loop diff -- src/telic_loop/tools.py)",
       "Bash(git -C /e/Projects/telic-loop log --oneline -5 -- src/telic_loop/tools.py)",
       "Bash(wmic process where \"processid=179204\" get commandline:*)",
-      "Bash(wmic process:*)"
+      "Bash(wmic process:*)",
+      "Bash(powershell -NoProfile -Command \"Get-CimInstance Win32_Process -Filter ''Name=''''claude.exe'''''' | Where-Object { @\\(48132, 80744, 103704, 104540, 95812, 119696, 118100, 179204\\) -contains $_ParentProcessId } | ForEach-Object { Write-Host \\(''Killing PID '' + $_ProcessId\\); Stop-Process -Id $_ProcessId -Force -ErrorAction SilentlyContinue }\")",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File E:/Projects/telic-loop/kill_orphans.ps1)"
     ]
   }
 }

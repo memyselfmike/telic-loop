@@ -39,15 +39,15 @@ def run_epic_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
             t.epic_id == epic.epic_id for t in state.tasks.values()
         )
 
-        # Reset per-epic state so each epic gets fresh QC and exit gate
-        state.exit_gate_attempts = 0
-        state.verifications = {}
-        state.verification_categories = []
-        state.tasks_since_last_critical_eval = 0
-        if "verifications_generated" in state.gates_passed:
-            state.gates_passed.remove("verifications_generated")
-
         if not epic_has_tasks:
+            # Reset per-epic state for NEW epics (fresh QC and exit gate)
+            state.exit_gate_attempts = 0
+            state.verifications = {}
+            state.verification_categories = []
+            state.tasks_since_last_critical_eval = 0
+            if "verifications_generated" in state.gates_passed:
+                state.gates_passed.remove("verifications_generated")
+
             # Refine epic detail if needed (just-in-time decomposition)
             if epic.detail_level == "sketch":
                 _refine_epic_detail(config, state, claude, epic)
