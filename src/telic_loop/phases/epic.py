@@ -63,17 +63,33 @@ def run_epic_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
             # Run value loop for this epic
             run_value_loop(config, state, claude, inside_epic_loop=True)
 
-            # Mark epic complete
-            epic.status = "completed"
-
             # Full coherence evaluation at epic boundary
             if config.coherence_full_at_epic_boundary:
                 do_full_coherence_eval(config, state, claude)
 
-            # Critical evaluation at epic boundary
+            # Critical evaluation at epic boundary — eval-fix loop
+            # Runs BEFORE marking epic complete so findings get acted on.
+            # Reset exit gate state so the fix loop can re-enter cleanly.
+            state.exit_gate_attempts = 0
+            state.verifications = {}
+            state.verification_categories = []
+            if "verifications_generated" in state.gates_passed:
+                state.gates_passed.remove("verifications_generated")
+
             from .critical_eval import do_critical_eval
-            print(f"  Running critical evaluation for completed epic: {epic.title}")
-            do_critical_eval(config, state, claude)
+            for eval_cycle in range(config.max_epic_eval_cycles):
+                print(f"  Epic eval cycle {eval_cycle + 1}/{config.max_epic_eval_cycles} for: {epic.title}")
+                found_issues = do_critical_eval(config, state, claude)
+                if not found_issues:
+                    break
+                # Critical eval created CE-* fix tasks — re-enter value loop
+                print(f"  Critical eval found issues — re-entering value loop to fix")
+                run_value_loop(config, state, claude, inside_epic_loop=True)
+            else:
+                print(f"  Max eval cycles reached — proceeding with remaining issues")
+
+            # Mark epic complete
+            epic.status = "completed"
 
             # Epic feedback checkpoint (skip for last epic)
             if i < len(state.epics) - 1:
@@ -84,9 +100,60 @@ def run_epic_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
                 elif response == "adjust":
                     _adjust_next_epic(config, state, claude, epic.feedback_notes)
 
+        # Full end-to-end evaluation after all epics complete
+        # Unscoped — evaluates the ENTIRE deliverable for regressions
+        # and cross-epic integration issues
+        _run_final_eval(config, state, claude)
+
         generate_delivery_report(config, state)
     finally:
         _release_lock(lock_path)
+
+
+def _run_final_eval(
+    config: LoopConfig, state: LoopState, claude: Claude,
+) -> None:
+    """Full end-to-end evaluation after all epics complete.
+
+    Evaluates the ENTIRE deliverable without epic scoping to catch:
+    - Regressions from later epics breaking earlier work
+    - Cross-epic integration issues
+    - Quality/usability problems that only appear at full-product level
+    """
+    from ..main import run_value_loop
+    from .critical_eval import do_critical_eval
+
+    print(f"\n{'=' * 60}")
+    print("  FINAL END-TO-END EVALUATION")
+    print(f"{'=' * 60}")
+
+    # Temporarily unscope from any specific epic so the evaluator
+    # sees the full deliverable and CE-* tasks are globally visible
+    saved_complexity = state.vision_complexity
+    state.vision_complexity = "single_run"
+
+    # Reset per-loop state so the fix loop starts fresh
+    state.exit_gate_attempts = 0
+    state.verifications = {}
+    state.verification_categories = []
+    state.tasks_since_last_critical_eval = 0
+    if "verifications_generated" in state.gates_passed:
+        state.gates_passed.remove("verifications_generated")
+
+    try:
+        for eval_cycle in range(config.max_epic_eval_cycles):
+            print(f"  Final eval cycle {eval_cycle + 1}/{config.max_epic_eval_cycles}")
+            found_issues = do_critical_eval(config, state, claude)
+            if not found_issues:
+                print("  End-to-end evaluation passed — no regressions found")
+                break
+            # Fix any findings before next eval cycle
+            print(f"  Final eval found issues — running fix loop")
+            run_value_loop(config, state, claude, inside_epic_loop=True)
+        else:
+            print(f"  Max final eval cycles reached — shipping with remaining issues")
+    finally:
+        state.vision_complexity = saved_complexity
 
 
 def epic_feedback_checkpoint(

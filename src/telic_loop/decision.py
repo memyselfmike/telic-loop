@@ -129,13 +129,21 @@ def decide_next_action(config: LoopConfig, state: LoopState) -> Action:
         return Action.RUN_QC
 
     # P8: Critical eval due
+    # Guard: stop retrying critical eval after 3 no_progress results (same pattern as QC)
+    total_crit_eval_fails = sum(
+        1 for e in state.progress_log
+        if e.get("action") == "critical_eval" and e.get("result") == "no_progress"
+    )
     crit_eval_due = (
-        state.tasks_since_last_critical_eval >= config.critical_eval_interval
-        or (config.critical_eval_on_all_pass
-            and all(v.status == "passed" for v in state.verifications.values()
-                    if v.status != "blocked")
-            and state.verifications
-            and not any(vrc.value_score >= 0.9 for vrc in state.vrc_history))
+        total_crit_eval_fails < 3
+        and (
+            state.tasks_since_last_critical_eval >= config.critical_eval_interval
+            or (config.critical_eval_on_all_pass
+                and all(v.status == "passed" for v in state.verifications.values()
+                        if v.status != "blocked")
+                and state.verifications
+                and not any(vrc.value_score >= 0.9 for vrc in state.vrc_history))
+        )
     )
     if crit_eval_due:
         return Action.CRITICAL_EVAL

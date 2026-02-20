@@ -97,7 +97,7 @@ def run_value_loop(
             try:
                 # Exit gate is special — it can terminate the loop
                 if action == Action.EXIT_GATE:
-                    exit_passed = do_exit_gate(config, state, claude)
+                    exit_passed = do_exit_gate(config, state, claude, inside_epic_loop=inside_epic_loop)
                     if exit_passed:
                         if not inside_epic_loop:
                             # Only generate delivery report for single-run sprints.

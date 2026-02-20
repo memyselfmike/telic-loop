@@ -1007,6 +1007,12 @@ def handle_eval_finding(input_data: dict, state: LoopState, **_: Any) -> str:
     severity = input_data["severity"]
     if severity in ("critical", "blocking"):
         task_id = f"CE-{state.iteration}-{len(state.tasks)}"
+        # Tag with current epic so the decision engine can scope it
+        epic_id = ""
+        if (state.vision_complexity == "multi_epic"
+                and state.epics
+                and state.current_epic_index < len(state.epics)):
+            epic_id = state.epics[state.current_epic_index].epic_id
         state.add_task(TaskState(
             task_id=task_id,
             source="critical_eval",
@@ -1014,6 +1020,7 @@ def handle_eval_finding(input_data: dict, state: LoopState, **_: Any) -> str:
             value=input_data["user_impact"],
             acceptance=f"Fix: {input_data['description']}",
             created_at=datetime.now().isoformat(),
+            epic_id=epic_id,
         ))
     return f"Finding recorded: [{severity}] {input_data['description']}"
 

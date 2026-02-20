@@ -7,7 +7,7 @@ import re
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..config import LoopConfig
@@ -32,8 +32,10 @@ _TEST_PATTERNS: set[str] = {"test_", "_test.py", ".test.", ".spec."}
 
 _DEBUG_PY = re.compile(r"(?<!\w)print\s*\(|breakpoint\s*\(|import\s+pdb")
 _DEBUG_JS = re.compile(r"console\.(log|debug|info)\s*\(|(?<!\w)debugger\b|alert\s*\(")
+_LOGGING_CALL = re.compile(r"\b(logger|log)\.(debug|info|warn|warning|error|critical)\s*\(")
 _TODO_RE = re.compile(r"\b(TODO|FIXME|HACK|XXX)\b", re.IGNORECASE)
 _COMMENT_LINE = re.compile(r"^\s*(#|//|/\*|\*)")
+_DEV_DIRS = ("/scripts/", "/tools/", "/bin/", "/.loop/")
 
 
 # ---------------------------------------------------------------------------
@@ -93,7 +95,7 @@ def run_all_quality_checks(state: LoopState, config: LoopConfig) -> None:
     _scan_function_lengths(pm, source_files, config)
     _scan_duplicates(pm, source_files, config)
     _scan_prd_structure(pm, config)
-    _scan_test_ratio(pm, source_files)
+    _scan_test_ratio(pm, source_files, context=state.context)
     _scan_todo_debt(pm, source_files)
     _scan_debug_artifacts(pm, source_files)
 
@@ -253,11 +255,11 @@ def _scan_duplicates(
             preview = window[0][1][:80]
             block_map[h].append((rel, line_num, preview))
 
-    # Find blocks appearing in 2+ different files
+    # Find blocks appearing in 3+ different files (2 files is often coincidence)
     seen_pairs: set[tuple[str, ...]] = set()
     for h, locations in block_map.items():
         files_with_block = sorted(set(loc[0] for loc in locations))
-        if len(files_with_block) < 2:
+        if len(files_with_block) < 3:
             continue
 
         pair_key = tuple(files_with_block)
@@ -415,7 +417,10 @@ def _parse_prd_tree(content: str) -> list[str]:
 # Check 4: Test Ratio
 # ---------------------------------------------------------------------------
 
-def _scan_test_ratio(pm: ProcessMonitorState, source_files: dict[str, str]) -> None:
+def _scan_test_ratio(
+    pm: ProcessMonitorState, source_files: dict[str, str],
+    *, context: Any = None,
+) -> None:
     """Compute ratio of test files to source files."""
     test_count = 0
     source_count = 0
@@ -431,6 +436,16 @@ def _scan_test_ratio(pm: ProcessMonitorState, source_files: dict[str, str]) -> N
             source_count += 1
 
     pm.test_source_ratio = test_count / max(source_count, 1)
+
+    # Skip warning for deliverables that don't use test files (static sites,
+    # documents, data pipelines). If no tests exist and the holistic evaluation
+    # strategy is browser/document/data-based, test ratio is not meaningful.
+    if test_count == 0 and context is not None:
+        holistic = getattr(context, "verification_strategy", {})
+        if isinstance(holistic, dict):
+            holistic_type = holistic.get("holistic_type", "")
+            if holistic_type in ("browser", "document_review", "data_validation"):
+                return  # No test files expected for this deliverable type
 
     if source_count > 0 and pm.test_source_ratio < 0.5:
         pm.code_health_warnings.append(
@@ -473,11 +488,17 @@ def _scan_debug_artifacts(
             continue
         if rel.endswith("__init__.py"):
             continue
+        # Skip dev tooling directories (not production code)
+        if any(d in rel.replace("\\", "/") for d in _DEV_DIRS):
+            continue
 
         for line in content.splitlines():
             stripped = line.strip()
             # Skip comment lines
             if _COMMENT_LINE.match(stripped):
+                continue
+            # Skip legitimate logging calls
+            if _LOGGING_CALL.search(stripped):
                 continue
 
             if rel.endswith(".py"):

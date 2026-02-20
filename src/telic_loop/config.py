@@ -33,6 +33,7 @@ class LoopConfig:
     # Critical evaluation
     critical_eval_interval: int = 3
     critical_eval_on_all_pass: bool = True
+    max_epic_eval_cycles: int = 2  # eval-fix loops per epic boundary + final eval
 
     # Browser evaluation (Critical Evaluator)
     browser_eval_headless: bool = False       # False = headed (dev), True = headless (CI)

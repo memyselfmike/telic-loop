@@ -116,6 +116,22 @@ Use whatever the `{VERIFICATION_STRATEGY}` specifies. If it specifies nothing, d
 
 Do NOT install new test frameworks unless the project has none. Use what is already there.
 
+## Adapting to the Deliverable
+
+Not every project has testable code. Adapt your verification approach to the deliverable type:
+
+| Deliverable | Appropriate Verifications |
+|-------------|--------------------------|
+| **Static site / SSG** | Build succeeds (exit 0). All expected routes exist in output (dist/, build/, out/). HTML contains expected content (grep for key headings, navigation links, meta tags). Assets referenced in HTML exist on disk. |
+| **API / Backend** | Endpoint health checks (curl). Response schema validation. CRUD lifecycle tests. Auth flow verification. |
+| **CLI tool** | Help text renders. Core commands execute with expected output. Error cases return non-zero. |
+| **Document / Report** | File exists and is non-empty. Expected sections present (grep for headings). Word count meets minimum. |
+| **Configuration** | Config file is valid syntax (JSON/YAML parse). Expected keys present. Applying config produces expected behavior. |
+
+If the project has **no test framework and no testable runtime** (e.g., a pure static site), write verification scripts that check the BUILD OUTPUT — file existence, content correctness, asset integrity. These are valid, valuable verifications.
+
+**Do NOT skip verification just because there are no unit tests to write.** Every deliverable can be verified. The question is how.
+
 ## Script Template
 
 Each verification script should follow this general structure (adapt to language/framework):

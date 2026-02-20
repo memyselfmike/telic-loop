@@ -107,10 +107,63 @@ def do_full_coherence_eval(
         if report.overall == "CRITICAL":
             print("  COHERENCE CRITICAL — system-level issues detected")
 
+        # Auto-create fix tasks from actionable findings
+        if report.overall in ("CRITICAL", "WARNING") and report.top_findings:
+            created = _create_coherence_fix_tasks(state, report)
+            if created:
+                print(f"  Created {created} coherence fix task(s)")
+
         return report.overall != "HEALTHY"
 
     state.coherence_critical_pending = False
     return False
+
+
+def _create_coherence_fix_tasks(state: LoopState, report: CoherenceReport) -> int:
+    """Create fix tasks from coherence findings (same pattern as CE-* and VRC-*)."""
+    from ..state import TaskState
+
+    # Tag with current epic if in multi-epic mode
+    epic_id = ""
+    if (state.vision_complexity == "multi_epic"
+            and state.epics
+            and state.current_epic_index < len(state.epics)):
+        epic_id = state.epics[state.current_epic_index].epic_id
+
+    # Dedup against existing task descriptions
+    existing_descs = {t.description for t in state.tasks.values() if t.status != "descoped"}
+
+    created = 0
+    for i, finding in enumerate(report.top_findings):
+        # Accept both dict and string findings
+        if isinstance(finding, dict):
+            desc = finding.get("suggested_fix") or finding.get("description", "")
+            severity = finding.get("severity", "WARNING")
+        else:
+            desc = str(finding)
+            severity = "WARNING"
+
+        if not desc or desc in existing_descs:
+            continue
+
+        # Only create tasks for WARNING+ severity
+        if severity not in ("CRITICAL", "WARNING", "SEVERE"):
+            continue
+
+        task_id = f"COH-{state.iteration}-{i}"
+        state.add_task(TaskState(
+            task_id=task_id,
+            source="coherence",
+            description=desc,
+            value=f"Fix coherence issue: {desc[:100]}",
+            acceptance=f"Coherence finding resolved: {desc[:100]}",
+            created_at=datetime.now().isoformat(),
+            epic_id=epic_id,
+        ))
+        existing_descs.add(desc)
+        created += 1
+
+    return created
 
 
 # ---------------------------------------------------------------------------

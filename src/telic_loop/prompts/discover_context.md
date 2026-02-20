@@ -97,6 +97,20 @@ Examples:
 
 Write value proofs from the user's perspective, in language the user would understand.
 
+**Value proofs must describe OUTCOMES, not infrastructure.** Each proof should answer: "What would the target user observe or accomplish?"
+
+Bad examples (infrastructure-level — do NOT use these alone):
+- "Dev server runs on port 4321"
+- "Database migrations complete successfully"
+- "Build produces output files"
+
+Good examples (outcome-level):
+- "User navigates the site and finds each section has a distinct purpose and experience"
+- "User completes the primary workflow described in the Vision from start to finish"
+- "Each feature promised in the Vision is discoverable through the intended user journey"
+
+For every distinct capability promised in the Vision, write at least one value proof that describes the user EXPERIENCING that capability, not just the capability existing.
+
 ### Step 8: List Unresolved Questions
 
 What could you not determine? What needs human input? What is ambiguous in the Vision or PRD?

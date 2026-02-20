@@ -193,8 +193,8 @@ def evaluate_process_triggers(state: LoopState, config: LoopConfig) -> str:
 
     triggers: list[tuple[str, str]] = []
 
-    # Plateau: value velocity below threshold
-    if pm.value_velocity_ema < config.pm_plateau_threshold:
+    # Plateau: value velocity below threshold (only after sufficient VRC data)
+    if pm.value_velocity_ema < config.pm_plateau_threshold and len(state.vrc_history) >= 3:
         triggers.append(("plateau", "RED"))
 
     # Churn: task oscillating fail→fix→fail
@@ -209,15 +209,15 @@ def evaluate_process_triggers(state: LoopState, config: LoopConfig) -> str:
     if max_error >= config.pm_error_recurrence:
         triggers.append(("error_recurrence", "RED"))
 
-    # Budget-value divergence
+    # Budget-value divergence — use VRC score (actual value) not task count ratio
     if config.token_budget:
         budget_pct = state.total_tokens_used / config.token_budget * 100
-        value_pct = (
-            len([t for t in state.tasks.values() if t.status == "done"])
-            / max(len(state.tasks), 1) * 100
-        )
-        if value_pct > 0 and budget_pct / value_pct >= config.pm_budget_value_ratio:
+        vrc_score = state.vrc_history[-1].value_score * 100 if state.vrc_history else 0
+        if vrc_score > 0 and budget_pct / vrc_score >= config.pm_budget_value_ratio:
             triggers.append(("budget_divergence", "RED"))
+        elif vrc_score == 0 and budget_pct > 30:
+            # No VRC yet but significant budget spent
+            triggers.append(("budget_divergence", "YELLOW"))
 
     # File hotspot
     if pm.file_touches:
@@ -234,7 +234,7 @@ def evaluate_process_triggers(state: LoopState, config: LoopConfig) -> str:
 
     # Code quality: long functions, duplicates, debug artifacts
     long_fn_count = sum(1 for w in pm.code_health_warnings if w.startswith("LONG_FUNCTION"))
-    if long_fn_count >= 5 or len(pm.duplicate_blocks) >= 2 or pm.debug_artifact_count > 0:
+    if long_fn_count >= 5 or len(pm.duplicate_blocks) >= 2 or pm.debug_artifact_count > 3:
         triggers.append(("code_quality", "YELLOW"))
 
     if any(level == "RED" for _, level in triggers):

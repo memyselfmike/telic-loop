@@ -14,7 +14,10 @@ if TYPE_CHECKING:
     from ..state import LoopState
 
 
-def do_exit_gate(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
+def do_exit_gate(
+    config: LoopConfig, state: LoopState, claude: Claude,
+    *, inside_epic_loop: bool = False,
+) -> bool:
     """Run exit gate verification: coherence + regression sweep + fresh VRC + critical eval."""
     from ..git import git_commit
     from ..state import TaskState
@@ -49,7 +52,10 @@ def do_exit_gate(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
     budget_critical = budget_pct >= 95
 
     # 0. Full coherence evaluation (catch cross-feature interaction issues)
-    if not budget_critical:
+    # Skip inside epic loop — coherence runs at epic boundary instead
+    if inside_epic_loop:
+        print("  Skipping coherence (runs at epic boundary)")
+    elif not budget_critical:
         print("  Running full coherence evaluation...")
         coherence_has_issues = do_full_coherence_eval(config, state, claude)
         if coherence_has_issues and state.coherence_history:
@@ -88,17 +94,20 @@ def do_exit_gate(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
     if fresh_vrc.recommendation != "SHIP_READY":
         print(f"  EXIT GATE FAILED — VRC says {fresh_vrc.recommendation}")
         print(f"  Gaps found: {len(fresh_vrc.gaps)}")
-        for gap in fresh_vrc.gaps:
-            if gap.get("suggested_task"):
-                task_id = f"EG-{state.exit_gate_attempts}-{gap.get('id', 'gap')}"
-                if task_id not in state.tasks:
-                    state.add_task(TaskState(
-                        task_id=task_id,
-                        source="exit_gate",
-                        description=gap["suggested_task"],
-                        value=gap.get("description", ""),
-                        created_at=datetime.now().isoformat(),
-                    ))
+        # Only create tasks on first attempt — subsequent attempts report but don't
+        # generate work to avoid infinite task-creation loop
+        if state.exit_gate_attempts <= 1:
+            for gap in fresh_vrc.gaps:
+                if gap.get("suggested_task"):
+                    task_id = f"EG-{state.exit_gate_attempts}-{gap.get('id', 'gap')}"
+                    if task_id not in state.tasks:
+                        state.add_task(TaskState(
+                            task_id=task_id,
+                            source="exit_gate",
+                            description=gap["suggested_task"],
+                            value=gap.get("description", ""),
+                            created_at=datetime.now().isoformat(),
+                        ))
         return False
 
     # 2b. Deterministic gap enforcement — don't trust SHIP_READY alone.
@@ -113,7 +122,7 @@ def do_exit_gate(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
             sev = gap.get("severity", "?")
             desc = gap.get("description", "?")
             print(f"    [{sev}] {desc}")
-            if gap.get("suggested_task"):
+            if state.exit_gate_attempts <= 1 and gap.get("suggested_task"):
                 task_id = f"EG-{state.exit_gate_attempts}-{gap.get('id', 'gap')}"
                 if task_id not in state.tasks:
                     state.add_task(TaskState(
@@ -129,19 +138,23 @@ def do_exit_gate(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
         return False
 
     # 3. Final critical evaluation
-    print("  Running final critical evaluation...")
-    do_critical_eval(config, state, claude)
+    # Skip inside epic loop — critical eval runs at epic boundary instead
+    if inside_epic_loop:
+        print("  Skipping critical eval (runs at epic boundary)")
+    else:
+        print("  Running final critical evaluation...")
+        do_critical_eval(config, state, claude)
 
-    new_tasks = [
-        t for t in state.tasks.values()
-        if t.source == "critical_eval" and t.status == "pending"
-    ]
-    if new_tasks:
-        print(f"  EXIT GATE FAILED — critical eval found {len(new_tasks)} issues")
-        return False
+        new_tasks = [
+            t for t in state.tasks.values()
+            if t.source == "critical_eval" and t.status == "pending"
+        ]
+        if new_tasks:
+            print(f"  EXIT GATE FAILED — critical eval found {len(new_tasks)} issues")
+            return False
 
-    if _wall_clock_exceeded("critical_eval"):
-        return False
+        if _wall_clock_exceeded("critical_eval"):
+            return False
 
     # 4. Comprehensive code quality enforcement
     if budget_critical:

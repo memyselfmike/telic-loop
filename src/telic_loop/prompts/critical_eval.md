@@ -52,6 +52,17 @@ Read the VISION above. Extract:
 
 You must think like THIS user, not like a developer. A developer forgives rough edges, missing labels, and CLI workarounds. The target user does not.
 
+## Step 2.5: Define User Journeys
+
+Before testing individual features, map the journeys the target user would take through the deliverable:
+
+1. **First contact**: How does the user first encounter this? What is their entry point? What do they see/experience first?
+2. **Core workflow**: What is the primary thing the user came here to do? Trace the full path from start to completion.
+3. **Discovery**: How would the user find each feature the Vision promises? Not by reading code — by using the deliverable as intended.
+4. **Differentiation**: If the deliverable has multiple sections/views/commands/endpoints, how does the user distinguish them? Would they know which one they're using without reading a label?
+
+You MUST walk these journeys during testing. If a Vision-promised feature is not discoverable through a natural user journey, that is a **critical** finding — the feature effectively does not exist for the user.
+
 ## Step 3: Determine Evaluation Strategy
 
 Based on the `deliverable_type` in `{SPRINT_CONTEXT}`:
@@ -96,6 +107,13 @@ Walk through the primary workflow as intended. Does it produce the expected resu
 - After creating data in one feature, does it appear correctly in related features?
 - Do aggregations, summaries, and counts update when underlying data changes?
 - Do filters, sorts, and searches work correctly?
+
+### Intent vs Implementation
+- For each Vision promise, ask: does the implementation deliver the **intent** behind the promise, or just a literal checkbox?
+- "A blog" means a navigable, populated blog experience — not just blog-shaped HTML
+- "Multiple services" means distinct, purposeful presentations — not the same template with different text
+- "Dashboard" means actionable insights — not just numbers on a screen
+- The test: would the target user say "yes, this is what I wanted" — or "technically yes, but this isn't what I meant"?
 
 ## Step 5: Adversarial Testing
 
@@ -203,6 +221,9 @@ If recent changes BROKE a previously working experience, that is absolutely in s
 - Do NOT inflate severity. Use the recalibrated severity guide above.
 - Do NOT report issues that only affect developers (build warnings, code comments, internal naming).
 - Do NOT create tasks for `degraded` or `polish` findings — only `critical` and `blocking`.
+- Do NOT accept features that technically exist but are not discoverable through the intended user journey. If a user would never find it without reading the source code, it is effectively missing.
+- Do NOT accept components that serve different purposes but are indistinguishable in experience. If a user cannot tell which section/view/command they are using without reading a label, the deliverable lacks identity and purpose.
+- Do NOT conflate "it renders/runs" with "it delivers value." A feature that loads but doesn't deliver the Vision's implied experience is a blocking finding.
 
 ## The Final Test
 

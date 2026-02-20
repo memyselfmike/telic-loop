@@ -55,9 +55,89 @@ def do_generate_qc(config: LoopConfig, state: LoopState, claude: Claude) -> bool
                         requires=_parse_requires(script),
                     )
 
+    if not state.verifications:
+        # Fallback: if agent generated nothing, create a build-output check
+        # so the loop has at least one verification to track
+        _create_build_verification(config, state)
+
     if state.verifications:
         state.pass_gate("verifications_generated")
     return bool(state.verifications)
+
+
+def _create_build_verification(config: LoopConfig, state: LoopState) -> None:
+    """Create a minimal build-output verification when no scripts were generated.
+
+    Checks common build output directories for non-empty content.
+    Ensures QC is never 0/0 — even the simplest project gets verified.
+    """
+    from ..state import VerificationState
+
+    project_dir = config.effective_project_dir
+
+    # Find a build output directory
+    build_dirs = ["dist", "build", "out", "_site", ".next", ".output"]
+    found_dir = None
+    for d in build_dirs:
+        candidate = project_dir / d
+        if candidate.is_dir() and any(candidate.iterdir()):
+            found_dir = candidate
+            break
+
+    if not found_dir:
+        return  # No build output to verify
+
+    # Create the verification script
+    verify_dir = config.sprint_dir / ".loop" / "verifications" / "value"
+    verify_dir.mkdir(parents=True, exist_ok=True)
+    script_path = verify_dir / "build_output_check.sh"
+
+    rel_dir = found_dir.relative_to(project_dir)
+    script_content = f"""#!/usr/bin/env bash
+# Verification: Build output exists and contains expected files
+# Category: value
+# Auto-generated fallback verification
+set -euo pipefail
+
+BUILD_DIR="{project_dir / rel_dir}"
+
+echo "=== Build Output Verification ==="
+
+if [ ! -d "$BUILD_DIR" ]; then
+  echo "FAIL: Build output directory does not exist: $BUILD_DIR"
+  exit 1
+fi
+
+FILE_COUNT=$(find "$BUILD_DIR" -type f | wc -l)
+if [ "$FILE_COUNT" -eq 0 ]; then
+  echo "FAIL: Build output directory is empty"
+  exit 1
+fi
+
+echo "PASS: Build output exists with $FILE_COUNT files in {rel_dir}/"
+
+# Check for index/entry point
+if [ -f "$BUILD_DIR/index.html" ]; then
+  echo "PASS: index.html found"
+elif ls "$BUILD_DIR"/*.html 1>/dev/null 2>&1; then
+  echo "PASS: HTML files found"
+else
+  echo "INFO: No HTML entry point (may be expected for non-web builds)"
+fi
+
+exit 0
+"""
+    script_path.write_text(script_content, encoding="utf-8")
+
+    v_id = "value/build_output_check"
+    state.verifications[v_id] = VerificationState(
+        verification_id=v_id,
+        category="value",
+        script_path=str(script_path),
+    )
+    if "value" not in state.verification_categories:
+        state.verification_categories.append("value")
+    print("  Fallback: created build output verification")
 
 
 def do_run_qc(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
