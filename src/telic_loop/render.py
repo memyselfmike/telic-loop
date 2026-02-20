@@ -130,6 +130,22 @@ def generate_delivery_report(config: LoopConfig, state: LoopState) -> None:
             )
         lines.append("")
 
+    # Crash summary
+    if state.crash_log:
+        lines.append("## Crash Summary")
+        lines.append("")
+        lines.append(f"Total crashes: {len(state.crash_log)}")
+        lines.append("")
+        lines.append("| Time | Phase | Type | Error |")
+        lines.append("|------|-------|------|-------|")
+        for crash in state.crash_log:
+            ts = crash.get("timestamp", "?")[:19]
+            phase = crash.get("phase", "?")
+            ctype = crash.get("crash_type", "?")
+            error = crash.get("error", "?")[:80]
+            lines.append(f"| {ts} | {phase} | {ctype} | {error} |")
+        lines.append("")
+
     lines += [
         "## Deliverables",
     ]

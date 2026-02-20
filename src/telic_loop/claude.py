@@ -180,22 +180,53 @@ class ClaudeSession:
         self.mcp_servers = mcp_servers or {}
 
     def send(self, user_message: str, task_source: str = "agent") -> str:
-        """Send a prompt to Claude Code, let SDK handle tool execution, return final text."""
-        # Save state before query so tool CLI can access it
-        if self.state and self.config:
-            self.state._current_task_source = task_source  # type: ignore[attr-defined]
-            self.state.save(self.config.state_file)
+        """Send a prompt to Claude Code, let SDK handle tool execution, return final text.
 
-        result = asyncio.run(self._send_async(user_message))
+        Retries once on transient failures (SDK timeout, subprocess crash).
+        """
+        max_attempts = 2
+        last_exc: Exception | None = None
 
-        # Reload state after query (tool CLI may have modified it)
-        if self.state and self.config and self.config.state_file.exists():
-            from .state import LoopState
-            updated = LoopState.load(self.config.state_file)
-            # Merge updated fields back into the in-memory state
-            _sync_state(self.state, updated)
+        for attempt in range(max_attempts):
+            try:
+                # Save state before query so tool CLI can access it
+                if self.state and self.config:
+                    self.state._current_task_source = task_source  # type: ignore[attr-defined]
+                    self.state.save(self.config.state_file)
 
-        return result
+                result = asyncio.run(self._send_async(user_message))
+
+                # Reload state after query (tool CLI may have modified it)
+                if self.state and self.config and self.config.state_file.exists():
+                    from .state import LoopState
+                    updated = LoopState.load(self.config.state_file)
+                    _sync_state(self.state, updated)
+
+                return result
+
+            except Exception as exc:
+                last_exc = exc
+                # Log crash with full diagnostics
+                if self.config:
+                    try:
+                        from .crash_log import log_crash
+                        log_crash(
+                            self.config.state_file.parent / ".crash_log.jsonl",
+                            error=exc,
+                            phase=f"sdk_send_attempt_{attempt + 1}",
+                            iteration=self.state.iteration if self.state else 0,
+                            tokens_used=self.state.total_tokens_used if self.state else 0,
+                        )
+                    except Exception:
+                        pass  # Don't let crash logging break the retry
+
+                if attempt < max_attempts - 1:
+                    import time
+                    wait = 10 * (attempt + 1)
+                    print(f"  SDK session failed (attempt {attempt + 1}), retrying in {wait}s...")
+                    time.sleep(wait)
+
+        raise last_exc  # type: ignore[misc]
 
     async def _send_async(self, user_message: str) -> str:
         # Allow nested Claude Code sessions (e.g. launched from Claude Code)

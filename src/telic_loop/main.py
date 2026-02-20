@@ -94,6 +94,7 @@ def run_value_loop(
             out_before = state.total_output_tokens
             t0 = time.perf_counter()
 
+            crash_record = None
             try:
                 # Exit gate is special — it can terminate the loop
                 if action == Action.EXIT_GATE:
@@ -115,7 +116,36 @@ def run_value_loop(
                         print(f"  WARNING: No handler for action {action.value}")
                         progress = False
             except Exception as exc:
-                print(f"\n  CRASH in {action.value}: {exc}")
+                from .crash_log import CRASH_HANDLER, log_crash
+
+                # Find which task was in progress
+                current_task_id = ""
+                for task in state.tasks.values():
+                    if task.status == "in_progress":
+                        current_task_id = task.task_id
+                        break
+
+                print(f"\n  CRASH in {action.value}:")
+                crash_record = log_crash(
+                    config.sprint_dir / ".crash_log.jsonl",
+                    error=exc,
+                    phase=action.value,
+                    task_id=current_task_id,
+                    iteration=iteration,
+                    tokens_used=state.total_tokens_used,
+                    crash_type=CRASH_HANDLER,
+                )
+
+                # Store condensed summary in state
+                state.crash_log.append({
+                    "timestamp": crash_record["timestamp"],
+                    "crash_type": crash_record["crash_type"],
+                    "phase": action.value,
+                    "task_id": current_task_id,
+                    "iteration": iteration,
+                    "error": f"{type(exc).__name__}: {str(exc)[:200]}",
+                })
+
                 progress = False
                 # Reset any in_progress tasks back to pending
                 for task in state.tasks.values():
@@ -126,13 +156,15 @@ def run_value_loop(
             elapsed = round(time.perf_counter() - t0, 1)
             phase_inp = state.total_input_tokens - inp_before
             phase_out = state.total_output_tokens - out_before
+            result_str = "crash" if crash_record else ("progress" if progress else "no_progress")
             state.record_progress(
                 action.value,
-                "progress" if progress else "no_progress",
+                result_str,
                 progress,
                 input_tokens=phase_inp,
                 output_tokens=phase_out,
                 duration_sec=elapsed,
+                crash_type=crash_record["crash_type"] if crash_record else "",
             )
 
             # Process monitor (after every action)
@@ -213,14 +245,29 @@ def main() -> None:
         except Exception as exc:
             print(f"\n{'=' * 60}")
             print(f"  LOOP CRASHED (attempt {attempt}/{max_restarts})")
-            print(f"  Error: {exc}")
+
+            # Log crash with full traceback to file
+            try:
+                from .crash_log import log_crash
+                sprint_dir = Path(f"sprints/{sys.argv[1]}") if len(sys.argv) > 1 else Path(".")
+                log_crash(
+                    sprint_dir / ".crash_log.jsonl",
+                    error=exc,
+                    phase="main_restart",
+                    extra={"attempt": attempt, "max_restarts": max_restarts},
+                )
+            except Exception:
+                # Fallback: at least print the traceback
+                import traceback
+                traceback.print_exc()
+
             print(f"{'=' * 60}")
             if attempt < max_restarts:
                 wait = 10 * attempt  # 10s, 20s, 30s backoff
                 print(f"  Restarting in {wait} seconds...")
                 time.sleep(wait)
             else:
-                print("  Max restarts reached. Manual intervention required.")
+                print("  Max restarts reached. Crash details in .crash_log.jsonl")
                 sys.exit(1)
 
 

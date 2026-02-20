@@ -329,6 +329,9 @@ class LoopState:
     total_input_tokens: int = 0
     total_output_tokens: int = 0
 
+    # Crash history (condensed summaries — full tracebacks in .crash_log.jsonl)
+    crash_log: list[dict] = field(default_factory=list)
+
     # ----- Properties -----
 
     @property
@@ -346,8 +349,9 @@ class LoopState:
         self, action: str, result: str, made_progress: bool,
         input_tokens: int = 0, output_tokens: int = 0,
         duration_sec: float = 0.0,
+        crash_type: str = "",
     ) -> None:
-        self.progress_log.append({
+        entry: dict[str, Any] = {
             "iteration": self.iteration,
             "action": action,
             "result": result,
@@ -355,7 +359,10 @@ class LoopState:
             "input_tokens": input_tokens,
             "output_tokens": output_tokens,
             "duration_sec": duration_sec,
-        })
+        }
+        if crash_type:
+            entry["crash_type"] = crash_type
+        self.progress_log.append(entry)
         if made_progress:
             self.iterations_without_progress = 0
         else:
