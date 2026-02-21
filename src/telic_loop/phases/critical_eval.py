@@ -12,18 +12,38 @@ if TYPE_CHECKING:
     from ..state import LoopState
 
 
-def _needs_browser_eval(state: LoopState) -> bool:
-    """Check whether the deliverable warrants browser-based evaluation."""
+def _needs_browser_eval(state: LoopState, config: LoopConfig | None = None) -> bool:
+    """Check whether the deliverable warrants browser-based evaluation.
+
+    Browser eval is essential for web apps — without it, visual/UX defects
+    go undetected. Uses multiple signals to avoid false negatives from
+    incomplete environment discovery.
+    """
+    import shutil
+
     ctx = state.context
+
+    # Must be a software deliverable with a web-facing project type
+    is_web_app = (
+        ctx.deliverable_type == "software"
+        and ctx.project_type in ("web_app", "web_application", "spa", "pwa")
+    )
+    if not is_web_app:
+        return False
+
+    # Check multiple signals for Node availability (don't rely only on discovery)
     has_node = any(
         "node" in t or "npx" in t
         for t in ctx.environment.get("tools_found", [])
     )
-    return (
-        has_node
-        and ctx.deliverable_type == "software"
-        and ctx.project_type in ("web_app", "web_application", "spa", "pwa")
-    )
+    if not has_node:
+        # Fallback: check if npx is on PATH (discovery may have missed it)
+        has_node = shutil.which("npx") is not None
+    if not has_node and config:
+        # Fallback: check for package.json in project dir (strong signal)
+        has_node = (config.effective_project_dir / "package.json").exists()
+
+    return has_node
 
 
 def _build_playwright_config(config: LoopConfig) -> dict:
@@ -75,7 +95,7 @@ def do_critical_eval(config: LoopConfig, state: LoopState, claude: Claude) -> bo
     state.tasks_since_last_critical_eval = 0
 
     # Determine whether to inject browser tools
-    use_browser = _needs_browser_eval(state)
+    use_browser = _needs_browser_eval(state, config)
 
     mcp_servers = _build_playwright_config(config) if use_browser else None
     extra_tools = list(PLAYWRIGHT_MCP_TOOLS) if use_browser else None
