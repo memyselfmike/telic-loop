@@ -60,7 +60,8 @@ Using the SprintContext and PRD together:
 
 For brownfield codebases: only plan tasks for what is MISSING, BROKEN, or DISCONNECTED.
 For greenfield codebases: plan everything from foundation to value delivery.
-For non-code deliverables: plan the creation, review, and verification of the deliverable.
+For bootstrapped codebases: the project skeleton is already running (server, database, deps installed). Do NOT plan setup/initialization tasks — plan only FEATURE tasks that add value. Read the project directory to see what already exists.
+For non_code deliverables: plan the creation, review, and verification of the deliverable.
 
 ### Step 3: Map PRD Sections to Tasks
 

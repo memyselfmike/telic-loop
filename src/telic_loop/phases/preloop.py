@@ -273,6 +273,9 @@ def _bootstrap_services(
     )
     session.send(prompt)
 
+    # Update context so the planner knows the scaffold exists
+    state.context.codebase_state = "bootstrapped"
+
     if _all_services_healthy(config, state):
         print("  Service bootstrap: services healthy")
     else:
