@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -10,6 +11,11 @@ if TYPE_CHECKING:
     from ..claude import Claude
     from ..config import LoopConfig
     from ..state import LoopState
+
+
+def _is_interactive() -> bool:
+    """Check if stdin is a real terminal (not batch/piped mode)."""
+    return hasattr(sys.stdin, "isatty") and sys.stdin.isatty()
 
 
 def do_interactive_pause(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
@@ -27,8 +33,18 @@ def do_interactive_pause(config: LoopConfig, state: LoopState, claude: Claude) -
             state.pause = None
             return True
         else:
-            print(f"  Not yet completed. Instructions: {state.pause.instructions}")
-            input("  Press Enter when ready...")
+            if _is_interactive():
+                print(f"  Not yet completed. Instructions: {state.pause.instructions}")
+                input("  Press Enter when ready...")
+            else:
+                # Non-interactive: descope blocked tasks and continue
+                print(f"  Non-interactive mode — descoping HUMAN_ACTION tasks")
+                for task in state.tasks.values():
+                    if task.status == "blocked" and task.blocked_reason.startswith("HUMAN_ACTION:"):
+                        task.status = "descoped"
+                        task.resolution_note = "HUMAN_ACTION: cannot complete in non-interactive mode"
+                state.pause = None
+                return True
             return False
 
     # First time — set up pause
@@ -41,6 +57,13 @@ def do_interactive_pause(config: LoopConfig, state: LoopState, claude: Claude) -
 
     task = human_blocked[0]
     action_needed = task.blocked_reason.replace("HUMAN_ACTION:", "").strip()
+
+    if not _is_interactive():
+        # Non-interactive mode — descope the task immediately
+        print(f"  Non-interactive mode — descoping HUMAN_ACTION task: {task.task_id}")
+        task.status = "descoped"
+        task.resolution_note = f"HUMAN_ACTION: {action_needed} (non-interactive mode)"
+        return True
 
     state.pause = PauseState(
         reason=action_needed,
