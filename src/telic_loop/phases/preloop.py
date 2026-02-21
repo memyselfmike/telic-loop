@@ -92,6 +92,14 @@ def run_preloop(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
         state.pass_gate("prd_critique")
         state.save(config.state_file)
 
+    # Step 4b: Service bootstrap for greenfield projects
+    # Gets the project skeleton running BEFORE plan generation so the
+    # planner sees the scaffold and generates feature tasks, not setup tasks.
+    if not state.gate_passed("service_bootstrap"):
+        _bootstrap_services(config, state, claude)
+        state.pass_gate("service_bootstrap")
+        state.save(config.state_file)
+
     # Step 5: Generate plan
     if not state.gate_passed("plan_generated"):
         session = claude.session(AgentRole.REASONER)
@@ -112,14 +120,6 @@ def run_preloop(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
     # Step 6: Quality gates
     if not _run_quality_gates(config, state, claude):
         return False
-
-    # Step 7: Service bootstrap for greenfield projects
-    # Gets the project skeleton running BEFORE the value loop starts.
-    # This prevents SERVICE_FIX from looping on services that don't exist yet.
-    if not state.gate_passed("service_bootstrap"):
-        _bootstrap_services(config, state, claude)
-        state.pass_gate("service_bootstrap")
-        state.save(config.state_file)
 
     # Step 8: Blocker check
     blocked = [
