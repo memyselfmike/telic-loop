@@ -292,7 +292,7 @@ def _run_main() -> None:
     from .git import ensure_gitignore, setup_sprint_branch
 
     if len(sys.argv) < 2:
-        print("Usage: telic-loop <sprint-name> [--sprint-dir <path>] [--project-dir <path>]")
+        print("Usage: telic-loop <sprint-name> [--sprint-dir <path>] [--project-dir <path>] [--docker-mode auto|always|never]")
         sys.exit(1)
 
     sprint = sys.argv[1]
@@ -311,7 +311,17 @@ def _run_main() -> None:
         if idx + 1 < len(sys.argv):
             project_dir = Path(sys.argv[idx + 1])
 
-    config = LoopConfig(sprint=sprint, sprint_dir=sprint_dir, project_dir=project_dir)
+    # Parse optional --docker-mode
+    docker_mode = "auto"
+    if "--docker-mode" in sys.argv:
+        idx = sys.argv.index("--docker-mode")
+        if idx + 1 < len(sys.argv):
+            docker_mode = sys.argv[idx + 1]
+
+    config = LoopConfig(
+        sprint=sprint, sprint_dir=sprint_dir,
+        project_dir=project_dir, docker_mode=docker_mode,
+    )
 
     # Ensure sprint directory exists
     config.sprint_dir.mkdir(parents=True, exist_ok=True)

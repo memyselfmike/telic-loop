@@ -70,7 +70,12 @@ def _precompute_environment(config: "LoopConfig") -> str:
         markers = _detect_project_markers(project_dir)
         file_tree, test_files = _scan_project_files(project_dir)
         services = _detect_services(project_dir, markers)
-        return _format_precomputed(tool_versions, markers, file_tree, test_files, services)
+        docker_rec = _detect_docker_recommendation(
+            project_dir, tool_versions, markers, config.docker_mode,
+        )
+        return _format_precomputed(
+            tool_versions, markers, file_tree, test_files, services, docker_rec,
+        )
     except Exception as exc:
         return (
             f"Pre-computation failed ({exc}). Please discover the environment "
@@ -335,12 +340,110 @@ def _detect_services(
     return services
 
 
+# Native dependencies known to cause Windows build issues
+_NATIVE_DEPS = {
+    "better-sqlite3", "sharp", "canvas", "bcrypt", "argon2",
+    "node-gyp", "node-pre-gyp", "node-sass",
+}
+
+# CMS/framework packages that typically need native deps or Linux env
+_CMS_PACKAGES = {
+    "payload", "@payloadcms/db-sqlite", "@payloadcms/db-postgres",
+    "sanity", "@sanity/client",
+    "strapi", "@strapi/strapi",
+    "directus",
+    "tinacms", "@tinacms/cli",
+}
+
+
+def _detect_docker_recommendation(
+    project_dir: Path,
+    tool_versions: dict[str, Any],
+    markers: dict[str, Any],
+    docker_mode: str = "auto",
+) -> dict[str, Any]:
+    """Determine if Docker containerization should be recommended.
+
+    Checks: Docker available? Compose file exists? Native deps in package.json?
+    Returns a recommendation dict for injection into the discovery prompt.
+    """
+    docker_version = tool_versions.get("tools", {}).get("Docker")
+    docker_available = docker_version is not None
+
+    # Check for existing compose file
+    compose_file = ""
+    compose_services: list[str] = []
+    for name in ("docker-compose.yml", "docker-compose.yaml", "compose.yml", "compose.yaml"):
+        marker = markers.get(name)
+        if marker and "services" in marker:
+            compose_file = name
+            compose_services = marker["services"]
+            break
+        elif (project_dir / name).is_file():
+            compose_file = name
+            break
+
+    # Check for Dockerfile
+    has_dockerfile = markers.get("Dockerfile", {}).get("exists", False)
+
+    # Scan package.json for native dependency signals
+    native_deps_found: list[str] = []
+    cms_found: list[str] = []
+    pkg_marker = markers.get("package.json", {})
+    all_deps = set(pkg_marker.get("dependencies", []) + pkg_marker.get("devDependencies", []))
+    for dep in all_deps:
+        if dep in _NATIVE_DEPS:
+            native_deps_found.append(dep)
+        if dep in _CMS_PACKAGES:
+            cms_found.append(dep)
+
+    # Also check for prisma with sqlite (common native dep pattern)
+    if "prisma" in all_deps or "@prisma/client" in all_deps:
+        cms_found.append("prisma")
+
+    # Build recommendation
+    if docker_mode == "never":
+        recommendation = "disabled"
+        reason = "Docker mode set to 'never' by configuration"
+    elif docker_mode == "always":
+        recommendation = "required"
+        reason = "Docker mode set to 'always' by configuration"
+    elif not docker_available:
+        recommendation = "unavailable"
+        reason = "Docker not found on this system"
+    elif compose_file or has_dockerfile:
+        recommendation = "recommended"
+        reason = f"Project has {compose_file or 'Dockerfile'} — designed for containers"
+    elif native_deps_found:
+        recommendation = "recommended"
+        reason = f"Native deps detected: {', '.join(native_deps_found)}"
+    elif cms_found:
+        recommendation = "recommended"
+        reason = f"CMS/framework packages detected: {', '.join(cms_found)}"
+    else:
+        recommendation = "optional"
+        reason = "Docker available but no strong signals for containerization"
+
+    return {
+        "docker_available": docker_available,
+        "docker_version": docker_version,
+        "compose_file": compose_file,
+        "compose_services": compose_services,
+        "has_dockerfile": has_dockerfile,
+        "native_deps_detected": native_deps_found,
+        "cms_packages_detected": cms_found,
+        "recommendation": recommendation,
+        "reason": reason,
+    }
+
+
 def _format_precomputed(
     tool_versions: dict[str, Any],
     markers: dict[str, Any],
     file_tree: dict[str, int],
     test_files: list[str],
     services: list[str],
+    docker_rec: dict[str, Any] | None = None,
 ) -> str:
     """Format pre-computed data as readable text for prompt injection."""
     sections: list[str] = []
@@ -443,6 +546,26 @@ def _format_precomputed(
         lines = ["### Detected Services"]
         for svc in services:
             lines.append(f"  {svc}")
+        sections.append("\n".join(lines))
+
+    # Docker Analysis
+    if docker_rec:
+        lines = ["### Docker Analysis"]
+        lines.append(f"  Available: {docker_rec.get('docker_available', False)}")
+        if docker_rec.get("docker_version"):
+            lines.append(f"  Version: {docker_rec['docker_version']}")
+        if docker_rec.get("compose_file"):
+            svcs = ", ".join(docker_rec.get("compose_services", []))
+            lines.append(f"  Compose file: {docker_rec['compose_file']}"
+                         + (f" (services: {svcs})" if svcs else ""))
+        if docker_rec.get("has_dockerfile"):
+            lines.append("  Dockerfile: found")
+        if docker_rec.get("native_deps_detected"):
+            lines.append(f"  Native deps: {', '.join(docker_rec['native_deps_detected'])}")
+        if docker_rec.get("cms_packages_detected"):
+            lines.append(f"  CMS packages: {', '.join(docker_rec['cms_packages_detected'])}")
+        lines.append(f"  Recommendation: {docker_rec.get('recommendation', 'unknown')}")
+        lines.append(f"  Reason: {docker_rec.get('reason', '')}")
         sections.append("\n".join(lines))
 
     return "\n\n".join(sections)

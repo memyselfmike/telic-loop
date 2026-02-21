@@ -246,6 +246,9 @@ class SprintContext:
     verification_strategy: dict = field(default_factory=dict)
     value_proofs: list[str] = field(default_factory=list)
     unresolved_questions: list[str] = field(default_factory=list)
+    docker: dict = field(default_factory=dict)
+    # docker shape: {enabled: bool, compose_file: str, scripts_dir: str,
+    #   services: [{name, port, internal_port}], recommendation_reason: str}
 
 
 # ---------------------------------------------------------------------------

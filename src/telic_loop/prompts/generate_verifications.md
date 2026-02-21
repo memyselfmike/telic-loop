@@ -132,6 +132,15 @@ If the project has **no test framework and no testable runtime** (e.g., a pure s
 
 **Do NOT skip verification just because there are no unit tests to write.** Every deliverable can be verified. The question is how.
 
+### Docker-Aware Verifications
+
+If the Sprint Context shows `docker.enabled: true`:
+- Test scripts run on the **host**, not inside containers
+- Access services via `localhost:{exposed_port}` (same as non-Docker)
+- If a test must run inside a container, use: `docker compose exec <service> <command>`
+- Health checks should use the `.telic-docker/docker-health.sh` script
+- Include at least one verification that all containers start successfully via `docker-up.sh`
+
 ## Script Template
 
 Each verification script should follow this general structure (adapt to language/framework):

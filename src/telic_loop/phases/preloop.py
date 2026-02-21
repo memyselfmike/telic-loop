@@ -80,6 +80,12 @@ def run_preloop(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
         state.pass_gate("context_discovered")
         state.save(config.state_file)
 
+    # Step 3b: Docker environment setup
+    if not state.gate_passed("docker_setup"):
+        _setup_docker_environment(config, state, claude)
+        state.pass_gate("docker_setup")
+        state.save(config.state_file)
+
     # Step 4: PRD Critique
     if not state.gate_passed("prd_critique"):
         critique_prd(config, claude, state)
@@ -192,3 +198,36 @@ def _run_single_gate(
 
     state.pass_gate(gate_name)  # Pass even on failure — gates are advisory
     return True
+
+
+def _setup_docker_environment(
+    config: "LoopConfig", state: "LoopState", claude: "Claude",
+) -> None:
+    """Generate Docker management scripts if Docker mode is active.
+
+    Spawns a BUILDER session with docker_setup.md prompt to create
+    standardized .telic-docker/ scripts in the project directory.
+    Skips if Docker is not enabled or scripts already exist.
+    """
+    docker_cfg = state.context.docker
+    if not docker_cfg.get("enabled"):
+        print("  Docker: not enabled — skipping setup")
+        return
+
+    from ..claude import AgentRole, load_prompt
+
+    scripts_dir = config.effective_project_dir / docker_cfg.get("scripts_dir", ".telic-docker")
+    if scripts_dir.exists() and (scripts_dir / "docker-up.sh").exists():
+        print("  Docker: scripts already exist — skipping generation")
+        return
+
+    print("  Docker: generating management scripts...")
+    session = claude.session(AgentRole.BUILDER)
+    prompt = load_prompt("docker_setup",
+        PROJECT_DIR=str(config.effective_project_dir),
+        SPRINT_DIR=str(config.sprint_dir),
+        DOCKER_CONFIG=json.dumps(docker_cfg, indent=2),
+        SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),
+    )
+    session.send(prompt, task_source="docker_setup")
+    print(f"  Docker: scripts generated in {scripts_dir}")

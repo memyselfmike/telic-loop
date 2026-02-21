@@ -26,11 +26,13 @@ You have a full Playwright browser available via MCP tools. You MUST use it to i
 ```
    If a service URL is listed, try navigating to it first. If it loads, skip to Step B.
 
-2. **Find the start command**: Look in `package.json` (scripts.start, scripts.dev), `README.md`, or the project's main entry point in `{SPRINT_DIR}`.
+2. **Docker mode**: If the system prompt says Docker mode is ACTIVE, start services using the Docker management scripts: `bash {SPRINT_DIR}/.telic-docker/docker-up.sh` (or the path shown in the Docker Environment section). This is preferred over starting services manually.
 
-3. **Start the server**: Use Bash to run the start command in the background (append `&`). Wait a few seconds for it to boot, then navigate to the URL.
+3. **Find the start command** (non-Docker fallback): Look in `package.json` (scripts.start, scripts.dev), `README.md`, or the project's main entry point in `{SPRINT_DIR}`.
 
-4. **Health check**: After navigating, take a screenshot to confirm the app loaded. If you see a blank page or error, check the terminal output and retry.
+4. **Start the server**: Use Bash to run the start command in the background (append `&`). Wait a few seconds for it to boot, then navigate to the URL.
+
+5. **Health check**: After navigating, take a screenshot to confirm the app loaded. If you see a blank page or error, check the terminal output and retry.
 
 ### Step B: Route Discovery (MANDATORY FIRST STEP)
 

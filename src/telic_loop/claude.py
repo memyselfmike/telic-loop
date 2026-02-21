@@ -129,6 +129,42 @@ class Claude:
         self.config = config
         self.state = state
 
+    def _format_docker_context(self) -> str:
+        """Format Docker environment info for injection into system prompt."""
+        docker = self.state.context.docker
+        if not docker.get("enabled"):
+            return "Docker mode: inactive. Services run natively on the host."
+
+        scripts_dir = docker.get("scripts_dir", ".telic-docker")
+        project_dir = self.config.effective_project_dir
+        lines = [
+            "Docker mode: **ACTIVE**. All services run in Docker containers.",
+            f"Scripts directory: {project_dir}/{scripts_dir}/",
+            f"Start services: `bash {project_dir}/{scripts_dir}/docker-up.sh`",
+            f"Stop services: `bash {project_dir}/{scripts_dir}/docker-down.sh`",
+            f"Check health: `bash {project_dir}/{scripts_dir}/docker-health.sh`",
+            f"View logs: `bash {project_dir}/{scripts_dir}/docker-logs.sh [service]`",
+            "",
+            "RULES when Docker mode is active:",
+            "- Use the scripts above to manage services — do NOT run docker commands directly",
+            "- Services are accessible on localhost at their exposed ports",
+            "- To run commands inside a container: `docker compose exec <service> <command>`",
+            "- Never install native dependencies on the host — they go in the Dockerfile",
+            "- If you need to modify Dockerfile or docker-compose.yml, that is valid work",
+        ]
+        services = docker.get("services", [])
+        if services:
+            lines.append("")
+            lines.append("Container services:")
+            for svc in services:
+                if isinstance(svc, dict):
+                    name = svc.get("name", "?")
+                    port = svc.get("port", "?")
+                    lines.append(f"  - {name}: localhost:{port}")
+                else:
+                    lines.append(f"  - {svc}")
+        return "\n".join(lines)
+
     def session(
         self,
         role: AgentRole,
@@ -141,6 +177,7 @@ class Claude:
         system = load_prompt("system",
             SPRINT_DIR=str(self.config.sprint_dir),
             PROJECT_DIR=str(self.config.effective_project_dir),
+            DOCKER_CONTEXT=self._format_docker_context(),
         )
         if system_extra:
             system += "\n" + system_extra

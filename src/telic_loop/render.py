@@ -146,6 +146,21 @@ def generate_delivery_report(config: LoopConfig, state: LoopState) -> None:
             lines.append(f"| {ts} | {phase} | {ctype} | {error} |")
         lines.append("")
 
+    # Docker section
+    docker = state.context.docker
+    if docker.get("enabled"):
+        lines.append("## Docker Environment")
+        lines.append(f"- Mode: Docker containers")
+        compose = docker.get("compose_file", "docker-compose.yml")
+        lines.append(f"- Compose file: {compose}")
+        lines.append(f"- Scripts: {docker.get('scripts_dir', '.telic-docker')}/")
+        for svc in docker.get("services", []):
+            if isinstance(svc, dict):
+                lines.append(f"  - {svc.get('name', '?')}: port {svc.get('port', '?')}")
+            else:
+                lines.append(f"  - {svc}")
+        lines.append("")
+
     lines += [
         "## Deliverables",
     ]
@@ -163,8 +178,35 @@ def generate_delivery_report(config: LoopConfig, state: LoopState) -> None:
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text("\n".join(lines), encoding="utf-8")
 
+    # Docker cleanup — stop containers after delivery
+    _cleanup_docker(config, state)
+
     git_commit(
         config, state,
         f"telic-loop({config.sprint}): Delivery complete"
         + (f" -- {vrc.value_score:.0%} value" if vrc else ""),
     )
+
+
+def _cleanup_docker(config: LoopConfig, state: LoopState) -> None:
+    """Stop Docker containers after delivery report is generated."""
+    import subprocess
+
+    docker = state.context.docker
+    if not docker.get("enabled"):
+        return
+
+    scripts_dir = config.effective_project_dir / docker.get("scripts_dir", ".telic-docker")
+    docker_down = scripts_dir / "docker-down.sh"
+    if not docker_down.exists():
+        return
+
+    try:
+        subprocess.run(
+            ["bash", str(docker_down)],
+            capture_output=True, text=True, timeout=60,
+            cwd=str(config.effective_project_dir),
+        )
+        print("  Docker containers stopped")
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as exc:
+        print(f"  Docker cleanup warning: {exc}")

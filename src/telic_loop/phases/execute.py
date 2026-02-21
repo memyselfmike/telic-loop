@@ -117,13 +117,55 @@ def do_execute(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
 
 
 def do_service_fix(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
-    """Fix broken services using the Builder agent."""
+    """Fix broken services using the Builder agent.
+
+    When Docker mode is active, tries the docker-up.sh script first (fast,
+    no LLM needed). Falls back to Builder agent if script fails.
+    """
+    import subprocess
+
     from ..claude import AgentRole
-
-    session = claude.session(AgentRole.BUILDER)
-    session.send(f"Fix broken services:\n{json.dumps(state.context.services, indent=2)}")
-
     from ..decision import _all_services_healthy
+
+    docker = state.context.docker
+    if docker.get("enabled"):
+        scripts_dir = config.effective_project_dir / docker.get("scripts_dir", ".telic-docker")
+        docker_up = scripts_dir / "docker-up.sh"
+
+        if docker_up.exists():
+            print("  Docker: running docker-up.sh...")
+            try:
+                result = subprocess.run(
+                    ["bash", str(docker_up)],
+                    capture_output=True, text=True,
+                    timeout=config.docker_compose_timeout,
+                    cwd=str(config.effective_project_dir),
+                )
+                if result.returncode == 0 and _all_services_healthy(config, state):
+                    print("  Docker: services healthy after script")
+                    return True
+                if result.returncode != 0:
+                    print(f"  Docker: docker-up.sh failed (exit {result.returncode})")
+            except (subprocess.TimeoutExpired, FileNotFoundError) as exc:
+                print(f"  Docker: docker-up.sh error: {exc}")
+
+        # Script failed — fall through to Builder agent with Docker context
+        docker_health = scripts_dir / "docker-health.sh"
+        docker_logs = scripts_dir / "docker-logs.sh"
+        session = claude.session(AgentRole.BUILDER)
+        session.send(
+            f"Docker services are unhealthy. Diagnose and fix.\n\n"
+            f"Docker config: {json.dumps(docker, indent=2)}\n"
+            f"Services: {json.dumps(state.context.services, indent=2)}\n\n"
+            f"Scripts directory: {scripts_dir}\n"
+            f"Start: bash {docker_up}\n"
+            f"Health: bash {docker_health}\n"
+            f"Logs: bash {docker_logs}"
+        )
+    else:
+        session = claude.session(AgentRole.BUILDER)
+        session.send(f"Fix broken services:\n{json.dumps(state.context.services, indent=2)}")
+
     return _all_services_healthy(config, state)
 
 

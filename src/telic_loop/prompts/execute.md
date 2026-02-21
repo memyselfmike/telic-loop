@@ -70,6 +70,14 @@ Before writing code, verify you can deliver the REAL functionality:
 | Missing wiring between components | **Implementation gap** — you can fix this | Wire it up |
 | Code exists but is broken | **Bug** — you can fix this | Fix the bug |
 
+**Docker awareness:**
+If the Sprint Context shows `docker.enabled: true`:
+- Use the Docker management scripts (`.telic-docker/`) to start/stop/check services
+- Access services via `localhost` on their exposed ports
+- Do NOT install native dependencies on the host machine — they belong in the Dockerfile
+- Use `docker compose exec <service> <cmd>` for commands that must run inside a container
+- If you need to modify `Dockerfile` or `docker-compose.yml`, that is valid implementation work
+
 ### Step 4: Implement
 
 Build the real thing. Follow these rules absolutely:

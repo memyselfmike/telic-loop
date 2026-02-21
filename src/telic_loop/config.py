@@ -91,6 +91,10 @@ class LoopConfig:
     sdk_query_timeout_sec: int = 300       # 5 min default per SDK query call
     max_crash_restarts: int = 3            # auto-restart attempts on catastrophic crash
 
+    # Docker integration
+    docker_mode: str = "auto"           # "auto" | "always" | "never"
+    docker_compose_timeout: int = 120   # seconds to wait for compose up
+
     # Per-role SDK timeouts (generous defaults — tighten after observing real durations)
     sdk_timeout_by_role: dict[str, int] = field(default_factory=lambda: {
         "CLASSIFIER": 120,     # 2 min — fast triage, no tool use

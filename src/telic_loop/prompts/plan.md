@@ -28,6 +28,7 @@ The SprintContext tells you:
 - `services` — running services and their health endpoints
 - `verification_strategy` — how correctness will be checked
 - `value_proofs` — how value delivery will be demonstrated
+- `docker` — Docker containerization context (if `docker.enabled` is true, all services run in containers via standardized `.telic-docker/` scripts; tasks should use `docker compose exec` for in-container commands and must NOT plan for installing native dependencies on the host)
 
 Trust this context. Do not re-discover what it already tells you.
 

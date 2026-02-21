@@ -174,6 +174,17 @@ REPORT_DISCOVERY_SCHEMA: dict = {
             "verification_strategy": {"type": "object"},
             "value_proofs": {"type": "array", "items": {"type": "string"}},
             "unresolved_questions": {"type": "array", "items": {"type": "string"}},
+            "docker": {
+                "type": "object",
+                "description": "Docker containerization context (if applicable)",
+                "properties": {
+                    "enabled": {"type": "boolean"},
+                    "compose_file": {"type": "string"},
+                    "scripts_dir": {"type": "string"},
+                    "services": {"type": "array", "items": {"type": "object"}},
+                    "recommendation_reason": {"type": "string"},
+                },
+            },
         },
         "required": ["deliverable_type", "project_type", "codebase_state", "value_proofs"],
     },
@@ -906,6 +917,7 @@ def handle_discovery(input_data: dict, state: LoopState, **_: Any) -> str:
         verification_strategy=input_data.get("verification_strategy", {}),
         value_proofs=input_data.get("value_proofs", []),
         unresolved_questions=input_data.get("unresolved_questions", []),
+        docker=input_data.get("docker", {}),
     )
     return "Discovery reported"
 

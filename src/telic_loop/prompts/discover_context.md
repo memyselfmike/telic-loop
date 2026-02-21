@@ -73,6 +73,20 @@ Service indicators have been **pre-computed above** from config files (docker-co
 
 If you need more detail about a service's configuration, read the relevant config file directly.
 
+### Step 5b: Docker Containerization Assessment
+
+The pre-computed environment data includes a **Docker Analysis** section. Review it.
+
+- If the recommendation is `recommended` or `required`: set `docker.enabled` to `true` in your report
+- If the recommendation is `optional`: set `docker.enabled` to `false` unless you have a specific reason to enable it (e.g., multi-service architecture with database + app that would benefit from isolated containers)
+- If the recommendation is `unavailable` or `disabled`: set `docker.enabled` to `false`
+
+When `docker.enabled` is `true`, also report:
+- `docker.compose_file`: the compose file name (or empty string if none exists yet — the planner should create one)
+- `docker.scripts_dir`: always `.telic-docker`
+- `docker.services`: list of container services with `name` and `port`
+- `docker.recommendation_reason`: why Docker was recommended
+
 ### Step 6: Determine Verification Strategy
 
 How should the loop verify that work is correct and value is delivered?
@@ -140,6 +154,7 @@ Report your findings with these fields:
 | `verification_strategy` | object | `{test_frameworks: [...], holistic_type: "browser" \| "cli" \| "api" \| "document_review" \| "data_validation"}` |
 | `value_proofs` | array | Human-readable descriptions of what demonstrates value delivery |
 | `unresolved_questions` | array | Ambiguities, missing information, items needing human input |
+| `docker` | object | `{enabled: bool, compose_file: str, scripts_dir: str, services: [{name, port}], recommendation_reason: str}` |
 
 ## Anti-Patterns
 
