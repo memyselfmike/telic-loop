@@ -258,3 +258,114 @@ Note: Sub-item 4 from original plan ("lightweight vs full heuristic") already ex
 **Files**: `prompts/vrc.md`, `phases/critical_eval.py`, `decision.py` (`_all_services_healthy`), `phases/exit_gate.py`
 
 **Expected impact**: Prevents shipping "working" code that doesn't actually work. Catches integration gaps where graceful degradation masks failures.
+
+---
+
+# Backlog — Beep2b-v3 Post-Mortem (2026-02-21)
+
+Sprint stats: 157 iterations, 1.67M tokens, ~17 hrs wall clock (including 1h46m rate-limit dead time). 44/49 tasks delivered, 5 descoped. VRC 92%. 12 crashes across 3 categories. QC 0/0 for third consecutive web app sprint.
+
+**Implementation status (2026-02-21)**: P0 DONE, P1 DONE, P2 DONE, P3 DONE, P4 DONE.
+
+---
+
+## P0: Rate-Limit Detection + Smart Sleep (IMPLEMENTED)
+
+**Problem**: Claude Max session allowance exhausted at iteration 34 (21:40). Three crash-restart cycles (iters 34-36), then 55 wasted iterations (37-91) burning ~1h46m of wall-clock time with zero progress. The auto-restart wrapper treated rate limits identically to transient failures.
+
+**Root cause**: No distinction between rate-limit errors and other SDK failures. Linear backoff (10s, 20s) is far too short for an hourly reset window.
+
+**Fix**:
+1. `RateLimitError` exception class in `claude.py` — detects "You've hit your limit" pattern
+2. `_send_async()` raises `RateLimitError` instead of `RuntimeError` for rate limits
+3. `send()` does NOT retry on `RateLimitError` — propagates to caller
+4. `run_value_loop()` catches `RateLimitError`, parses reset time from hint (e.g. "resets 11pm"), sleeps until window resets (+2min buffer, capped at 2hr)
+5. Records `rate_limit_wait` in progress log (not a crash)
+
+**Files**: `claude.py`, `main.py`
+
+---
+
+## P1: Robust Browser Eval Detection (IMPLEMENTED)
+
+**Problem**: `_needs_browser_eval()` returned False for beep2b-v3 because `state.context.environment` was empty (`{}`). Browser critical evaluation was completely skipped. Many visual/UX defects shipped undetected: ~5K lines CSS duplication, Payload CMS admin non-functional, blog error state, 19 debug artifacts.
+
+**Root cause**: `_needs_browser_eval` relied solely on `environment.get("tools_found", [])` which was empty when context discovery didn't populate it.
+
+**Fix**: Three-signal detection:
+1. Original: check `environment.tools_found` for "node"/"npx"
+2. Fallback: `shutil.which("npx")` — checks PATH directly
+3. Fallback: `package.json` exists in `effective_project_dir`
+
+**Files**: `phases/critical_eval.py`
+
+---
+
+## P2: Windows-Compatible QC Runner (IMPLEMENTED)
+
+**Problem**: `run_tests_parallel()` passed `.sh` script paths directly to `subprocess.run()`, which on Windows tries to execute them as Win32 executables → `OSError: [WinError 193]`. QC has been broken for 3 consecutive web app sprints (beep2b, beep2b-v2, beep2b-v3).
+
+**Root cause**: No platform-aware script execution.
+
+**Fix**: `_build_script_command()` routes scripts by extension:
+- `.py` → `[sys.executable, script_path]`
+- `.sh` → `[bash, script_path]` (finds Git Bash via `shutil.which`)
+- Fallback: returns `bash "script"` as shell command
+- `FileNotFoundError` caught with descriptive message
+
+**Files**: `phases/execute.py`
+
+---
+
+## P3: Interactive Pause stdin Check (IMPLEMENTED)
+
+**Problem**: Decision engine chose `interactive_pause` at iteration 146, which calls `input()`. In batch/unattended mode, this crashes with `EOFError`. Crashed 5 consecutive times (iters 147-151) before loop recovered.
+
+**Root cause**: No stdin detection before calling `input()`.
+
+**Fix**: `_is_interactive()` checks `sys.stdin.isatty()`. In non-interactive mode, HUMAN_ACTION tasks are descoped with resolution note instead of blocking the loop.
+
+**Files**: `phases/pause.py`
+
+---
+
+## P4: Exit Gate Counter Persistence (IMPLEMENTED)
+
+**Problem**: Delivery report showed "Exit gate attempts: 0" but 6 exit gates actually ran. Counter reset per-epic in `epic.py`.
+
+**Root cause**: `state.exit_gate_attempts` resets at each epic boundary for safety valve logic, but no cumulative counter exists.
+
+**Fix**: Added `exit_gate_attempts_total` to `LoopState`. Incremented alongside per-epic counter. Delivery report uses total.
+
+**Files**: `state.py`, `phases/exit_gate.py`, `render.py`
+
+---
+
+## P5: Coherence Findings → Automatic Task Creation (BACKLOG)
+
+**Problem**: Coherence check found high-leverage issues (5K-line CSS duplication, dead CMS collection) but only logged them — never created remediation tasks. Issues shipped.
+
+**Proposed fix**: When `do_full_coherence_eval` finds findings with `leverage >= 7/10`, auto-create tasks similar to VRC gap→task mechanism. Guard with retry cap to prevent infinite reopen.
+
+**Files**: `phases/coherence.py`, `tools.py`
+
+---
+
+## P6: QC Adaptation for Web Apps (BACKLOG)
+
+**Problem**: `generate_qc` produced zero usable verifications for 3 consecutive web app sprints. The QC generator creates shell scripts that don't match the deliverable type — web apps need HTTP smoke tests and Playwright assertions, not pytest or bash checks.
+
+**Proposed fix**:
+1. Inject `deliverable_type` and `project_type` into `generate_verifications.md` prompt
+2. For web apps: instruct QC to generate HTTP endpoint checks (curl/fetch) and Playwright assertions
+3. Fallback: if agent generates no verifications, create platform-appropriate smoke tests (HTTP 200 checks for all routes)
+
+**Files**: `phases/qc.py`, `prompts/generate_verifications.md`
+
+---
+
+## P7: Token Budget Awareness / Preemptive Rate-Limit Pause (BACKLOG)
+
+**Problem**: Even with smart sleep on rate-limit errors, the loop has no visibility into how close it is to the Claude Max allowance. It only learns about the limit after hitting it.
+
+**Proposed fix**: Track cumulative tokens per time window. If approaching an estimated threshold, proactively pause before the next expensive action (BUILDER, EVALUATOR) to avoid mid-task interruption. Requires estimating the per-window token budget (may need user config).

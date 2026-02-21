@@ -190,6 +190,10 @@ flowchart TD
         CriticalEval -- "findings → tasks" --> DecisionEngine
         CoherenceEval --> DecisionEngine
 
+        %% Rate limit handling
+        Execute -.-> |RateLimitError| RateWait["RATE LIMIT WAIT<br/>Parse reset time →<br/>sleep until window resets<br/>(no wasted iterations)"]
+        RateWait -.-> DecisionEngine
+
         %% Per-iteration infrastructure (runs after every action)
         DecisionEngine -.-> ProcessMon["PROCESS MONITOR<br/>L0-1: metrics (free)<br/>L2: Strategy Reasoner (Opus, on RED)"]
         ProcessMon -.-> PlanHealth["PLAN HEALTH CHECK<br/>After N mid-loop tasks<br/>or after course correction"]
@@ -334,6 +338,9 @@ When rolling back to a checkpoint:
 | Cannot roll back past pre-loop | Plan structure depends on it |
 | Cannot roll back across epics | Epic boundaries are hard barriers |
 | Rollback preserves retry_count | Prevents infinite retry of same approach |
+| Rate limit → smart sleep | Parses reset time, sleeps instead of burning iterations |
+| Non-interactive → descope HUMAN_ACTION | `stdin.isatty()` check prevents EOFError crashes |
+| Windows .sh → Git Bash routing | `_build_script_command()` routes scripts cross-platform |
 
 ## Agent Model Reference
 
