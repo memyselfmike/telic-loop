@@ -93,7 +93,7 @@ def generate_delivery_report(config: LoopConfig, state: LoopState) -> None:
         f"- Tasks completed: {done}/{len(state.tasks)}",
         f"- QC checks: {passed}/{len(state.verifications)} passing",
         f"- Iterations: {state.iteration}",
-        f"- Exit gate attempts: {state.exit_gate_attempts}",
+        f"- Exit gate attempts: {state.exit_gate_attempts_total}",
         f"- Tokens used: {state.total_tokens_used:,}"
         f" ({state.total_input_tokens:,} in / {state.total_output_tokens:,} out)",
         "",

@@ -318,7 +318,8 @@ class LoopState:
     agent_results: dict[str, Any] = field(default_factory=dict)
 
     # Exit gate
-    exit_gate_attempts: int = 0
+    exit_gate_attempts: int = 0          # per-epic (resets at epic boundary)
+    exit_gate_attempts_total: int = 0    # cumulative across all epics
 
     # Task granularity limits (populated from config at loop start)
     max_task_description_chars: int = 600

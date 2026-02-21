@@ -27,7 +27,8 @@ def do_exit_gate(
     from .vrc import run_vrc
 
     state.exit_gate_attempts += 1
-    print(f"\n  EXIT GATE (attempt #{state.exit_gate_attempts})")
+    state.exit_gate_attempts_total += 1
+    print(f"\n  EXIT GATE (attempt #{state.exit_gate_attempts}, total #{state.exit_gate_attempts_total})")
 
     # Safety valve
     if state.exit_gate_attempts > config.max_exit_gate_attempts:
