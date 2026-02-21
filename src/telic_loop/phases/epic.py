@@ -60,6 +60,15 @@ def run_epic_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
             else:
                 print(f"  Epic already has tasks — skipping preloop (resume)")
 
+            # Tag orphaned plan tasks that match this epic.
+            # Initial plan generation creates tasks with empty epic_id.
+            # If quality/VRC tasks caused epic_has_tasks=True, the preloop
+            # (and its tagging logic) was skipped, leaving plan tasks invisible.
+            tagged = _tag_unassigned_tasks(state, epic)
+            if tagged:
+                print(f"  Tagged {tagged} orphaned tasks with epic_id={epic.epic_id}")
+                state.save(config.state_file)
+
             # Run value loop for this epic
             run_value_loop(config, state, claude, inside_epic_loop=True)
 
@@ -327,6 +336,22 @@ def _run_epic_preloop(
     _run_quality_gates(config, state, claude)
 
     state.save(config.state_file)
+
+
+def _tag_unassigned_tasks(state: LoopState, epic: Epic) -> int:
+    """Tag unassigned pending tasks that match this epic by ID prefix.
+
+    Tasks from initial plan generation use the convention ``N.X`` where
+    N matches the epic number (``epic_N``).  This catches tasks that were
+    never tagged because the epic preloop was skipped.
+    """
+    prefix = epic.epic_id.replace("epic_", "") + "."
+    tagged = 0
+    for task in state.tasks.values():
+        if not task.epic_id and task.status == "pending" and task.task_id.startswith(prefix):
+            task.epic_id = epic.epic_id
+            tagged += 1
+    return tagged
 
 
 def _adjust_next_epic(
