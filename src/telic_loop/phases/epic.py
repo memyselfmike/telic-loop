@@ -323,11 +323,8 @@ def _run_epic_preloop(
             tagged += 1
     else:
         # No new tasks — this epic's tasks already exist from initial planning.
-        # Tag untagged pending tasks that match this epic's deliverables.
-        for task in state.tasks.values():
-            if not task.epic_id and task.status == "pending":
-                task.epic_id = epic.epic_id
-                tagged += 1
+        # Tag untagged pending tasks that match this epic by ID prefix (N.X → epic_N).
+        tagged += _tag_unassigned_tasks(state, epic)
     print(f"  Tagged {tagged} tasks with epic_id={epic.epic_id}")
 
     render_plan_snapshot(config, state)
