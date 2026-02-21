@@ -106,6 +106,10 @@ def run_epic_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
         _run_final_eval(config, state, claude)
 
         generate_delivery_report(config, state)
+
+        # Generate project docs after all epics complete
+        from .docs import generate_project_docs
+        generate_project_docs(config, state, claude)
     finally:
         _release_lock(lock_path)
 

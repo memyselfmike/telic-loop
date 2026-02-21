@@ -104,6 +104,8 @@ def run_value_loop(
                             # Only generate delivery report for single-run sprints.
                             # Epic loop generates its own report after all epics complete.
                             generate_delivery_report(config, state)
+                            from .phases.docs import generate_project_docs
+                            generate_project_docs(config, state, claude)
                         print("\n  VALUE DELIVERED — exit gate passed")
                         state.save(config.state_file)
                         return
@@ -239,6 +241,8 @@ def run_value_loop(
 
         print("\n  MAX ITERATIONS REACHED — generating partial delivery report")
         generate_delivery_report(config, state)
+        from .phases.docs import generate_project_docs
+        generate_project_docs(config, state, claude)
     finally:
         _release_lock(lock_path)
 
@@ -292,7 +296,7 @@ def _run_main() -> None:
     from .git import ensure_gitignore, setup_sprint_branch
 
     if len(sys.argv) < 2:
-        print("Usage: telic-loop <sprint-name> [--sprint-dir <path>] [--project-dir <path>] [--docker-mode auto|always|never]")
+        print("Usage: telic-loop <sprint-name> [--sprint-dir <path>] [--project-dir <path>] [--docker-mode auto|always|never] [--no-docs]")
         sys.exit(1)
 
     sprint = sys.argv[1]
@@ -318,9 +322,13 @@ def _run_main() -> None:
         if idx + 1 < len(sys.argv):
             docker_mode = sys.argv[idx + 1]
 
+    # Parse optional --no-docs
+    generate_docs = "--no-docs" not in sys.argv
+
     config = LoopConfig(
         sprint=sprint, sprint_dir=sprint_dir,
         project_dir=project_dir, docker_mode=docker_mode,
+        generate_docs=generate_docs,
     )
 
     # Ensure sprint directory exists

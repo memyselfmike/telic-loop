@@ -281,6 +281,26 @@ See `discovery.py:_detect_docker_recommendation()`, `phases/preloop.py:_setup_do
 
 ---
 
+## Post-Delivery Documentation Generation (IMPLEMENTED)
+
+After the value loop delivers and the exit gate passes, the loop automatically generates or updates production-quality project documentation in the project root. A BUILDER agent reads the codebase, sprint context, and any existing docs, then writes README.md, docs/ARCHITECTURE.md, and Architecture Decision Records (ADRs) in MADR format.
+
+**Pre-computation**: `_precompute_doc_context()` in `phases/docs.py` scans for existing docs inventory, extracts package metadata (from `package.json` or `pyproject.toml`), tech stack from sprint context, and source file tree — reducing agent turns.
+
+**Brownfield-aware**: If docs already exist, the agent reads them first and updates only sections affected by the sprint. Never deletes content that hasn't been verified as stale.
+
+**Non-blocking**: Doc generation failure prints a warning but does NOT block delivery. The delivery report is already committed before docs run.
+
+**Idempotent**: Uses `docs_generated` gate pattern — safe to resume after crash.
+
+**Wired at 3 call sites**: `main.py` (exit gate pass + max iterations), `phases/epic.py` (after all epics complete).
+
+**CLI**: `--no-docs` flag disables documentation generation.
+
+See `phases/docs.py:generate_project_docs()`, `prompts/generate_docs.md`, `config.py:generate_docs`.
+
+---
+
 # Backlog — Beep2b-v3 Post-Mortem (2026-02-21)
 
 Sprint stats: 157 iterations, 1.67M tokens, ~17 hrs wall clock (including 1h46m rate-limit dead time). 44/49 tasks delivered, 5 descoped. VRC 92%. 12 crashes across 3 categories. QC 0/0 for third consecutive web app sprint.

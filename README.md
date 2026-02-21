@@ -87,6 +87,7 @@ The builder never grades its own work. QC checks correctness. Critical evaluatio
 10. **External Research** — Searches web when built-in knowledge is stale
 11. **Structured State** — JSON single source of truth, no markdown editing
 12. **Docker Integration** — Auto-detects when containerization benefits the project (native deps, CMS frameworks), generates standardized management scripts, all agents use consistent container access
+13. **Documentation Generation** — After delivery, auto-generates/updates production-quality README.md, architecture docs, and ADRs in the project root
 
 ## Implementation Phases
 
@@ -121,7 +122,7 @@ telic-loop/
 │   │   ├── course_correct.py
 │   │   ├── exit_gate.py
 │   │   └── ...
-│   └── prompts/             # Reasoning templates (31 prompts)
+│   └── prompts/             # Reasoning templates (32 prompts)
 ├── docs/                    # V3 planning & architecture docs
 ├── reference/v2/            # V2 implementation (reference)
 ├── pyproject.toml
@@ -141,6 +142,9 @@ telic-loop my-sprint --project-dir /path/to/project
 telic-loop my-sprint --docker-mode always    # Force Docker containers
 telic-loop my-sprint --docker-mode never     # Skip Docker entirely
 telic-loop my-sprint --docker-mode auto      # Auto-detect (default)
+
+# Skip documentation generation
+telic-loop my-sprint --no-docs
 ```
 
 ## Requirements

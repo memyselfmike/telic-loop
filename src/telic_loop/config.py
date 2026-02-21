@@ -95,6 +95,9 @@ class LoopConfig:
     docker_mode: str = "auto"           # "auto" | "always" | "never"
     docker_compose_timeout: int = 120   # seconds to wait for compose up
 
+    # Documentation generation
+    generate_docs: bool = True  # generate/update project docs after delivery
+
     # Per-role SDK timeouts (generous defaults — tighten after observing real durations)
     sdk_timeout_by_role: dict[str, int] = field(default_factory=lambda: {
         "CLASSIFIER": 120,     # 2 min — fast triage, no tool use
