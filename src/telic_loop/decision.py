@@ -48,8 +48,18 @@ def decide_next_action(config: LoopConfig, state: LoopState) -> Action:
     if state.pause is not None:
         return Action.INTERACTIVE_PAUSE
 
-    # P1: Services must be running
-    if state.context.services and not _all_services_healthy(config, state):
+    # Scope task queries to current epic (needed by multiple priorities below)
+    scoped = _scoped_tasks(state)
+    done_count = len([t for t in scoped.values() if t.status == "done"])
+    pending_tasks = [t for t in scoped.values() if t.status == "pending"]
+
+    # P1: Services must be running — but only after bootstrap.
+    # The bootstrap gate ensures services were initialized in preloop.
+    # If bootstrap hasn't run, services can't possibly be healthy.
+    if (state.context.services
+            and done_count > 0
+            and state.gate_passed("service_bootstrap")
+            and not _all_services_healthy(config, state)):
         return Action.SERVICE_FIX
 
     # P2: Stuck -> course correct
@@ -65,11 +75,6 @@ def decide_next_action(config: LoopConfig, state: LoopState) -> Action:
                 )
             return Action.INTERACTIVE_PAUSE
         return Action.COURSE_CORRECT
-
-    # Scope task queries to current epic
-    scoped = _scoped_tasks(state)
-    done_count = len([t for t in scoped.values() if t.status == "done"])
-    pending_tasks = [t for t in scoped.values() if t.status == "pending"]
 
     # P3: Generate QC when enough tasks are done to be meaningful
     # Require at least 3 done tasks (or all tasks done) to avoid premature QC

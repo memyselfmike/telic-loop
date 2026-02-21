@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -535,6 +536,35 @@ def get_tools_for_role(role: AgentRole) -> list[dict]:
 DUPLICATE_SIMILARITY_THRESHOLD = 0.75
 MID_LOOP_TASK_CEILING = 15
 
+# ---------------------------------------------------------------------------
+# Meta-instruction and oversized-scope detection
+# ---------------------------------------------------------------------------
+
+_META_PATTERNS = [
+    re.compile(r"^(continue|proceed|begin|start|resume)\b.*\b(with|execution|phase|tasks?)\b", re.I),
+    re.compile(r"\btasks?\s+\d+\.\d+[\s-]+(through|to)\s+\d+\.\d+", re.I),
+    re.compile(r"\brun\s+tasks?\s+\d+", re.I),
+    re.compile(r"^no\s+(new\s+)?tasks?\s+(needed|required)", re.I),
+    re.compile(r"\bmark(ed)?\s+(as\s+)?done\b", re.I),
+    re.compile(r"\bsequentially\s+to\s+build\b", re.I),
+]
+
+_OVERSIZED_PATTERNS = [
+    re.compile(r"\ball\s+(remaining|epic|planned|pending|unbuilt)\b", re.I),
+    re.compile(r"\bentire\s+(epic|frontend|backend|app|project|system)\b", re.I),
+    re.compile(r"\beverything\s+(for|in|from)\b", re.I),
+]
+
+
+def _is_meta_instruction(description: str) -> bool:
+    """Detect descriptions that are execution instructions, not implementation specs."""
+    return any(p.search(description) for p in _META_PATTERNS)
+
+
+def _is_oversized_scope(description: str) -> bool:
+    """Detect descriptions that bundle too many deliverables into one task."""
+    return any(p.search(description) for p in _OVERSIZED_PATTERNS)
+
 
 def validate_task_mutation(action: str, input_data: dict, state: LoopState) -> str | None:
     """Deterministic validation. Returns error message or None."""
@@ -579,6 +609,20 @@ def validate_task_mutation(action: str, input_data: dict, state: LoopState) -> s
             return (
                 f"Too many files_expected ({len(files)}, max {max_files}). "
                 "Split into separate tasks, each touching fewer files."
+            )
+
+        # Meta-instruction detection
+        if _is_meta_instruction(desc):
+            return (
+                "Task describes execution instructions, not implementation work. "
+                "Each task must specify concrete code changes."
+            )
+
+        # Oversized scope detection
+        if _is_oversized_scope(desc):
+            return (
+                "Task scope too broad — describes multiple deliverables. "
+                "Split into focused tasks, each addressing one concern."
             )
 
     elif action == "modify":
@@ -990,6 +1034,18 @@ def handle_vrc(input_data: dict, state: LoopState, **_: Any) -> str:
 
         gap_id = gap.get("id", f"gap-{created}")
         task_id = f"VRC-{state.iteration}-{gap_id}"
+
+        # Validate through the same pipeline as plan-generated tasks
+        candidate = {
+            "task_id": task_id,
+            "description": suggested,
+            "value": gap.get("description", ""),
+            "acceptance": f"Gap '{gap_id}' resolved: {gap.get('description', '')}",
+        }
+        error = validate_task_mutation("add", candidate, state)
+        if error:
+            print(f"  VRC task {task_id} rejected: {error}")
+            continue
 
         # Epic-scope new tasks in multi-epic mode
         epic_id = ""

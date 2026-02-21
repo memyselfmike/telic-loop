@@ -113,7 +113,15 @@ def run_preloop(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
     if not _run_quality_gates(config, state, claude):
         return False
 
-    # Step 7: Blocker check
+    # Step 7: Service bootstrap for greenfield projects
+    # Gets the project skeleton running BEFORE the value loop starts.
+    # This prevents SERVICE_FIX from looping on services that don't exist yet.
+    if not state.gate_passed("service_bootstrap"):
+        _bootstrap_services(config, state, claude)
+        state.pass_gate("service_bootstrap")
+        state.save(config.state_file)
+
+    # Step 8: Blocker check
     blocked = [
         t for t in state.tasks.values()
         if t.status == "blocked"
@@ -231,3 +239,41 @@ def _setup_docker_environment(
     )
     session.send(prompt, task_source="docker_setup")
     print(f"  Docker: scripts generated in {scripts_dir}")
+
+
+def _bootstrap_services(
+    config: "LoopConfig", state: "LoopState", claude: "Claude",
+) -> None:
+    """Bootstrap services for greenfield projects.
+
+    Spawns BUILDER to create the project skeleton, install deps, and start
+    services so they pass health checks.  Skips if not greenfield or no
+    services are registered.
+
+    This runs once in the pre-loop (gated by ``service_bootstrap``) so the
+    value loop starts with a running foundation instead of wasting iterations
+    on SERVICE_FIX for services that don't exist yet.
+    """
+    if (state.context.codebase_state != "greenfield"
+            or not state.context.services):
+        print("  Service bootstrap: skipped (not greenfield or no services)")
+        return
+
+    from ..claude import AgentRole, load_prompt
+    from ..decision import _all_services_healthy
+
+    print("  Service bootstrap: initializing project foundation...")
+    session = claude.session(AgentRole.BUILDER)
+    prompt = load_prompt("bootstrap",
+        PROJECT_DIR=str(config.effective_project_dir),
+        SPRINT_DIR=str(config.sprint_dir),
+        SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),
+        SERVICES=json.dumps(state.context.services, indent=2),
+        PRD=config.prd_file.read_text(encoding="utf-8") if config.prd_file.exists() else "",
+    )
+    session.send(prompt)
+
+    if _all_services_healthy(config, state):
+        print("  Service bootstrap: services healthy")
+    else:
+        print("  Service bootstrap: services not yet healthy (will be fixed in value loop)")

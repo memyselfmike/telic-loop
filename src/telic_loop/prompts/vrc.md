@@ -173,6 +173,22 @@ manage_task(
 
 **BEFORE creating a task, check {TASK_SUMMARY} for existing tasks that already cover this gap.** Do NOT create duplicates.
 
+**Gap tasks must describe SPECIFIC CODE CHANGES, not execution instructions.**
+
+BAD suggested_task examples (rejected by the system):
+- "Continue with EXECUTE phase. Task 1.1 is complete."
+- "Run tasks 1.2-1.11 to build the Product Foundation epic."
+- "No new tasks needed — all existing plan tasks cover these."
+- "Build all remaining Epic 1 deliverables."
+
+GOOD suggested_task examples:
+- "Add search bar component to products view that filters by name/SKU"
+- "Create /api/dashboard/summary endpoint returning total_products, total_stock_value, low_stock_count"
+- "Fix stock-out validation to reject when quantity exceeds current_stock"
+
+Each gap task must be implementable by a builder who knows nothing about VRC context.
+If existing plan tasks already cover a gap, do NOT create a new task — just note it in the summary.
+
 ### Step 6: Determine Recommendation
 
 | Recommendation | When to Use |
@@ -261,6 +277,8 @@ The deliverable MUST be usable without manual intervention:
 - Reporting gaps with suggested_task but not creating tasks via manage_task — every gap needs a fix task
 - Creating duplicate tasks for gaps already covered in the plan
 - Editing markdown files instead of using structured tools
+- Creating gap tasks that are execution instructions ("continue with...", "run tasks...") — every task must describe concrete code to write
+- Creating tasks that restate an entire epic as a single unit — split into focused deliverables
 
 ## The Final Test
 
