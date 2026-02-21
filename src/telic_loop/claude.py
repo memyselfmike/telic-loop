@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 from collections.abc import AsyncGenerator, AsyncIterable
 from enum import Enum
 from pathlib import Path
@@ -58,6 +59,14 @@ PLAYWRIGHT_MCP_TOOLS = [
 # The SDK passes system_prompt + user_message as CLI args.
 # When the total exceeds this, switch to streaming mode (prompt via stdin).
 _WIN_CMD_LIMIT = 30_000
+
+
+class RateLimitError(RuntimeError):
+    """Claude Max session allowance exhausted — caller should sleep until reset."""
+
+    def __init__(self, message: str, reset_hint: str = ""):
+        super().__init__(message)
+        self.reset_hint = reset_hint  # e.g. "resets 11pm (Europe/London)"
 
 
 class AgentRole(Enum):
@@ -204,6 +213,9 @@ class ClaudeSession:
 
                 return result
 
+            except RateLimitError:
+                raise  # Don't retry rate limits — caller handles with smart sleep
+
             except Exception as exc:
                 last_exc = exc
                 # Log crash with full diagnostics
@@ -267,7 +279,13 @@ class ClaudeSession:
                             self.state.total_input_tokens += inp
                             self.state.total_output_tokens += out
                         if message.is_error:
-                            raise RuntimeError(f"Claude Code SDK error: {message.result}")
+                            result_text = str(message.result or "")
+                            if _is_rate_limit_error(result_text):
+                                raise RateLimitError(
+                                    f"Claude Code SDK rate limit: {result_text}",
+                                    reset_hint=result_text,
+                                )
+                            raise RuntimeError(f"Claude Code SDK error: {result_text}")
         except TimeoutError:
             raise RuntimeError(
                 f"SDK query timed out after {self.timeout_sec}s"
@@ -290,6 +308,47 @@ async def _streaming_prompt(user_message: str) -> AsyncGenerator[dict[str, Any]]
         "type": "user",
         "message": {"role": "user", "content": user_message},
     }
+
+
+def _is_rate_limit_error(text: str) -> bool:
+    """Detect rate-limit / quota errors from Claude SDK output."""
+    lower = text.lower()
+    return any(phrase in lower for phrase in [
+        "you've hit your limit",
+        "you have hit your limit",
+        "rate limit",
+        "quota exceeded",
+        "too many requests",
+    ])
+
+
+def parse_rate_limit_wait_seconds(error: RateLimitError) -> int:
+    """Parse the reset time from a rate limit error and return seconds to wait.
+
+    Handles patterns like "resets 11pm (Europe/London)", "resets 3am".
+    Falls back to 30 minutes if parsing fails.
+    """
+    from datetime import datetime, timedelta
+
+    hint = error.reset_hint or str(error)
+    match = re.search(r"resets\s+(\d{1,2})\s*(am|pm)", hint, re.IGNORECASE)
+    if match:
+        hour = int(match.group(1))
+        ampm = match.group(2).lower()
+        if ampm == "pm" and hour != 12:
+            hour += 12
+        elif ampm == "am" and hour == 12:
+            hour = 0
+
+        now = datetime.now()
+        reset_time = now.replace(hour=hour, minute=0, second=0, microsecond=0)
+        if reset_time <= now:
+            reset_time += timedelta(days=1)
+
+        wait = int((reset_time - now).total_seconds())
+        return min(wait + 120, 7200)  # +2min buffer, cap at 2 hours
+
+    return 1800  # 30 minute default
 
 
 def _sync_state(target: LoopState, source: LoopState) -> None:

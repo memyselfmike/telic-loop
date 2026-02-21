@@ -7,7 +7,7 @@ import sys
 import time
 from pathlib import Path
 
-from .claude import Claude
+from .claude import Claude, RateLimitError, parse_rate_limit_wait_seconds
 from .config import LoopConfig
 from .decision import Action, decide_next_action
 from .render import generate_delivery_report, render_value_checklist
@@ -115,6 +115,22 @@ def run_value_loop(
                     else:
                         print(f"  WARNING: No handler for action {action.value}")
                         progress = False
+
+            except RateLimitError as rle:
+                # Smart sleep instead of burning retry iterations
+                wait_secs = parse_rate_limit_wait_seconds(rle)
+                print(f"\n  RATE LIMIT HIT — sleeping {wait_secs // 60}m until reset...")
+                print(f"  ({rle.reset_hint})")
+                state.record_progress(
+                    action.value, "rate_limit_wait", False,
+                    duration_sec=wait_secs,
+                )
+                state.save(config.state_file)
+                time.sleep(wait_secs)
+                print("  Rate limit wait complete — resuming loop")
+                # Don't record a crash — this was a controlled pause
+                continue
+
             except Exception as exc:
                 from .crash_log import CRASH_HANDLER, log_crash
 
