@@ -86,6 +86,7 @@ The builder never grades its own work. QC checks correctness. Critical evaluatio
 9. **Git Safety Net** — Feature branches, per-task commits, checkpoints at QC pass, rollback to known-good state
 10. **External Research** — Searches web when built-in knowledge is stale
 11. **Structured State** — JSON single source of truth, no markdown editing
+12. **Docker Integration** — Auto-detects when containerization benefits the project (native deps, CMS frameworks), generates standardized management scripts, all agents use consistent container access
 
 ## Implementation Phases
 
@@ -120,11 +121,26 @@ telic-loop/
 │   │   ├── course_correct.py
 │   │   ├── exit_gate.py
 │   │   └── ...
-│   └── prompts/             # Reasoning templates (30 prompts)
+│   └── prompts/             # Reasoning templates (31 prompts)
 ├── docs/                    # V3 planning & architecture docs
 ├── reference/v2/            # V2 implementation (reference)
 ├── pyproject.toml
 └── README.md
+```
+
+## Usage
+
+```bash
+# Basic sprint
+telic-loop my-sprint
+
+# With separate project directory
+telic-loop my-sprint --project-dir /path/to/project
+
+# With Docker mode control
+telic-loop my-sprint --docker-mode always    # Force Docker containers
+telic-loop my-sprint --docker-mode never     # Skip Docker entirely
+telic-loop my-sprint --docker-mode auto      # Auto-detect (default)
 ```
 
 ## Requirements
@@ -133,10 +149,11 @@ telic-loop/
 - `claude-agent-sdk` >= 0.1.37 (wraps `claude` CLI subprocess)
 - Claude Code CLI installed and authenticated (Max subscription or API key)
 - Node.js (for browser-based critical evaluation via `@playwright/mcp`)
+- Docker (optional — auto-detected for projects with native deps or multi-service architectures)
 
 ## Status
 
-**Phase 3 complete.** All three implementation phases are live and tested end-to-end. The system autonomously delivers value from Vision + PRD through interactive pre-loop refinement, multi-agent execution, browser-based critical evaluation, and verified exit gate.
+**Phase 3 complete + hardening.** All three implementation phases are live and tested end-to-end across 7 sprints (temp-calc, smart-dash, kanban, time-tracker, recipe-manager, beep2b, beep2b-v2, beep2b-v3). The system autonomously delivers value from Vision + PRD through interactive pre-loop refinement, multi-agent execution, browser-based critical evaluation, and verified exit gate. Post-sprint hardening includes rate-limit resilience, Docker containerization, Windows compatibility fixes, and deterministic code quality enforcement.
 
 ## Documentation
 

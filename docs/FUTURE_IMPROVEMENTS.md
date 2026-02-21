@@ -261,6 +261,26 @@ Note: Sub-item 4 from original plan ("lightweight vs full heuristic") already ex
 
 ---
 
+## Docker Containerization Integration (IMPLEMENTED)
+
+When Docker is available and the project benefits from containerization (native dependencies, CMS frameworks, multi-service architectures), the loop now recommends and standardizes Docker usage across all agents. Addresses Windows compatibility issues from beep2b-v2 (`better-sqlite3` native compilation failure with Tina CMS) and beep2b-v3 (Payload CMS + SQLite + Slate/Lexical incompatibility).
+
+**Detection**: `_detect_docker_recommendation()` in `discovery.py` checks Docker availability, compose file existence, native dependency signals (`better-sqlite3`, `sharp`, `canvas`, `bcrypt`, `argon2`), and CMS packages (`payload`, `sanity`, `strapi`, `directus`, `tinacms`, `prisma`). Returns `recommended`, `optional`, `required`, `unavailable`, or `disabled`.
+
+**Script generation**: Pre-loop gate `docker_setup` spawns a BUILDER session with `docker_setup.md` prompt to create `.telic-docker/` directory with standardized management scripts: `docker-up.sh`, `docker-down.sh`, `docker-health.sh`, `docker-logs.sh`. If no `docker-compose.yml` exists, the Builder generates one from sprint context.
+
+**Agent awareness**: `{DOCKER_CONTEXT}` placeholder injected into `system.md` via `_format_docker_context()` in `claude.py`. All agents see Docker mode status, script paths, usage rules, and container service list. Downstream prompts (`execute.md`, `plan.md`, `discover_context.md`, `generate_verifications.md`, `critical_eval_browser.md`) include Docker-specific guidance.
+
+**SERVICE_FIX**: Docker-aware service fix tries `docker-up.sh` script directly (no LLM needed) before falling back to Builder agent with Docker-specific diagnostic context.
+
+**Lifecycle**: Containers stopped via `docker-down.sh` after delivery report generation. Docker environment section included in delivery report.
+
+**CLI**: `--docker-mode auto|always|never` (default: `auto`).
+
+See `discovery.py:_detect_docker_recommendation()`, `phases/preloop.py:_setup_docker_environment()`, `claude.py:_format_docker_context()`, `phases/execute.py:do_service_fix()`, `render.py:_cleanup_docker()`, `config.py:docker_mode/docker_compose_timeout`, `state.py:SprintContext.docker`, `prompts/docker_setup.md`.
+
+---
+
 # Backlog — Beep2b-v3 Post-Mortem (2026-02-21)
 
 Sprint stats: 157 iterations, 1.67M tokens, ~17 hrs wall clock (including 1h46m rate-limit dead time). 44/49 tasks delivered, 5 descoped. VRC 92%. 12 crashes across 3 categories. QC 0/0 for third consecutive web app sprint.
