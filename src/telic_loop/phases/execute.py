@@ -131,6 +131,40 @@ def do_service_fix(config: LoopConfig, state: LoopState, claude: Claude) -> bool
 # Regression testing
 # ---------------------------------------------------------------------------
 
+def _build_script_command(script_path: str) -> list[str] | str:
+    """Build the correct command to run a verification script cross-platform.
+
+    On Windows, .sh scripts can't be executed directly (WinError 193).
+    Route them through bash (Git Bash / WSL) or convert to equivalent commands.
+    .py scripts use sys.executable for portability.
+    """
+    import shutil
+    import sys
+
+    p = Path(script_path)
+    suffix = p.suffix.lower()
+
+    if suffix == ".py":
+        return [sys.executable, str(p)]
+
+    if suffix == ".sh":
+        if sys.platform == "win32":
+            # Try Git Bash first (most common on Windows dev machines)
+            git_bash = shutil.which("bash")
+            if git_bash:
+                return [git_bash, str(p)]
+            # Fallback: try sh
+            sh = shutil.which("sh")
+            if sh:
+                return [sh, str(p)]
+            # Last resort: return shell=True with bash -c
+            return f'bash "{p}"'
+        return ["bash", str(p)]
+
+    # Default: try to execute directly
+    return [str(p)]
+
+
 def run_tests_parallel(
     tests: list[VerificationState],
     timeout: int,
@@ -144,13 +178,20 @@ def run_tests_parallel(
 
     def run_one(test: VerificationState) -> tuple[str, tuple[int, str, str]]:
         try:
+            cmd = _build_script_command(test.script_path)
+            use_shell = isinstance(cmd, str)
             proc = subprocess.run(
-                [test.script_path],
+                cmd,
                 capture_output=True, text=True,
                 timeout=timeout,
+                shell=use_shell,
                 cwd=str(Path(test.script_path).parent),
             )
             return test.verification_id, (proc.returncode, proc.stdout, proc.stderr)
+        except FileNotFoundError:
+            return test.verification_id, (
+                1, "", "No bash interpreter found — cannot run .sh scripts on this platform",
+            )
         except subprocess.TimeoutExpired:
             return test.verification_id, (1, "", "TIMEOUT")
 
@@ -168,13 +209,18 @@ def run_test_script(
 ) -> tuple[int, str, str]:
     """Run a single test script. Returns (exit_code, stdout, stderr)."""
     try:
+        cmd = _build_script_command(test.script_path)
+        use_shell = isinstance(cmd, str)
         proc = subprocess.run(
-            [test.script_path],
+            cmd,
             capture_output=True, text=True,
             timeout=timeout,
+            shell=use_shell,
             cwd=str(Path(test.script_path).parent),
         )
         return proc.returncode, proc.stdout, proc.stderr
+    except FileNotFoundError:
+        return 1, "", "No bash interpreter found — cannot run .sh scripts on this platform"
     except subprocess.TimeoutExpired:
         return 1, "", "TIMEOUT"
 
