@@ -134,42 +134,10 @@ def run_value_loop(
                 continue
 
             except Exception as exc:
-                from .crash_log import CRASH_HANDLER, log_crash
-
-                # Find which task was in progress
-                current_task_id = ""
-                for task in state.tasks.values():
-                    if task.status == "in_progress":
-                        current_task_id = task.task_id
-                        break
-
-                print(f"\n  CRASH in {action.value}:")
-                crash_record = log_crash(
-                    config.sprint_dir / ".crash_log.jsonl",
-                    error=exc,
-                    phase=action.value,
-                    task_id=current_task_id,
-                    iteration=iteration,
-                    tokens_used=state.total_tokens_used,
-                    crash_type=CRASH_HANDLER,
+                crash_record = _log_iteration_crash(
+                    config, state, action.value, exc, iteration,
                 )
-
-                # Store condensed summary in state
-                state.crash_log.append({
-                    "timestamp": crash_record["timestamp"],
-                    "crash_type": crash_record["crash_type"],
-                    "phase": action.value,
-                    "task_id": current_task_id,
-                    "iteration": iteration,
-                    "error": f"{type(exc).__name__}: {str(exc)[:200]}",
-                })
-
                 progress = False
-                # Reset any in_progress tasks back to pending
-                for task in state.tasks.values():
-                    if task.status == "in_progress":
-                        task.status = "pending"
-                state.save(config.state_file)
 
             elapsed = round(time.perf_counter() - t0, 1)
             phase_inp = state.total_input_tokens - inp_before
@@ -185,57 +153,72 @@ def run_value_loop(
                 crash_type=crash_record["crash_type"] if crash_record else "",
             )
 
-            # Process monitor (after every action)
-            maybe_run_strategy_reasoner(
-                state, config, claude, action=action.value, made_progress=progress,
-            )
+            # Post-handler monitoring — wrapped so crashes don't kill the loop.
+            # VRC, process monitor, plan health, and coherence check all call
+            # Claude and can hit SDK timeouts or transient failures.
+            try:
+                # Process monitor (after every action)
+                maybe_run_strategy_reasoner(
+                    state, config, claude, action=action.value, made_progress=progress,
+                )
 
-            # Plan health check — force after course correction
-            if action == Action.COURSE_CORRECT and progress:
-                maybe_run_plan_health_check(config, state, claude, force=True)
-            else:
-                maybe_run_plan_health_check(config, state, claude)
-
-            # VRC heartbeat and coherence check — skip during pause and after exit gate
-            # (exit gate runs its own fresh VRC; pause should not burn tokens)
-            if state.pause is None and action != Action.EXIT_GATE:
-                # Force full VRC after critical eval or course correction
-                force_full_vrc = action in (Action.CRITICAL_EVAL, Action.COURSE_CORRECT)
-
-                # P3: Skip VRC when it can't have changed
-                task_hash = _task_status_hash(state)
-                now = time.perf_counter()
-                skip_vrc = False
-                if not force_full_vrc:
-                    if not progress:
-                        skip_vrc = True  # No work done — score can't change
-                    elif task_hash == _last_vrc_task_hash:
-                        skip_vrc = True  # No task status changed
-                    elif (now - _last_vrc_time) < config.vrc_min_interval_sec:
-                        skip_vrc = True  # Too soon since last VRC
-
-                if skip_vrc:
-                    if state.vrc_history:
-                        vrc = state.vrc_history[-1]
-                        print(
-                            f"  VRC #{len(state.vrc_history)}: {vrc.value_score:.0%} value "
-                            f"(skipped — no change)"
-                        )
+                # Plan health check — force after course correction
+                if action == Action.COURSE_CORRECT and progress:
+                    maybe_run_plan_health_check(config, state, claude, force=True)
                 else:
-                    vrc = run_vrc(config, state, claude, force_full=force_full_vrc)
-                    _last_vrc_time = time.perf_counter()
-                    _last_vrc_task_hash = task_hash
-                    print(
-                        f"  VRC #{len(state.vrc_history)}: {vrc.value_score:.0%} value | "
-                        f"{vrc.deliverables_verified}/{vrc.deliverables_total} | "
-                        f"→ {vrc.recommendation}"
-                    )
+                    maybe_run_plan_health_check(config, state, claude)
 
-                # Quick coherence check
-                quick_coherence_check(config, state)
+                # VRC heartbeat and coherence check — skip during pause and after exit gate
+                # (exit gate runs its own fresh VRC; pause should not burn tokens)
+                if state.pause is None and action != Action.EXIT_GATE:
+                    # Force full VRC after critical eval or course correction
+                    force_full_vrc = action in (Action.CRITICAL_EVAL, Action.COURSE_CORRECT)
 
-            # Render updated value checklist
-            render_value_checklist(config, state)
+                    # P3: Skip VRC when it can't have changed
+                    task_hash = _task_status_hash(state)
+                    now = time.perf_counter()
+                    skip_vrc = False
+                    if not force_full_vrc:
+                        if not progress:
+                            skip_vrc = True  # No work done — score can't change
+                        elif task_hash == _last_vrc_task_hash:
+                            skip_vrc = True  # No task status changed
+                        elif (now - _last_vrc_time) < config.vrc_min_interval_sec:
+                            skip_vrc = True  # Too soon since last VRC
+
+                    if skip_vrc:
+                        if state.vrc_history:
+                            vrc = state.vrc_history[-1]
+                            print(
+                                f"  VRC #{len(state.vrc_history)}: {vrc.value_score:.0%} value "
+                                f"(skipped — no change)"
+                            )
+                    else:
+                        vrc = run_vrc(config, state, claude, force_full=force_full_vrc)
+                        _last_vrc_time = time.perf_counter()
+                        _last_vrc_task_hash = task_hash
+                        print(
+                            f"  VRC #{len(state.vrc_history)}: {vrc.value_score:.0%} value | "
+                            f"{vrc.deliverables_verified}/{vrc.deliverables_total} | "
+                            f"→ {vrc.recommendation}"
+                        )
+
+                    # Quick coherence check
+                    quick_coherence_check(config, state)
+
+                # Render updated value checklist
+                render_value_checklist(config, state)
+
+            except RateLimitError as rle:
+                wait_secs = parse_rate_limit_wait_seconds(rle)
+                print(f"\n  RATE LIMIT in post-handler — sleeping {wait_secs // 60}m...")
+                state.save(config.state_file)
+                time.sleep(wait_secs)
+
+            except Exception as exc:
+                _log_iteration_crash(
+                    config, state, f"post_{action.value}", exc, iteration,
+                )
 
             state.save(config.state_file)
 
@@ -254,6 +237,51 @@ def _task_status_hash(state: LoopState) -> str:
     """Quick hash of all task statuses — changes when any task changes state."""
     parts = sorted(f"{tid}:{t.status}" for tid, t in state.tasks.items())
     return "|".join(parts)
+
+
+def _log_iteration_crash(
+    config: LoopConfig, state: LoopState,
+    phase: str, exc: Exception, iteration: int,
+) -> dict:
+    """Log a crash during a value loop iteration and reset in_progress tasks.
+
+    Returns the crash record dict for progress tracking.
+    """
+    from .crash_log import CRASH_HANDLER, log_crash
+
+    current_task_id = ""
+    for task in state.tasks.values():
+        if task.status == "in_progress":
+            current_task_id = task.task_id
+            break
+
+    print(f"\n  CRASH in {phase}:")
+    crash_record = log_crash(
+        config.sprint_dir / ".crash_log.jsonl",
+        error=exc,
+        phase=phase,
+        task_id=current_task_id,
+        iteration=iteration,
+        tokens_used=state.total_tokens_used,
+        crash_type=CRASH_HANDLER,
+    )
+
+    state.crash_log.append({
+        "timestamp": crash_record["timestamp"],
+        "crash_type": crash_record["crash_type"],
+        "phase": phase,
+        "task_id": current_task_id,
+        "iteration": iteration,
+        "error": f"{type(exc).__name__}: {str(exc)[:200]}",
+    })
+
+    # Reset any in_progress tasks back to pending
+    for task in state.tasks.values():
+        if task.status == "in_progress":
+            task.status = "pending"
+    state.save(config.state_file)
+
+    return crash_record
 
 
 def main() -> None:

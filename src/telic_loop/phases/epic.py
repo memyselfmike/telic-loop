@@ -12,8 +12,27 @@ if TYPE_CHECKING:
     from ..state import Epic, LoopState
 
 
+def _log_epic_crash(config: LoopConfig, state: LoopState, phase: str, exc: Exception) -> None:
+    """Log a crash during epic-level operations. Non-fatal — loop continues."""
+    try:
+        from ..crash_log import log_crash
+        log_crash(
+            config.sprint_dir / ".crash_log.jsonl",
+            error=exc,
+            phase=phase,
+            iteration=state.iteration,
+            tokens_used=state.total_tokens_used,
+        )
+    except Exception:
+        import traceback
+        traceback.print_exc()
+    print(f"  CRASH in {phase}: {type(exc).__name__}: {str(exc)[:200]}")
+    print(f"  Continuing epic loop...")
+
+
 def run_epic_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
     """Outer loop for multi_epic visions. Runs the value loop once per epic."""
+    from ..claude import RateLimitError, parse_rate_limit_wait_seconds
     from ..main import _acquire_lock, _release_lock, run_value_loop
     from ..render import generate_delivery_report
     from .coherence import do_full_coherence_eval
@@ -85,33 +104,47 @@ def run_epic_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
             # Run value loop for this epic
             run_value_loop(config, state, claude, inside_epic_loop=True)
 
-            # Full coherence evaluation at epic boundary
-            if config.coherence_full_at_epic_boundary:
-                do_full_coherence_eval(config, state, claude)
+            # Epic boundary evaluations — wrapped so crashes don't kill the
+            # entire epic loop.  Coherence eval, critical eval, and feedback
+            # checkpoint all call Claude and can hit SDK timeouts.
+            try:
+                # Full coherence evaluation at epic boundary
+                if config.coherence_full_at_epic_boundary:
+                    do_full_coherence_eval(config, state, claude)
 
-            # Critical evaluation at epic boundary — eval-fix loop
-            # Runs BEFORE marking epic complete so findings get acted on.
-            # Reset exit gate state so the fix loop can re-enter cleanly.
-            state.exit_gate_attempts = 0
-            state.verifications = {}
-            state.verification_categories = []
-            if "verifications_generated" in state.gates_passed:
-                state.gates_passed.remove("verifications_generated")
-            state.save(config.state_file)
+                # Critical evaluation at epic boundary — eval-fix loop
+                # Runs BEFORE marking epic complete so findings get acted on.
+                # Reset exit gate state so the fix loop can re-enter cleanly.
+                state.exit_gate_attempts = 0
+                state.verifications = {}
+                state.verification_categories = []
+                if "verifications_generated" in state.gates_passed:
+                    state.gates_passed.remove("verifications_generated")
+                state.save(config.state_file)
 
-            from .critical_eval import do_critical_eval
-            epic = state.epics[i]  # re-bind after save
-            for eval_cycle in range(config.max_epic_eval_cycles):
-                print(f"  Epic eval cycle {eval_cycle + 1}/{config.max_epic_eval_cycles} for: {epic.title}")
-                found_issues = do_critical_eval(config, state, claude)
-                if not found_issues:
-                    break
-                # Critical eval created CE-* fix tasks — re-enter value loop
-                print(f"  Critical eval found issues — re-entering value loop to fix")
-                run_value_loop(config, state, claude, inside_epic_loop=True)
-                epic = state.epics[i]  # re-bind after Claude calls
-            else:
-                print(f"  Max eval cycles reached — proceeding with remaining issues")
+                from .critical_eval import do_critical_eval
+                epic = state.epics[i]  # re-bind after save
+                for eval_cycle in range(config.max_epic_eval_cycles):
+                    print(f"  Epic eval cycle {eval_cycle + 1}/{config.max_epic_eval_cycles} for: {epic.title}")
+                    found_issues = do_critical_eval(config, state, claude)
+                    if not found_issues:
+                        break
+                    # Critical eval created CE-* fix tasks — re-enter value loop
+                    print(f"  Critical eval found issues — re-entering value loop to fix")
+                    run_value_loop(config, state, claude, inside_epic_loop=True)
+                    epic = state.epics[i]  # re-bind after Claude calls
+                else:
+                    print(f"  Max eval cycles reached — proceeding with remaining issues")
+
+            except RateLimitError as rle:
+                import time
+                wait_secs = parse_rate_limit_wait_seconds(rle)
+                print(f"\n  RATE LIMIT in epic eval — sleeping {wait_secs // 60}m...")
+                state.save(config.state_file)
+                time.sleep(wait_secs)
+
+            except Exception as exc:
+                _log_epic_crash(config, state, f"epic_{i}_boundary_eval", exc)
 
             # Mark epic complete — use state.epics[i] directly to survive
             # any _sync_state that replaced the list since our last re-bind.
@@ -120,19 +153,37 @@ def run_epic_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
 
             # Epic feedback checkpoint (skip for last epic)
             if i < len(state.epics) - 1:
-                epic = state.epics[i]  # re-bind for feedback
-                response = epic_feedback_checkpoint(config, state, claude, epic)
-                if response == "stop":
-                    print("  Human requested stop. Shipping completed epics.")
-                    break
-                elif response == "adjust":
-                    epic = state.epics[i]  # re-bind after Claude call
-                    _adjust_next_epic(config, state, claude, epic.feedback_notes)
+                try:
+                    epic = state.epics[i]  # re-bind for feedback
+                    response = epic_feedback_checkpoint(config, state, claude, epic)
+                    if response == "stop":
+                        print("  Human requested stop. Shipping completed epics.")
+                        break
+                    elif response == "adjust":
+                        epic = state.epics[i]  # re-bind after Claude call
+                        _adjust_next_epic(config, state, claude, epic.feedback_notes)
+                except RateLimitError as rle:
+                    import time
+                    wait_secs = parse_rate_limit_wait_seconds(rle)
+                    print(f"\n  RATE LIMIT in feedback — sleeping {wait_secs // 60}m...")
+                    state.save(config.state_file)
+                    time.sleep(wait_secs)
+                except Exception as exc:
+                    _log_epic_crash(config, state, f"epic_{i}_feedback", exc)
 
         # Full end-to-end evaluation after all epics complete
         # Unscoped — evaluates the ENTIRE deliverable for regressions
         # and cross-epic integration issues
-        _run_final_eval(config, state, claude)
+        try:
+            _run_final_eval(config, state, claude)
+        except RateLimitError as rle:
+            import time
+            wait_secs = parse_rate_limit_wait_seconds(rle)
+            print(f"\n  RATE LIMIT in final eval — sleeping {wait_secs // 60}m...")
+            state.save(config.state_file)
+            time.sleep(wait_secs)
+        except Exception as exc:
+            _log_epic_crash(config, state, "final_eval", exc)
 
         generate_delivery_report(config, state)
 
