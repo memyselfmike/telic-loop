@@ -1,20 +1,26 @@
 [
   {
-    "id": "e8916967-f805-4a0d-958b-aaf1c5ddd545",
-    "title": "Buy groceries",
-    "done": false,
-    "created_at": "2026-02-22T09:34:21.702Z"
+    "id": "9cab5165-f45f-4afc-be52-c8fa5fa22c28",
+    "title": "My first task",
+    "done": true,
+    "created_at": "2026-02-22T09:42:45.709Z"
   },
   {
-    "id": "395ac9b4-574d-4757-a203-71150b40ad0e",
-    "title": "Write code",
+    "id": "145fe4d6-ca0e-489f-ace6-e6e8d5b3da56",
+    "title": "Second task via Enter",
     "done": false,
-    "created_at": "2026-02-22T09:34:21.705Z"
+    "created_at": "2026-02-22T09:42:56.248Z"
   },
   {
-    "id": "324651ee-2ef7-45f2-a7e4-da26c9cb4a48",
-    "title": "Test Task 1771752593",
+    "id": "75084c5b-a677-4590-88bb-e66227679e6a",
+    "title": "Tâche avec accents: é à ü ñ 日本語",
     "done": false,
-    "created_at": "2026-02-22T09:34:21.708Z"
+    "created_at": "2026-02-22T09:46:09.553Z"
+  },
+  {
+    "id": "fff958a7-267c-42ff-ba73-6687782ab6b6",
+    "title": "Double click test",
+    "done": false,
+    "created_at": "2026-02-22T09:46:54.220Z"
   }
 ]
