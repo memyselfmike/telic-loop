@@ -32,6 +32,7 @@ def run_epic_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
 
             state.current_epic_index = i
             epic.status = "in_progress"
+            state.save(config.state_file)
             print(f"\n{'=' * 60}")
             print(f"  EPIC {i + 1}/{len(state.epics)}: {epic.title}")
             print(f"  Value: {epic.value_statement}")
@@ -50,6 +51,7 @@ def run_epic_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
                 state.tasks_since_last_critical_eval = 0
                 if "verifications_generated" in state.gates_passed:
                     state.gates_passed.remove("verifications_generated")
+                state.save(config.state_file)
 
                 # Refine epic detail if needed (just-in-time decomposition)
                 if epic.detail_level == "sketch":
@@ -84,6 +86,7 @@ def run_epic_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
             state.verification_categories = []
             if "verifications_generated" in state.gates_passed:
                 state.gates_passed.remove("verifications_generated")
+            state.save(config.state_file)
 
             from .critical_eval import do_critical_eval
             for eval_cycle in range(config.max_epic_eval_cycles):
@@ -99,6 +102,7 @@ def run_epic_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
 
             # Mark epic complete
             epic.status = "completed"
+            state.save(config.state_file)
 
             # Epic feedback checkpoint (skip for last epic)
             if i < len(state.epics) - 1:

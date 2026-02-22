@@ -239,10 +239,13 @@ def run_value_loop(
 
             state.save(config.state_file)
 
-        print("\n  MAX ITERATIONS REACHED — generating partial delivery report")
-        generate_delivery_report(config, state)
-        from .phases.docs import generate_project_docs
-        generate_project_docs(config, state, claude)
+        if inside_epic_loop:
+            print(f"\n  MAX ITERATIONS for this epic — returning to epic loop")
+        else:
+            print("\n  MAX ITERATIONS REACHED — generating partial delivery report")
+            generate_delivery_report(config, state)
+            from .phases.docs import generate_project_docs
+            generate_project_docs(config, state, claude)
     finally:
         _release_lock(lock_path)
 

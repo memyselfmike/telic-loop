@@ -549,6 +549,8 @@ _META_PATTERNS = [
     re.compile(r"\bsequentially\s+to\s+build\b", re.I),
     re.compile(r"\bcovered\s+by\s+existing\s+tasks?\b", re.I),
     re.compile(r"\balready\s+(covered|handled|addressed)\b", re.I),
+    re.compile(r"\bexisting\s+tasks?\s+\d+\.\d+\s+covers\b", re.I),
+    re.compile(r"\bno\s+new\s+task\s+(needed|required)\b", re.I),
 ]
 
 _OVERSIZED_PATTERNS = [
