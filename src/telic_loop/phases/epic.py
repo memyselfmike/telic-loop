@@ -195,6 +195,8 @@ def epic_feedback_checkpoint(
     """Present curated epic summary to human. Returns: proceed | adjust | stop."""
     from ..claude import AgentRole, load_prompt
 
+    epic_idx = state.current_epic_index
+
     session = claude.session(
         AgentRole.REASONER,
         system_extra=(
@@ -205,13 +207,13 @@ def epic_feedback_checkpoint(
     )
 
     next_epic = (
-        state.epics[state.current_epic_index + 1]
-        if state.current_epic_index + 1 < len(state.epics) else None
+        state.epics[epic_idx + 1]
+        if epic_idx + 1 < len(state.epics) else None
     )
 
     prompt = load_prompt("epic_feedback",
         EPIC_TITLE=completed_epic.title,
-        EPIC_NUMBER=state.current_epic_index + 1,
+        EPIC_NUMBER=epic_idx + 1,
         EPIC_TOTAL=len(state.epics),
         EPIC_VALUE_STATEMENT=completed_epic.value_statement,
         EPIC_COMPLETION_CRITERIA="\n".join(completed_epic.completion_criteria),
@@ -223,15 +225,19 @@ def epic_feedback_checkpoint(
     )
     session.send(prompt)
 
+    # Re-bind after _sync_state may have replaced state.epics
+    epic = state.epics[epic_idx]
+
     summary = state.agent_results.get("epic_summary", {})
 
     print(f"\n{'=' * 60}")
-    print(f"  EPIC {state.current_epic_index + 1}/{len(state.epics)} COMPLETE: {completed_epic.title}")
+    print(f"  EPIC {epic_idx + 1}/{len(state.epics)} COMPLETE: {epic.title}")
     print(f"{'=' * 60}")
     if summary.get("summary"):
         print(f"\n  {summary['summary'].get('vision_progress', '')}")
         print(f"\n  Confidence: {summary['summary'].get('confidence', 'N/A')}")
-    if next_epic:
+    if epic_idx + 1 < len(state.epics):
+        next_epic = state.epics[epic_idx + 1]
         print(f"\n  Next: {next_epic.title} — {next_epic.value_statement}")
     print("\n  Options: [P]roceed (default)  |  [A]djust  |  [S]top")
 
@@ -241,19 +247,21 @@ def epic_feedback_checkpoint(
 
     response = _wait_for_human_response(timeout_minutes=timeout_min)
 
+    # Write feedback to the CURRENT state.epics reference (not stale param)
+    epic = state.epics[epic_idx]
     if response is None or response.lower().startswith("p"):
-        completed_epic.feedback_response = "proceed" if response else "timeout"
+        epic.feedback_response = "proceed" if response else "timeout"
         return "proceed"
     elif response.lower().startswith("a"):
-        completed_epic.feedback_response = "adjust"
+        epic.feedback_response = "adjust"
         notes = input("  Adjustment notes: ")
-        completed_epic.feedback_notes = notes
+        epic.feedback_notes = notes
         return "adjust"
     elif response.lower().startswith("s"):
-        completed_epic.feedback_response = "stop"
+        epic.feedback_response = "stop"
         return "stop"
     else:
-        completed_epic.feedback_response = "proceed"
+        epic.feedback_response = "proceed"
         return "proceed"
 
 
