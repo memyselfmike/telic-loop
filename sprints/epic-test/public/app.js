@@ -159,6 +159,16 @@ async function deleteTask(taskId) {
 
 // Show error message to user
 function showError(message) {
-  // Simple alert for now - could be enhanced with a toast notification
-  alert(message);
+  // Create and display a toast-style error message
+  const errorDiv = document.createElement('div');
+  errorDiv.className = 'error-toast';
+  errorDiv.textContent = message;
+  errorDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #f44336; color: white; padding: 16px 24px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 1000; max-width: 300px;';
+
+  document.body.appendChild(errorDiv);
+
+  // Auto-remove after 3 seconds
+  setTimeout(() => {
+    errorDiv.remove();
+  }, 3000);
 }
