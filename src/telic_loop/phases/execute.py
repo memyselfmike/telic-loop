@@ -179,29 +179,35 @@ def _build_script_command(script_path: str) -> list[str] | str:
     On Windows, .sh scripts can't be executed directly (WinError 193).
     Route them through bash (Git Bash / WSL) or convert to equivalent commands.
     .py scripts use sys.executable for portability.
+
+    IMPORTANT: script_path should use forward slashes (POSIX format) for bash compatibility.
     """
     import shutil
     import sys
 
-    p = Path(script_path)
+    # Resolve to absolute path so the command works regardless of CWD.
+    # Also normalizes Windows backslashes.
+    p = Path(script_path).resolve()
     suffix = p.suffix.lower()
 
     if suffix == ".py":
         return [sys.executable, str(p)]
 
     if suffix == ".sh":
+        # Bash requires forward slashes on all platforms
+        posix_path = p.as_posix()
         if sys.platform == "win32":
             # Try Git Bash first (most common on Windows dev machines)
             git_bash = shutil.which("bash")
             if git_bash:
-                return [git_bash, str(p)]
+                return [git_bash, posix_path]
             # Fallback: try sh
             sh = shutil.which("sh")
             if sh:
-                return [sh, str(p)]
+                return [sh, posix_path]
             # Last resort: return shell=True with bash -c
-            return f'bash "{p}"'
-        return ["bash", str(p)]
+            return f'bash "{posix_path}"'
+        return ["bash", posix_path]
 
     # Default: try to execute directly
     return [str(p)]
@@ -227,7 +233,7 @@ def run_tests_parallel(
                 capture_output=True, text=True,
                 timeout=timeout,
                 shell=use_shell,
-                cwd=str(Path(test.script_path).parent),
+                cwd=str(Path(test.script_path).resolve().parent),
             )
             return test.verification_id, (proc.returncode, proc.stdout, proc.stderr)
         except FileNotFoundError:
@@ -258,7 +264,7 @@ def run_test_script(
             capture_output=True, text=True,
             timeout=timeout,
             shell=use_shell,
-            cwd=str(Path(test.script_path).parent),
+            cwd=str(Path(test.script_path).resolve().parent),
         )
         return proc.returncode, proc.stdout, proc.stderr
     except FileNotFoundError:

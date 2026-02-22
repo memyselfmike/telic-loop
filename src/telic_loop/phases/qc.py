@@ -64,7 +64,7 @@ def do_generate_qc(config: LoopConfig, state: LoopState, claude: Claude) -> bool
                 state.verifications[v_id] = VerificationState(
                     verification_id=v_id,
                     category=category,
-                    script_path=str(script),
+                    script_path=script.as_posix(),
                     requires=_parse_requires(script),
                 )
 
@@ -85,7 +85,7 @@ def do_generate_qc(config: LoopConfig, state: LoopState, claude: Claude) -> bool
                     state.verifications[v_id] = VerificationState(
                         verification_id=v_id,
                         category=category,
-                        script_path=str(script),
+                        script_path=script.as_posix(),
                         requires=_parse_requires(script),
                     )
 
@@ -167,7 +167,7 @@ exit 0
     state.verifications[v_id] = VerificationState(
         verification_id=v_id,
         category="value",
-        script_path=str(script_path),
+        script_path=script_path.as_posix(),
     )
     if "value" not in state.verification_categories:
         state.verification_categories.append("value")
