@@ -24,23 +24,30 @@ def run_epic_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
         raise RuntimeError(f"Another loop instance is running (lock: {lock_path})")
 
     try:
-        for i, epic in enumerate(state.epics):
+        for i in range(len(state.epics)):
+            # Re-bind epic from state.epics[i] every time — _sync_state
+            # replaces state.epics with a fresh list from disk after each
+            # Claude API call, making previous references stale.
+            epic = state.epics[i]
+
             # Skip already-completed epics on resume
             if epic.status == "completed":
                 print(f"\n  EPIC {i + 1}/{len(state.epics)}: {epic.title} — already completed, skipping")
                 continue
 
             state.current_epic_index = i
-            epic.status = "in_progress"
+            state.epics[i].status = "in_progress"
             state.save(config.state_file)
+            epic = state.epics[i]  # re-bind after save
             print(f"\n{'=' * 60}")
             print(f"  EPIC {i + 1}/{len(state.epics)}: {epic.title}")
             print(f"  Value: {epic.value_statement}")
             print(f"{'=' * 60}")
 
             # Check if this epic already has tasks (resume scenario)
+            epic_id = state.epics[i].epic_id
             epic_has_tasks = any(
-                t.epic_id == epic.epic_id for t in state.tasks.values()
+                t.epic_id == epic_id for t in state.tasks.values()
             )
 
             if not epic_has_tasks:
@@ -54,11 +61,14 @@ def run_epic_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
                 state.save(config.state_file)
 
                 # Refine epic detail if needed (just-in-time decomposition)
+                epic = state.epics[i]  # re-bind after save
                 if epic.detail_level == "sketch":
-                    _refine_epic_detail(config, state, claude, epic)
+                    _refine_epic_detail(config, state, claude, state.epics[i])
+                    epic = state.epics[i]  # re-bind after Claude call
 
                 # Run pre-loop scoped to this epic's deliverables
-                _run_epic_preloop(config, state, claude, epic)
+                _run_epic_preloop(config, state, claude, state.epics[i])
+                epic = state.epics[i]  # re-bind after Claude calls
             else:
                 print(f"  Epic already has tasks — skipping preloop (resume)")
 
@@ -66,6 +76,7 @@ def run_epic_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
             # Initial plan generation creates tasks with empty epic_id.
             # If quality/VRC tasks caused epic_has_tasks=True, the preloop
             # (and its tagging logic) was skipped, leaving plan tasks invisible.
+            epic = state.epics[i]  # re-bind before using epic_id
             tagged = _tag_unassigned_tasks(state, epic)
             if tagged:
                 print(f"  Tagged {tagged} orphaned tasks with epic_id={epic.epic_id}")
@@ -89,6 +100,7 @@ def run_epic_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
             state.save(config.state_file)
 
             from .critical_eval import do_critical_eval
+            epic = state.epics[i]  # re-bind after save
             for eval_cycle in range(config.max_epic_eval_cycles):
                 print(f"  Epic eval cycle {eval_cycle + 1}/{config.max_epic_eval_cycles} for: {epic.title}")
                 found_issues = do_critical_eval(config, state, claude)
@@ -97,20 +109,24 @@ def run_epic_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
                 # Critical eval created CE-* fix tasks — re-enter value loop
                 print(f"  Critical eval found issues — re-entering value loop to fix")
                 run_value_loop(config, state, claude, inside_epic_loop=True)
+                epic = state.epics[i]  # re-bind after Claude calls
             else:
                 print(f"  Max eval cycles reached — proceeding with remaining issues")
 
-            # Mark epic complete
-            epic.status = "completed"
+            # Mark epic complete — use state.epics[i] directly to survive
+            # any _sync_state that replaced the list since our last re-bind.
+            state.epics[i].status = "completed"
             state.save(config.state_file)
 
             # Epic feedback checkpoint (skip for last epic)
             if i < len(state.epics) - 1:
+                epic = state.epics[i]  # re-bind for feedback
                 response = epic_feedback_checkpoint(config, state, claude, epic)
                 if response == "stop":
                     print("  Human requested stop. Shipping completed epics.")
                     break
                 elif response == "adjust":
+                    epic = state.epics[i]  # re-bind after Claude call
                     _adjust_next_epic(config, state, claude, epic.feedback_notes)
 
         # Full end-to-end evaluation after all epics complete
@@ -251,6 +267,9 @@ def _refine_epic_detail(
     """Just-in-time decomposition for sketch-level epics."""
     from ..claude import AgentRole, load_prompt
 
+    # Capture epic index to re-bind after _sync_state
+    epic_idx = state.current_epic_index
+
     session = claude.session(
         AgentRole.REASONER,
         system_extra=(
@@ -272,7 +291,8 @@ def _refine_epic_detail(
         f"Deliverables: {', '.join(epic.deliverables)}\n"
         f"Task sketch: {', '.join(epic.task_sketch)}\n\n{prompt}"
     )
-    epic.detail_level = "full"
+    # Re-bind after _sync_state may have replaced state.epics
+    state.epics[epic_idx].detail_level = "full"
 
 
 def _run_epic_preloop(
