@@ -178,7 +178,7 @@ def _build_script_command(script_path: str) -> list[str] | str:
 
     On Windows, .sh scripts can't be executed directly (WinError 193).
     Route them through bash (Git Bash / WSL) or convert to equivalent commands.
-    .py scripts use sys.executable for portability.
+    .py scripts use sys.executable, .js scripts use node.
 
     IMPORTANT: script_path should use forward slashes (POSIX format) for bash compatibility.
     """
@@ -192,6 +192,12 @@ def _build_script_command(script_path: str) -> list[str] | str:
 
     if suffix == ".py":
         return [sys.executable, str(p)]
+
+    if suffix == ".js":
+        node = shutil.which("node")
+        if node:
+            return [node, str(p)]
+        return ["node", str(p)]
 
     if suffix == ".sh":
         # Bash requires forward slashes on all platforms
@@ -240,6 +246,10 @@ def run_tests_parallel(
             return test.verification_id, (
                 1, "", "No bash interpreter found — cannot run .sh scripts on this platform",
             )
+        except OSError as e:
+            return test.verification_id, (
+                1, "", f"OS error running script: {e}",
+            )
         except subprocess.TimeoutExpired:
             return test.verification_id, (1, "", "TIMEOUT")
 
@@ -269,6 +279,8 @@ def run_test_script(
         return proc.returncode, proc.stdout, proc.stderr
     except FileNotFoundError:
         return 1, "", "No bash interpreter found — cannot run .sh scripts on this platform"
+    except OSError as e:
+        return 1, "", f"OS error running script: {e}"
     except subprocess.TimeoutExpired:
         return 1, "", "TIMEOUT"
 
