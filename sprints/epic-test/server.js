@@ -97,6 +97,4 @@ app.get('/', (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`TaskPad server running on http://localhost:${PORT}`);
-});
+app.listen(PORT);
