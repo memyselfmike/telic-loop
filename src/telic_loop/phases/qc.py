@@ -238,6 +238,8 @@ def do_fix(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
         return False
 
     # Step 1: Triage (Haiku) for multiple failures
+    # Capture just the IDs and errors — objects may go stale after session.send()
+    failing_ids = list(failing.keys())
     if len(failing) > 1:
         triage_session = claude.session(AgentRole.CLASSIFIER)
         error_summary = "\n".join(
@@ -258,7 +260,12 @@ def do_fix(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
     any_fixed = False
     for rc in sorted(root_causes, key=lambda x: x.get("priority", 99)):
         session = claude.session(AgentRole.FIXER)
-        affected = [failing[tid] for tid in rc["affected_tests"] if tid in failing]
+        # Fetch fresh references from state (may have been replaced by _sync_state)
+        affected = [
+            state.verifications[tid]
+            for tid in rc["affected_tests"]
+            if tid in state.verifications
+        ]
         if not affected:
             continue
 
@@ -282,6 +289,14 @@ def do_fix(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
             RESEARCH_CONTEXT=get_research_context(state),
         )
         session.send(prompt)
+
+        # Re-fetch verification objects — _sync_state replaced state.verifications
+        # after session.send(), so old `affected` refs are stale.
+        affected = [
+            state.verifications[tid]
+            for tid in rc["affected_tests"]
+            if tid in state.verifications
+        ]
 
         # Verify fix by re-running affected tests
         for v in affected:

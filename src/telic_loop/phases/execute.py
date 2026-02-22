@@ -350,6 +350,10 @@ def _handle_regressions(
         )
         session.send(prompt)
 
+        # Re-fetch — _sync_state replaced state.verifications after session
+        test = state.verifications.get(test_id)
+        if not test:
+            continue
         exit_code, stdout, stderr = run_test_script(
             test, config.regression_timeout // max(len(regressions), 1),
         )

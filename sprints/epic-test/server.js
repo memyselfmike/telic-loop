@@ -5,7 +5,18 @@ const crypto = require('crypto');
 
 const app = express();
 const PORT = 3000;
-const TASKS_FILE = path.join(__dirname, 'data', 'tasks.json');
+const DATA_DIR = path.join(__dirname, 'data');
+const TASKS_FILE = path.join(DATA_DIR, 'tasks.json');
+
+// Ensure data directory and tasks file exist
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+// Initialize tasks.json with empty array if it doesn't exist
+if (!fs.existsSync(TASKS_FILE)) {
+  fs.writeFileSync(TASKS_FILE, '[]', 'utf-8');
+}
 
 // Middleware
 app.use(express.json());
@@ -24,6 +35,10 @@ function readTasks() {
 
 function writeTasks(tasks) {
   try {
+    // Ensure data directory exists before writing
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
     fs.writeFileSync(TASKS_FILE, JSON.stringify(tasks, null, 2), 'utf-8');
   } catch (error) {
     console.error('Error writing tasks file:', error);
@@ -89,6 +104,16 @@ app.delete('/api/tasks/:id', (req, res) => {
   writeTasks(tasks);
 
   res.json(deletedTask);
+});
+
+app.get('/api/stats', (req, res) => {
+  const tasks = readTasks();
+
+  const total = tasks.length;
+  const done = tasks.filter(task => task.done === true).length;
+  const remaining = tasks.filter(task => task.done === false).length;
+
+  res.json({ total, done, remaining });
 });
 
 // Health check endpoint
