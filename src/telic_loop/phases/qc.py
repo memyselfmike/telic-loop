@@ -32,9 +32,43 @@ def do_generate_qc(config: LoopConfig, state: LoopState, claude: Claude) -> bool
     )
     session.send(prompt)
 
-    # Discover generated scripts
+    # Discover generated scripts.
+    # Agents may write scripts in two layouts:
+    #   1. Flat with prefix:  verifications/unit_api_test.sh
+    #   2. Nested in subdirs: verifications/unit/api_test.sh
+    # We support both — flat prefix is what the prompt instructs.
     verify_dir = config.sprint_dir / ".loop" / "verifications"
+    known_categories = ("unit", "integration", "value")
     if verify_dir.exists():
+        # Layout 1: flat files with category prefix (unit_xxx.sh)
+        for script in sorted(verify_dir.iterdir()):
+            if script.is_dir():
+                continue
+            if script.suffix not in (".sh", ".py", ".js"):
+                continue
+            # Parse category from prefix: "unit_api_test.sh" → category="unit"
+            stem = script.stem
+            category = ""
+            for cat in known_categories:
+                if stem.startswith(cat + "_"):
+                    category = cat
+                    break
+            if not category:
+                category = "value"  # default if no recognized prefix
+            if category not in state.verification_categories:
+                state.verification_categories.append(category)
+            v_id = f"{category}/{stem}"
+            if v_id not in state.verifications:
+                if sys.platform != "win32":
+                    script.chmod(0o755)
+                state.verifications[v_id] = VerificationState(
+                    verification_id=v_id,
+                    category=category,
+                    script_path=str(script),
+                    requires=_parse_requires(script),
+                )
+
+        # Layout 2: nested subdirectories (unit/api_test.sh)
         for category_dir in sorted(verify_dir.iterdir()):
             if not category_dir.is_dir():
                 continue
@@ -42,7 +76,7 @@ def do_generate_qc(config: LoopConfig, state: LoopState, claude: Claude) -> bool
             if category not in state.verification_categories:
                 state.verification_categories.append(category)
             for script in sorted(category_dir.iterdir()):
-                if script.suffix not in (".sh", ".py"):
+                if script.suffix not in (".sh", ".py", ".js"):
                     continue
                 v_id = f"{category}/{script.stem}"
                 if v_id not in state.verifications:

@@ -171,8 +171,8 @@ def decide_next_action(config: LoopConfig, state: LoopState) -> Action:
             if not state.gate_passed("verifications_generated") and total_qc_fails < 3:
                 return Action.GENERATE_QC
             # QC was attempted but produced nothing — allow exit gate
-            # only after sufficient tasks are done (not on first attempt)
-            if done_count >= max(3, len(scoped) // 2):
+            # when enough tasks are done (at least half, or all if < 3)
+            if done_count >= min(3, len(scoped)):
                 return Action.EXIT_GATE
 
     return Action.COURSE_CORRECT
