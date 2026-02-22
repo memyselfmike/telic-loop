@@ -59,6 +59,38 @@ app.post('/api/tasks', (req, res) => {
   res.status(201).json(newTask);
 });
 
+app.patch('/api/tasks/:id', (req, res) => {
+  const { id } = req.params;
+  const tasks = readTasks();
+
+  const taskIndex = tasks.findIndex(task => task.id === id);
+
+  if (taskIndex === -1) {
+    return res.status(404).json({ error: 'Task not found' });
+  }
+
+  tasks[taskIndex].done = !tasks[taskIndex].done;
+  writeTasks(tasks);
+
+  res.json(tasks[taskIndex]);
+});
+
+app.delete('/api/tasks/:id', (req, res) => {
+  const { id } = req.params;
+  const tasks = readTasks();
+
+  const taskIndex = tasks.findIndex(task => task.id === id);
+
+  if (taskIndex === -1) {
+    return res.status(404).json({ error: 'Task not found' });
+  }
+
+  const deletedTask = tasks.splice(taskIndex, 1)[0];
+  writeTasks(tasks);
+
+  res.json(deletedTask);
+});
+
 // Health check endpoint
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
