@@ -85,6 +85,9 @@ class LoopConfig:
     max_task_description_chars: int = 600      # reject tasks with longer descriptions
     max_files_per_task: int = 5                # reject tasks expecting more files
 
+    # Fix rollback
+    max_fix_rollbacks: int = 2  # skip root cause after N rollbacks
+
     # Reliability
     max_task_retries: int = 3
     max_rollbacks_per_sprint: int = 3

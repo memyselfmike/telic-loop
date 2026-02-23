@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
 from dataclasses import asdict
 from datetime import datetime
@@ -64,7 +65,7 @@ def do_generate_qc(config: LoopConfig, state: LoopState, claude: Claude) -> bool
                 state.verifications[v_id] = VerificationState(
                     verification_id=v_id,
                     category=category,
-                    script_path=script.as_posix(),
+                    script_path=script.resolve().as_posix(),
                     requires=_parse_requires(script),
                 )
 
@@ -85,7 +86,7 @@ def do_generate_qc(config: LoopConfig, state: LoopState, claude: Claude) -> bool
                     state.verifications[v_id] = VerificationState(
                         verification_id=v_id,
                         category=category,
-                        script_path=script.as_posix(),
+                        script_path=script.resolve().as_posix(),
                         requires=_parse_requires(script),
                     )
 
@@ -167,7 +168,7 @@ exit 0
     state.verifications[v_id] = VerificationState(
         verification_id=v_id,
         category="value",
-        script_path=script_path.as_posix(),
+        script_path=script_path.resolve().as_posix(),
     )
     if "value" not in state.verification_categories:
         state.verification_categories.append("value")
@@ -221,10 +222,14 @@ def do_run_qc(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
 
 
 def do_fix(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
-    """Triage failures and fix them with the Fixer agent."""
+    """Triage failures and fix them with the Fixer agent.
+
+    Returns True only if net passing count increased (not just any_fixed).
+    Rolls back fixes that cause net regressions.
+    """
     from ..claude import AgentRole, load_prompt
     from ..state import FailureRecord
-    from .execute import run_regression, run_tests_parallel
+    from .execute import run_tests_parallel, _resolve_script_path
     from .research import get_research_context
 
     failing = {
@@ -236,6 +241,11 @@ def do_fix(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
     }
     if not failing:
         return False
+
+    # Track net progress across entire do_fix call
+    entry_passing = sum(
+        1 for v in state.verifications.values() if v.status == "passed"
+    )
 
     # Step 1: Triage (Haiku) for multiple failures
     # Capture just the IDs and errors — objects may go stale after session.send()
@@ -256,12 +266,18 @@ def do_fix(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
             "priority": 1,
         }]
 
-    # Step 2: Fix each root cause (Sonnet)
-    any_fixed = False
+    # Step 2: Fix each root cause (Sonnet) with rollback protection
+    project_dir = str(config.effective_project_dir)
     for rc in sorted(root_causes, key=lambda x: x.get("priority", 99) if isinstance(x, dict) else 99):
         if not isinstance(rc, dict):
             continue
-        session = claude.session(AgentRole.FIXER)
+
+        # Skip root causes that have been rolled back too many times
+        cause_sig = _cause_signature(rc)
+        if cause_sig in state.fix_rollback_causes:
+            print(f"  Skipping rolled-back root cause: {cause_sig[:80]}")
+            continue
+
         # Normalise: triage agents may use "affected_tests" or "verification_id"
         affected_ids = rc.get("affected_tests") or (
             [rc["verification_id"]] if "verification_id" in rc else failing_ids
@@ -275,19 +291,30 @@ def do_fix(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
         if not affected:
             continue
 
-        failing_details = [
-            {
+        # --- Snapshot before fix ---
+        snapshot = _snapshot_verifications(state)
+        pre_fix_passing = sum(
+            1 for s in snapshot["statuses"].values() if s == "passed"
+        )
+
+        # Build fix prompt and run fixer
+        session = claude.session(AgentRole.FIXER)
+        failing_details = []
+        for v in affected:
+            script_content = ""
+            if v.script_path:
+                try:
+                    resolved_path = _resolve_script_path(v.script_path)
+                    if resolved_path.exists():
+                        script_content = resolved_path.read_text(encoding="utf-8")
+                except Exception:
+                    pass
+            failing_details.append({
                 "verification_id": v.verification_id,
                 "last_error": v.last_error,
                 "attempt_history": v.attempt_history,
-                "script": (
-                    Path(v.script_path).read_text(encoding="utf-8")
-                    if v.script_path and Path(v.script_path).exists()
-                    else ""
-                ),
-            }
-            for v in affected
-        ]
+                "script": script_content,
+            })
         prompt = load_prompt("fix",
             SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),
             ROOT_CAUSE=json.dumps({
@@ -308,7 +335,7 @@ def do_fix(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
             if tid in state.verifications
         ]
 
-        # Verify fix by re-running affected tests
+        # Re-run targeted tests to check if fix worked
         for v in affected:
             v.attempts += 1
             results = run_tests_parallel([v], config.regression_timeout)
@@ -318,7 +345,6 @@ def do_fix(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
             if exit_code == 0:
                 v.status = "passed"
                 state.add_regression_pass(v.verification_id)
-                any_fixed = True
             else:
                 v.failures.append(FailureRecord(
                     timestamp=datetime.now().isoformat(),
@@ -329,13 +355,53 @@ def do_fix(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
                     fix_applied=f"Fix for root cause: {rc.get('cause', 'Unknown')[:200]}",
                 ))
 
-        # Check for regressions after fix
-        if state.regression_baseline:
-            regressions = run_regression(config, state)
-            if regressions:
-                print(f"  Fix caused {len(regressions)} regressions")
+        # --- Full suite re-run to detect cross-test breakage ---
+        all_runnable = [
+            v for v in state.verifications.values()
+            if v.script_path
+        ]
+        if all_runnable:
+            full_results = run_tests_parallel(all_runnable, config.regression_timeout)
+            for v_id, (exit_code, stdout, stderr) in full_results.items():
+                v = state.verifications.get(v_id)
+                if not v:
+                    continue
+                if exit_code == 0:
+                    v.status = "passed"
+                    state.add_regression_pass(v_id)
+                else:
+                    v.status = "failed"
+                    state.regression_baseline.discard(v_id)
 
-    return any_fixed
+        # --- Net improvement check ---
+        post_fix_passing = sum(
+            1 for v in state.verifications.values() if v.status == "passed"
+        )
+        net_change = post_fix_passing - pre_fix_passing
+
+        if net_change < 0:
+            # Net negative — rollback code changes and restore verification states
+            print(f"  Rollback: fix caused net {net_change} change ({pre_fix_passing}→{post_fix_passing} passing)")
+            subprocess.run(
+                ["git", "checkout", "--", project_dir],
+                check=False, capture_output=True,
+            )
+            subprocess.run(
+                ["git", "clean", "-fd", "--", project_dir],
+                check=False, capture_output=True,
+            )
+            _restore_verifications(state, snapshot)
+            state.fix_rollback_causes.add(cause_sig)
+            state.research_attempted_for_current_failures = False
+        else:
+            if net_change > 0:
+                print(f"  Fix improved: {pre_fix_passing}→{post_fix_passing} passing (+{net_change})")
+
+    # Return True only if net passing count increased
+    exit_passing = sum(
+        1 for v in state.verifications.values() if v.status == "passed"
+    )
+    return exit_passing > entry_passing
 
 
 # ---------------------------------------------------------------------------
@@ -365,3 +431,26 @@ def _category_deps_met(category: str, state: LoopState) -> bool:
                 if not all(t.status == "passed" for t in req_tests):
                     return False
     return True
+
+
+def _snapshot_verifications(state: LoopState) -> dict:
+    """Capture verification statuses and regression baseline before a fix attempt."""
+    return {
+        "statuses": {vid: v.status for vid, v in state.verifications.items()},
+        "regression_baseline": set(state.regression_baseline),
+    }
+
+
+def _restore_verifications(state: LoopState, snapshot: dict) -> None:
+    """Restore verification statuses and regression baseline from a snapshot."""
+    for vid, status in snapshot["statuses"].items():
+        if vid in state.verifications:
+            state.verifications[vid].status = status
+    state.regression_baseline = snapshot["regression_baseline"]
+
+
+def _cause_signature(rc: dict) -> str:
+    """Generate a short signature for a root cause to track rollbacks."""
+    cause = rc.get("cause", "Unknown") or "Unknown"
+    # Truncate to first 120 chars for dedup — same root cause may have different details
+    return cause[:120].strip()

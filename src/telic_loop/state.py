@@ -336,6 +336,9 @@ class LoopState:
     # Crash history (condensed summaries — full tracebacks in .crash_log.jsonl)
     crash_log: list[dict] = field(default_factory=list)
 
+    # Fix rollback tracking — root causes that regressed and were rolled back
+    fix_rollback_causes: set[str] = field(default_factory=set)
+
     # ----- Properties -----
 
     @property
@@ -410,6 +413,7 @@ class LoopState:
         # Convert sets to sorted lists for JSON
         data["gates_passed"] = sorted(data["gates_passed"])
         data["regression_baseline"] = sorted(data["regression_baseline"])
+        data["fix_rollback_causes"] = sorted(data.get("fix_rollback_causes", []))
 
         def _serialize(obj: object) -> Any:
             if isinstance(obj, datetime):
