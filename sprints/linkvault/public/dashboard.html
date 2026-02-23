@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - LinkVault</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <h1>LinkVault Dashboard</h1>
+    <div class="nav-links">
+      <a href="/">Collection</a>
+      <a href="/dashboard" class="active">Dashboard</a>
+    </div>
+  </nav>
+
+  <main class="dashboard">
+    <section class="stats-cards">
+      <div class="stat-card">
+        <div class="stat-label">Total Links</div>
+        <div class="stat-value" id="total-links">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Tags</div>
+        <div class="stat-value" id="total-tags">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Most Used Tag</div>
+        <div class="stat-value" id="most-used-tag">-</div>
+      </div>
+    </section>
+
+    <section class="tag-chart">
+      <h2>Tag Distribution</h2>
+      <div id="chart-container"></div>
+    </section>
+
+    <section class="recent-links">
+      <h2>Recent Links</h2>
+      <div id="recent-container"></div>
+    </section>
+  </main>
+
+  <script src="/dashboard.js"></script>
+</body>
+</html>
