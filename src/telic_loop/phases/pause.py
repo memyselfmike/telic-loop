@@ -35,8 +35,10 @@ def do_interactive_pause(config: LoopConfig, state: LoopState, claude: Claude) -
         else:
             if _is_interactive():
                 print(f"  Not yet completed. Instructions: {state.pause.instructions}")
-                input("  Press Enter when ready...")
-            else:
+                try:
+                    input("  Press Enter when ready...")
+                except EOFError:
+                    pass  # Pseudo-terminal, no real stdin — fall through
                 # Non-interactive: descope blocked tasks and continue
                 print(f"  Non-interactive mode — descoping HUMAN_ACTION tasks")
                 for task in state.tasks.values():
@@ -76,7 +78,15 @@ def do_interactive_pause(config: LoopConfig, state: LoopState, claude: Claude) -
     print(f"  {'=' * 50}")
     print(f"  {action_needed}")
     state.save(config.state_file)
-    input("  Press Enter when done...")
+    try:
+        input("  Press Enter when done...")
+    except EOFError:
+        # Pseudo-terminal (isatty=True) but no real stdin — descope instead
+        print("  No stdin available — descoping HUMAN_ACTION task")
+        task.status = "descoped"
+        task.resolution_note = f"HUMAN_ACTION: {action_needed} (no stdin)"
+        state.pause = None
+        return True
     return False
 
 
