@@ -954,6 +954,20 @@ def handle_task_complete(input_data: dict, state: LoopState, **_: Any) -> str:
     return f"Task {task_id} marked complete"
 
 
+def _normalise_services(raw: Any) -> dict:
+    """Convert list-of-dicts services format to the expected dict-of-dicts."""
+    if isinstance(raw, dict):
+        return raw
+    if isinstance(raw, list):
+        result: dict = {}
+        for item in raw:
+            if isinstance(item, dict) and "name" in item:
+                name = item.pop("name")
+                result[name] = item
+        return result
+    return {}
+
+
 def handle_discovery(input_data: dict, state: LoopState, **_: Any) -> str:
     from .state import SprintContext
     state.context = SprintContext(
@@ -961,7 +975,7 @@ def handle_discovery(input_data: dict, state: LoopState, **_: Any) -> str:
         project_type=input_data.get("project_type", "unknown"),
         codebase_state=input_data.get("codebase_state", "greenfield"),
         environment=input_data.get("environment", {}),
-        services=input_data.get("services", {}),
+        services=_normalise_services(input_data.get("services", {})),
         verification_strategy=input_data.get("verification_strategy", {}),
         value_proofs=input_data.get("value_proofs", []),
         unresolved_questions=input_data.get("unresolved_questions", []),

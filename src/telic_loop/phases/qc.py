@@ -204,8 +204,8 @@ def do_run_qc(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
                     timestamp=datetime.now().isoformat(),
                     attempt=v.attempts,
                     exit_code=exit_code,
-                    stdout=stdout[:2000],
-                    stderr=stderr[:2000],
+                    stdout=(stdout or "")[:2000],
+                    stderr=(stderr or "")[:2000],
                 ))
                 state.research_attempted_for_current_failures = False
 
@@ -258,12 +258,18 @@ def do_fix(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
 
     # Step 2: Fix each root cause (Sonnet)
     any_fixed = False
-    for rc in sorted(root_causes, key=lambda x: x.get("priority", 99)):
+    for rc in sorted(root_causes, key=lambda x: x.get("priority", 99) if isinstance(x, dict) else 99):
+        if not isinstance(rc, dict):
+            continue
         session = claude.session(AgentRole.FIXER)
+        # Normalise: triage agents may use "affected_tests" or "verification_id"
+        affected_ids = rc.get("affected_tests") or (
+            [rc["verification_id"]] if "verification_id" in rc else failing_ids
+        )
         # Fetch fresh references from state (may have been replaced by _sync_state)
         affected = [
             state.verifications[tid]
-            for tid in rc["affected_tests"]
+            for tid in affected_ids
             if tid in state.verifications
         ]
         if not affected:
@@ -285,9 +291,9 @@ def do_fix(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
         prompt = load_prompt("fix",
             SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),
             ROOT_CAUSE=json.dumps({
-                "cause": rc["cause"],
-                "affected_tests": rc["affected_tests"],
-                "fix_suggestion": rc.get("fix_suggestion", ""),
+                "cause": rc.get("cause", "Unknown"),
+                "affected_tests": affected_ids,
+                "fix_suggestion": rc.get("fix_suggestion", rc.get("fix", "")),
             }),
             FAILING_VERIFICATIONS=json.dumps(failing_details, indent=2),
             RESEARCH_CONTEXT=get_research_context(state),
@@ -298,7 +304,7 @@ def do_fix(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
         # after session.send(), so old `affected` refs are stale.
         affected = [
             state.verifications[tid]
-            for tid in rc["affected_tests"]
+            for tid in affected_ids
             if tid in state.verifications
         ]
 
@@ -318,9 +324,9 @@ def do_fix(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
                     timestamp=datetime.now().isoformat(),
                     attempt=v.attempts,
                     exit_code=exit_code,
-                    stdout=stdout[:2000],
-                    stderr=stderr[:2000],
-                    fix_applied=f"Fix for root cause: {rc['cause'][:200]}",
+                    stdout=(stdout or "")[:2000],
+                    stderr=(stderr or "")[:2000],
+                    fix_applied=f"Fix for root cause: {rc.get('cause', 'Unknown')[:200]}",
                 ))
 
         # Check for regressions after fix

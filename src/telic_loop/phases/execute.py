@@ -241,7 +241,9 @@ def run_tests_parallel(
                 shell=use_shell,
                 cwd=str(Path(test.script_path).resolve().parent),
             )
-            return test.verification_id, (proc.returncode, proc.stdout, proc.stderr)
+            return test.verification_id, (
+                proc.returncode, proc.stdout or "", proc.stderr or "",
+            )
         except FileNotFoundError:
             return test.verification_id, (
                 1, "", "No bash interpreter found — cannot run .sh scripts on this platform",
@@ -252,6 +254,10 @@ def run_tests_parallel(
             )
         except subprocess.TimeoutExpired:
             return test.verification_id, (1, "", "TIMEOUT")
+        except Exception as e:
+            return test.verification_id, (
+                1, "", f"Unexpected error: {type(e).__name__}: {e}",
+            )
 
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
         futures = {pool.submit(run_one, t): t for t in tests}
@@ -276,13 +282,15 @@ def run_test_script(
             shell=use_shell,
             cwd=str(Path(test.script_path).resolve().parent),
         )
-        return proc.returncode, proc.stdout, proc.stderr
+        return proc.returncode, proc.stdout or "", proc.stderr or ""
     except FileNotFoundError:
         return 1, "", "No bash interpreter found — cannot run .sh scripts on this platform"
     except OSError as e:
         return 1, "", f"OS error running script: {e}"
     except subprocess.TimeoutExpired:
         return 1, "", "TIMEOUT"
+    except Exception as e:
+        return 1, "", f"Unexpected error: {type(e).__name__}: {e}"
 
 
 def run_regression(config: LoopConfig, state: LoopState) -> list[str]:
@@ -308,8 +316,8 @@ def run_regression(config: LoopConfig, state: LoopState) -> list[str]:
                 timestamp=datetime.now().isoformat(),
                 attempt=v.attempts + 1,
                 exit_code=exit_code,
-                stdout=stdout[:2000],
-                stderr=stderr[:2000],
+                stdout=(stdout or "")[:2000],
+                stderr=(stderr or "")[:2000],
             ))
             state.regression_baseline.discard(test_id)
     return regressions

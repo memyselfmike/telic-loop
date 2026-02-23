@@ -441,6 +441,16 @@ class LoopState:
                 k: [tuple(fn) for fn in v]
                 for k, v in pm["long_functions"].items()
             }
+        # Normalize context.services: agents sometimes return list-of-dicts
+        ctx = data.get("context", {})
+        svc = ctx.get("services")
+        if isinstance(svc, list):
+            normalised: dict = {}
+            for item in svc:
+                if isinstance(item, dict) and "name" in item:
+                    name = item.pop("name")
+                    normalised[name] = item
+            ctx["services"] = normalised
         return from_dict(
             data_class=cls,
             data=data,
