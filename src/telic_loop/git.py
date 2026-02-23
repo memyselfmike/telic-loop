@@ -56,14 +56,15 @@ def setup_sprint_branch(config: LoopConfig, state: LoopState) -> None:
 
 def git_commit(config: LoopConfig, state: LoopState, message: str) -> None:
     """Create a safe git commit. Never uses 'git add -A'."""
+    _devnull = subprocess.DEVNULL
     # Stage modified tracked files
-    subprocess.run(["git", "add", "-u"], check=False)
+    subprocess.run(["git", "add", "-u"], check=False, stdout=_devnull, stderr=_devnull)
 
     # Stage new files only from safe directories
     safe_dirs = _get_safe_directories(config, state)
     for d in safe_dirs:
         if Path(d).exists():
-            subprocess.run(["git", "add", str(d)], check=False)
+            subprocess.run(["git", "add", str(d)], check=False, stdout=_devnull, stderr=_devnull)
 
     # Scan staged files for sensitive patterns
     result = subprocess.run(
@@ -73,13 +74,16 @@ def git_commit(config: LoopConfig, state: LoopState, message: str) -> None:
     staged = result.stdout.strip().splitlines()
     for f in staged:
         if _matches_sensitive_pattern(f, state.git.sensitive_patterns):
-            subprocess.run(["git", "reset", "HEAD", f], check=False)
+            subprocess.run(["git", "reset", "HEAD", f], check=False, stdout=_devnull, stderr=_devnull)
             print(f"  WARNING: Unstaged sensitive file: {f}")
 
     # Check if there are staged changes
-    result = subprocess.run(["git", "diff", "--cached", "--quiet"])
+    result = subprocess.run(["git", "diff", "--cached", "--quiet"], stdout=_devnull, stderr=_devnull)
     if result.returncode != 0:
-        subprocess.run(["git", "commit", "-m", message], check=True)
+        subprocess.run(
+            ["git", "commit", "-m", message],
+            check=True, capture_output=True, text=True,
+        )
         hash_result = subprocess.run(
             ["git", "rev-parse", "HEAD"], capture_output=True, text=True,
         )
