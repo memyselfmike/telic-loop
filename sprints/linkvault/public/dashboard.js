@@ -157,7 +157,11 @@ function renderRecentLinks(recent) {
 
     const date = document.createElement('span');
     date.className = 'recent-link-date';
-    date.textContent = new Date(link.created_at).toLocaleDateString();
+    date.textContent = new Date(link.created_at).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
 
     li.appendChild(title);
     li.appendChild(date);
