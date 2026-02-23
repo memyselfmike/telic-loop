@@ -274,7 +274,11 @@ def do_fix(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
                 "verification_id": v.verification_id,
                 "last_error": v.last_error,
                 "attempt_history": v.attempt_history,
-                "script": Path(v.script_path).read_text(encoding="utf-8") if v.script_path else "",
+                "script": (
+                    Path(v.script_path).read_text(encoding="utf-8")
+                    if v.script_path and Path(v.script_path).exists()
+                    else ""
+                ),
             }
             for v in affected
         ]

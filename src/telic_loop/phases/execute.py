@@ -333,7 +333,11 @@ def _handle_regressions(
             "verification_id": test.verification_id,
             "last_error": test.last_error,
             "attempt_history": test.attempt_history,
-            "script": Path(test.script_path).read_text(encoding="utf-8") if test.script_path else "",
+            "script": (
+                Path(test.script_path).read_text(encoding="utf-8")
+                if test.script_path and Path(test.script_path).exists()
+                else ""
+            ),
         }]
         prompt = load_prompt("fix",
             SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),
