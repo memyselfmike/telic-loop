@@ -98,14 +98,17 @@ def _precompute_doc_context(config: LoopConfig, state: LoopState) -> str:
     # 3. Tech stack from sprint context
     lines.append("### Tech Stack (from discovery)")
     ctx = state.context
-    if ctx.tech_stack:
-        for tech in ctx.tech_stack:
+    tech_stack = getattr(ctx, "tech_stack", None) or []
+    frameworks = getattr(ctx, "frameworks", None) or []
+    languages = getattr(ctx, "languages", None) or []
+    if tech_stack:
+        for tech in tech_stack:
             lines.append(f"- {tech}")
-    if ctx.frameworks:
-        lines.append(f"- Frameworks: {', '.join(ctx.frameworks)}")
-    if ctx.languages:
-        lines.append(f"- Languages: {', '.join(ctx.languages)}")
-    if not ctx.tech_stack and not ctx.frameworks and not ctx.languages:
+    if frameworks:
+        lines.append(f"- Frameworks: {', '.join(frameworks)}")
+    if languages:
+        lines.append(f"- Languages: {', '.join(languages)}")
+    if not tech_stack and not frameworks and not languages:
         lines.append("Not detected.")
     lines.append("")
 

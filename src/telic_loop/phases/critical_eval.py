@@ -23,10 +23,18 @@ def _needs_browser_eval(state: LoopState, config: LoopConfig | None = None) -> b
 
     ctx = state.context
 
-    # Must be a software deliverable with a web-facing project type
+    # Must be a web-facing deliverable.  Discovery agents don't always use
+    # the exact enumerated values, so check both fields with broad sets.
+    web_types = {"web_app", "web_application", "spa", "pwa", "fullstack"}
     is_web_app = (
-        ctx.deliverable_type == "software"
-        and ctx.project_type in ("web_app", "web_application", "spa", "pwa")
+        ctx.deliverable_type in ("software", *web_types)
+        and ctx.project_type in web_types
+    ) or (
+        # Fallback: services with http health checks are a strong signal
+        any(
+            str(svc.get("health_check", "")).startswith("http")
+            for svc in (ctx.services.values() if isinstance(ctx.services, dict) else ctx.services)
+        )
     )
     if not is_web_app:
         return False

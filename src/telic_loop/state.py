@@ -344,6 +344,9 @@ class LoopState:
 
     @property
     def value_delivered(self) -> bool:
+        # Exit gate passed = value delivered (gate runs fresh VRC + critical eval)
+        if self.gate_passed("exit_gate"):
+            return True
         vrc = self.latest_vrc
         return vrc is not None and vrc.recommendation == "SHIP_READY"
 

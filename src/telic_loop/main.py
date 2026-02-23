@@ -106,6 +106,7 @@ def run_value_loop(
                             generate_delivery_report(config, state)
                             from .phases.docs import generate_project_docs
                             generate_project_docs(config, state, claude)
+                        state.pass_gate("exit_gate")
                         print("\n  VALUE DELIVERED — exit gate passed")
                         state.save(config.state_file)
                         return
