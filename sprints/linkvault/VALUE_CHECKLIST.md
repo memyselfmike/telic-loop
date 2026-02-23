@@ -1,12 +1,12 @@
 # Value Checklist: linkvault
-Generated: 2026-02-23T15:21:56.359031
+Generated: 2026-02-23T15:25:42.112673
 
 ## VRC Status
 - Value Score: 60%
 - Verified: 3/5
 - Blocked: 0
 - Recommendation: CONTINUE
-- Summary: Fallback VRC: carried forward from iteration 52 (60%)
+- Summary: Fallback VRC: carried forward from iteration 53 (60%)
 
 ## Tasks
 - [x] **1.1**: Add JSON file storage module and static file serving to existing Express server. Create storage.js with read/write functions for data/links.json (auto-creating file and directory if missing). Add express.static middleware to serve public/ directory. Server.js and health endpoint already exist from bootstrap.
@@ -24,7 +24,7 @@ Generated: 2026-02-23T15:21:56.359031
 - [x] **2.5**: Add recent links section to dashboard showing the 5 most recently added bookmarks. Each entry shows a clickable title (links to the URL) and a human-friendly formatted date (e.g. "Feb 23, 2026"). Show a "No links yet" message when the collection is empty. Data comes from the recent array in GET /api/stats.
 - [ ] **SPLIT-FN-public-dashboard-js**: Split long functions in public/dashboard.js: renderTagChart(60L). Extract helper functions to keep each function under 50 lines.
 - [x] **VRC-50-gap-1**: Add url field to each item in the recent array returned by GET /api/stats endpoint. The endpoint currently maps recent links to title and created_at but must include url so the dashboard recent links section can create working hyperlinks.
-- [ ] **VRC-50-gap-2**: Restore missing source files: server.js, storage.js, public/index.html, public/app.js, and package.json. These files were created in Epic 1 tasks but have been deleted from the filesystem. Without these files the collection page is completely broken and navigation between pages fails.
+- [x] **VRC-50-gap-2**: Restore missing source files: server.js, storage.js, public/index.html, public/app.js, and package.json. These files were created in Epic 1 tasks but have been deleted from the filesystem. Without these files the collection page is completely broken and navigation between pages fails.
 
 ## Verifications
 - [ ] integration/integration_api_crud (integration)

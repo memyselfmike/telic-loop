@@ -69,6 +69,43 @@ function renderStatsCards(data) {
   }
 }
 
+// Create a single bar row element for the tag chart
+function createChartBarRow(tag, count, maxCount) {
+  const barRow = document.createElement('div');
+  barRow.className = 'chart-bar-row';
+
+  // Tag label
+  const label = document.createElement('div');
+  label.className = 'chart-label';
+  label.textContent = tag;
+  barRow.appendChild(label);
+
+  // Bar container (for the colored bar)
+  const barContainer = document.createElement('div');
+  barContainer.className = 'chart-bar-container';
+
+  const bar = document.createElement('div');
+  bar.className = 'chart-bar';
+
+  // Calculate width as percentage of max count
+  const widthPercent = (count / maxCount) * 100;
+  bar.style.width = `${widthPercent}%`;
+
+  // Apply the same hash-based color as tag pills
+  bar.style.backgroundColor = hashTagColor(tag);
+
+  barContainer.appendChild(bar);
+  barRow.appendChild(barContainer);
+
+  // Count label
+  const countLabel = document.createElement('div');
+  countLabel.className = 'chart-count';
+  countLabel.textContent = count;
+  barRow.appendChild(countLabel);
+
+  return barRow;
+}
+
 // Render horizontal bar chart for tag distribution
 function renderTagChart(tagCounts) {
   const container = document.getElementById('chart-container');
@@ -93,38 +130,7 @@ function renderTagChart(tagCounts) {
   chartBars.className = 'chart-bars';
 
   tagEntries.forEach(([tag, count]) => {
-    const barRow = document.createElement('div');
-    barRow.className = 'chart-bar-row';
-
-    // Tag label
-    const label = document.createElement('div');
-    label.className = 'chart-label';
-    label.textContent = tag;
-    barRow.appendChild(label);
-
-    // Bar container (for the colored bar)
-    const barContainer = document.createElement('div');
-    barContainer.className = 'chart-bar-container';
-
-    const bar = document.createElement('div');
-    bar.className = 'chart-bar';
-
-    // Calculate width as percentage of max count
-    const widthPercent = (count / maxCount) * 100;
-    bar.style.width = `${widthPercent}%`;
-
-    // Apply the same hash-based color as tag pills
-    bar.style.backgroundColor = hashTagColor(tag);
-
-    barContainer.appendChild(bar);
-    barRow.appendChild(barContainer);
-
-    // Count label
-    const countLabel = document.createElement('div');
-    countLabel.className = 'chart-count';
-    countLabel.textContent = count;
-    barRow.appendChild(countLabel);
-
+    const barRow = createChartBarRow(tag, count, maxCount);
     chartBars.appendChild(barRow);
   });
 
