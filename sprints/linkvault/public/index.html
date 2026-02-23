@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LinkVault - Your Bookmark Manager</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+
+    header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    nav {
+      margin: 20px 0;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    nav a {
+      color: white;
+      text-decoration: none;
+      padding: 10px 20px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      transition: background 0.3s;
+    }
+
+    nav a:hover, nav a.active {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .add-form {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      margin-bottom: 30px;
+    }
+
+    .add-form h2 {
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      color: #555;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 1rem;
+      transition: border-color 0.3s;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .form-group small {
+      display: block;
+      margin-top: 5px;
+      color: #777;
+      font-size: 0.875rem;
+    }
+
+    .error-message {
+      background: #fee;
+      color: #c33;
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    .submit-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .submit-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .submit-btn:active {
+      transform: translateY(0);
+    }
+
+    .tag-filter {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+
+    .tag-filter h3 {
+      margin-bottom: 10px;
+      color: #333;
+      font-size: 1rem;
+    }
+
+    .tag-filter-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tag-pill {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 2px solid transparent;
+    }
+
+    .tag-pill:hover {
+      transform: translateY(-1px);
+      border-color: rgba(0, 0, 0, 0.2);
+    }
+
+    .tag-pill.active {
+      border-color: rgba(0, 0, 0, 0.4);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .links-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    @media (max-width: 768px) {
+      .links-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .links-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .link-card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s, box-shadow 0.2s;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .link-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .link-card h3 {
+      margin-bottom: 8px;
+      font-size: 1.25rem;
+    }
+
+    .link-card h3 a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    .link-card h3 a:hover {
+      text-decoration: underline;
+    }
+
+    .link-url {
+      color: #777;
+      font-size: 0.875rem;
+      margin-bottom: 12px;
+      word-break: break-all;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .link-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .delete-btn {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+
+    .delete-btn:hover {
+      background: #dc2626;
+    }
+
+    .empty-state {
+      background: white;
+      padding: 60px 20px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .empty-state h3 {
+      color: #555;
+      margin-bottom: 10px;
+      font-size: 1.5rem;
+    }
+
+    .empty-state p {
+      color: #777;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🔖 LinkVault</h1>
+      <p>Your personal bookmark manager</p>
+      <nav>
+        <a href="/" class="active">Collection</a>
+        <a href="/dashboard">Dashboard</a>
+      </nav>
+    </header>
+
+    <div class="add-form">
+      <h2>Add New Bookmark</h2>
+      <div id="errorMessage" class="error-message"></div>
+      <form id="addLinkForm">
+        <div class="form-group">
+          <label for="title">Title *</label>
+          <input type="text" id="title" name="title" required>
+        </div>
+        <div class="form-group">
+          <label for="url">URL *</label>
+          <input type="url" id="url" name="url" placeholder="https://example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="tags">Tags</label>
+          <input type="text" id="tags" name="tags" placeholder="javascript, tutorial, react">
+          <small>Comma-separated tags (max 5)</small>
+        </div>
+        <button type="submit" class="submit-btn">Add Bookmark</button>
+      </form>
+    </div>
+
+    <div id="tagFilter" class="tag-filter" style="display: none;">
+      <h3>Filter by tag:</h3>
+      <div id="tagFilterPills" class="tag-filter-pills"></div>
+    </div>
+
+    <div id="linksGrid" class="links-grid"></div>
+
+    <div id="emptyState" class="empty-state" style="display: none;">
+      <h3>No bookmarks yet</h3>
+      <p>Start by adding your first bookmark using the form above!</p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
