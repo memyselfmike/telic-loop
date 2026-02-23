@@ -27,6 +27,18 @@ Thumbs.db
 .loop_state.json.tmp
 .rollback_wal
 
+# Node / JS
+node_modules/
+
+# Playwright
+.playwright-mcp/
+
+# Sprint runtime artifacts
+*.log
+*.pid
+nul
+test-results/
+
 # Environment
 .env
 .env.local
