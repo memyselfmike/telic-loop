@@ -173,6 +173,57 @@ def do_service_fix(config: LoopConfig, state: LoopState, claude: Claude) -> bool
 # Regression testing
 # ---------------------------------------------------------------------------
 
+def _resolve_script_path(script_path: str) -> Path:
+    """Resolve script path to absolute Path object.
+
+    Handles both absolute paths (like E:/Projects/...) and relative paths
+    (like .loop/verifications/...). Relative paths are resolved by searching
+    from the current working directory upwards until the file is found.
+
+    This is a compatibility layer for old relative paths stored in state.
+    New paths should be absolute (see qc.py fix).
+    """
+    p = Path(script_path)
+
+    # If already absolute and exists, return it
+    if p.is_absolute():
+        return p
+
+    # Try resolving relative to CWD first
+    resolved = p.resolve()
+    if resolved.exists():
+        return resolved
+
+    # Search upwards from CWD to find the script
+    # (handles case where CWD is project root but script is in sprints/*/...)
+    search_start = Path.cwd()
+    for _ in range(5):  # max 5 levels up
+        candidate = search_start / script_path
+        if candidate.exists():
+            return candidate.resolve()
+        # Also try without leading dot if path starts with ./
+        if script_path.startswith('./') or script_path.startswith('.\\'):
+            candidate = search_start / script_path[2:]
+            if candidate.exists():
+                return candidate.resolve()
+        if search_start.parent == search_start:
+            break  # reached root
+        search_start = search_start.parent
+
+    # Search in sprint directories if CWD is project root
+    # (handles relative paths like .loop/verifications/... stored in state)
+    sprints_dir = Path.cwd() / "sprints"
+    if sprints_dir.exists() and sprints_dir.is_dir():
+        for sprint_dir in sprints_dir.iterdir():
+            if sprint_dir.is_dir():
+                candidate = sprint_dir / script_path
+                if candidate.exists():
+                    return candidate.resolve()
+
+    # Fallback: return the original resolved path (will likely fail, but with clear error)
+    return resolved
+
+
 def _build_script_command(script_path: str) -> list[str] | str:
     """Build the correct command to run a verification script cross-platform.
 
@@ -186,8 +237,8 @@ def _build_script_command(script_path: str) -> list[str] | str:
     import sys
 
     # Resolve to absolute path so the command works regardless of CWD.
-    # Also normalizes Windows backslashes.
-    p = Path(script_path).resolve()
+    # Handles both absolute and relative paths correctly.
+    p = _resolve_script_path(script_path)
     suffix = p.suffix.lower()
 
     if suffix == ".py":
@@ -234,12 +285,23 @@ def run_tests_parallel(
         try:
             cmd = _build_script_command(test.script_path)
             use_shell = isinstance(cmd, str)
+            script_path_resolved = _resolve_script_path(test.script_path)
+            script_dir = script_path_resolved.parent
+
+            # Guard against non-existent directory causing WinError 267
+            # If script dir doesn't exist but script does, use script's actual parent
+            if not script_dir.exists() and script_path_resolved.exists():
+                script_dir = script_path_resolved.resolve().parent
+            # If still doesn't exist, use CWD as fallback
+            if not script_dir.exists():
+                script_dir = Path.cwd()
+
             proc = subprocess.run(
                 cmd,
                 capture_output=True, text=True,
                 timeout=timeout,
                 shell=use_shell,
-                cwd=str(Path(test.script_path).resolve().parent),
+                cwd=str(script_dir),
             )
             return test.verification_id, (
                 proc.returncode, proc.stdout or "", proc.stderr or "",
@@ -275,12 +337,23 @@ def run_test_script(
     try:
         cmd = _build_script_command(test.script_path)
         use_shell = isinstance(cmd, str)
+        script_path_resolved = _resolve_script_path(test.script_path)
+        script_dir = script_path_resolved.parent
+
+        # Guard against non-existent directory causing WinError 267
+        # If script dir doesn't exist but script does, use script's actual parent
+        if not script_dir.exists() and script_path_resolved.exists():
+            script_dir = script_path_resolved.resolve().parent
+        # If still doesn't exist, use CWD as fallback
+        if not script_dir.exists():
+            script_dir = Path.cwd()
+
         proc = subprocess.run(
             cmd,
             capture_output=True, text=True,
             timeout=timeout,
             shell=use_shell,
-            cwd=str(Path(test.script_path).resolve().parent),
+            cwd=str(script_dir),
         )
         return proc.returncode, proc.stdout or "", proc.stderr or ""
     except FileNotFoundError:
@@ -337,15 +410,19 @@ def _handle_regressions(
     session = claude.session(AgentRole.FIXER)
     for test_id in regressions:
         test = state.verifications[test_id]
+        script_content = ""
+        if test.script_path:
+            try:
+                resolved_path = _resolve_script_path(test.script_path)
+                if resolved_path.exists():
+                    script_content = resolved_path.read_text(encoding="utf-8")
+            except Exception:
+                pass  # If resolution fails, leave script_content empty
         failing_details = [{
             "verification_id": test.verification_id,
             "last_error": test.last_error,
             "attempt_history": test.attempt_history,
-            "script": (
-                Path(test.script_path).read_text(encoding="utf-8")
-                if test.script_path and Path(test.script_path).exists()
-                else ""
-            ),
+            "script": script_content,
         }]
         prompt = load_prompt("fix",
             SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),
