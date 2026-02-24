@@ -305,7 +305,10 @@ def epic_feedback_checkpoint(
         return "proceed"
     elif response.lower().startswith("a"):
         epic.feedback_response = "adjust"
-        notes = input("  Adjustment notes: ")
+        try:
+            notes = input("  Adjustment notes: ")
+        except EOFError:
+            notes = ""
         epic.feedback_notes = notes
         return "adjust"
     elif response.lower().startswith("s"):

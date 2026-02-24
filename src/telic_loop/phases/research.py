@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from dataclasses import asdict
 from typing import TYPE_CHECKING
 
@@ -77,10 +78,15 @@ def do_research(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
     state.research_attempted_for_current_failures = True
 
     # Last resort: human insight
+    if not (hasattr(sys.stdin, "isatty") and sys.stdin.isatty()):
+        return False  # Non-interactive — skip human insight
     print("\n  REQUESTING HUMAN INSIGHT — fixes and research exhausted")
     for v_id, v in failing.items():
         print(f"    - {v_id}: {v.last_error[:200] if v.last_error else 'unknown'}")
-    insight = input("  Guidance (Enter to skip): ").strip()
+    try:
+        insight = input("  Guidance (Enter to skip): ").strip()
+    except EOFError:
+        return False  # Pseudo-terminal — no real stdin
     if insight:
         state.research_briefs.append({
             "topic": "Human insight",
