@@ -17,7 +17,7 @@ class LoopConfig:
     # Safety valves
     max_loop_iterations: int = 200
     max_fix_attempts: int = 5
-    max_no_progress: int = 10
+    max_no_progress: int = 5
     token_budget: int = 0  # 0 = unlimited
 
     # Model routing

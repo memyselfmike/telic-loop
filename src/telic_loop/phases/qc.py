@@ -16,6 +16,55 @@ if TYPE_CHECKING:
     from ..state import LoopState
 
 
+def _epic_scoped_plan(config: LoopConfig, state: LoopState) -> str:
+    """Return plan scoped to current + prior epics. Full plan for single_run."""
+    if state.vision_complexity != "multi_epic" or not state.epics:
+        if config.plan_file.exists():
+            return config.plan_file.read_text(encoding="utf-8")
+        return ""
+
+    # Build a filtered plan showing only current + prior epic tasks
+    scoped_epic_ids = set()
+    for i in range(min(state.current_epic_index + 1, len(state.epics))):
+        scoped_epic_ids.add(state.epics[i].epic_id)
+
+    lines = ["# Implementation Plan (current + prior epics)\n"]
+    for tid, t in sorted(state.tasks.items()):
+        if t.epic_id not in scoped_epic_ids and t.epic_id:
+            continue  # Skip future epic tasks; keep untagged tasks
+        check = "x" if t.status == "done" else " "
+        lines.append(f"- [{check}] **{tid}**: {t.description}")
+        if t.acceptance:
+            lines.append(f"  - Acceptance: {t.acceptance}")
+    return "\n".join(lines)
+
+
+def _epic_scope_instruction(state: LoopState) -> str:
+    """Generate EPIC_SCOPE instruction. Empty string for single_run."""
+    if state.vision_complexity != "multi_epic" or not state.epics:
+        return ""
+    if state.current_epic_index >= len(state.epics):
+        return ""
+
+    current = state.epics[state.current_epic_index]
+    prior = [state.epics[i] for i in range(state.current_epic_index)]
+
+    lines = [
+        "\n## EPIC SCOPE — Generate verifications ONLY for these epics:\n",
+        f"**Current epic ({state.current_epic_index + 1}/{len(state.epics)}):** {current.title}",
+        f"Deliverables: {', '.join(current.deliverables)}",
+    ]
+    if prior:
+        lines.append("\n**Prior epics (include regression coverage):**")
+        for ep in prior:
+            lines.append(f"- {ep.title}: {', '.join(ep.deliverables)}")
+    lines.append(
+        "\n**DO NOT** generate tests for features in later epics. "
+        "Those features have not been built yet and tests will always fail."
+    )
+    return "\n".join(lines)
+
+
 def do_generate_qc(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
     """Generate QC verification scripts from the plan and context."""
     from ..claude import AgentRole, load_prompt
@@ -25,11 +74,12 @@ def do_generate_qc(config: LoopConfig, state: LoopState, claude: Claude) -> bool
     prompt = load_prompt("generate_verifications",
         SPRINT=config.sprint,
         SPRINT_DIR=str(config.sprint_dir),
-        PLAN=config.plan_file.read_text(encoding="utf-8") if config.plan_file.exists() else "",
+        PLAN=_epic_scoped_plan(config, state),
         PRD=config.prd_file.read_text(encoding="utf-8") if config.prd_file.exists() else "",
         VISION=config.vision_file.read_text(encoding="utf-8") if config.vision_file.exists() else "",
         VERIFICATION_STRATEGY=json.dumps(state.context.verification_strategy, indent=2),
         SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),
+        EPIC_SCOPE=_epic_scope_instruction(state),
     )
     session.send(prompt)
 

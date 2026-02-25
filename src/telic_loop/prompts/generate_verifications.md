@@ -25,6 +25,7 @@ You are the **QC Agent**. Your job is to generate executable verification script
 ```
 {VISION}
 ```
+{EPIC_SCOPE}
 
 ## Verification Strategy
 
