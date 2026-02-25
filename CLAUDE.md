@@ -23,6 +23,45 @@ When making live fixes during a test run:
 
 ### Sprint State Cleanup Between Runs
 
+**NEVER do a full reset when testing a targeted bug fix.** The preloop (vision
+validation, epic decomposition, context discovery, plan generation, quality
+gates) is expensive — often 30+ minutes and 200k+ tokens. If the bug you fixed
+is in the value loop (QC, FIX, EXECUTE, etc.), do a **surgical state reset**
+instead.
+
+#### Surgical Reset (preferred for targeted fixes)
+
+Edit `.loop_state.json` directly to rewind to just before the broken phase.
+Preserve all preloop gates, tasks, epics, and context.
+
+```bash
+# Example: re-test a QC generation fix
+# Edit sprints/mysprint/.loop_state.json:
+#   - Clear "verifications": {}
+#   - Clear "verification_categories": []
+#   - Remove "verifications_generated" from "gates_passed"
+#   - Reset "iteration" to the value before QC first ran
+#   - Optionally reset "total_tokens_used" to get clean token counts
+# Then delete generated verification scripts:
+rm -rf sprints/mysprint/.loop/verifications/
+# Do NOT delete .loop_state.json, .loop/ (other artifacts), or sprint branches
+```
+
+Common surgical resets by phase:
+
+| Phase to re-test | What to reset in `.loop_state.json` | Files to delete |
+|------------------|-------------------------------------|-----------------|
+| QC generation | `verifications`, `verification_categories`, remove `verifications_generated` gate | `.loop/verifications/` |
+| FIX cycle | Reset failing verifications' `status` to `"pending"`, clear their `failures` | — |
+| EXECUTE | Reset target tasks' `status` to `"pending"` | — |
+| Course correction | Set `no_progress_count: 0` | — |
+| Exit gate | Remove `exit_gate_*` gates, reset `exit_gate_attempts: 0` | — |
+
+#### Full Reset (only when necessary)
+
+Only do a full reset when the preloop itself is broken, or when the state is
+too corrupted to surgically repair.
+
 ```bash
 # Full cleanup for a sprint called "mysprint":
 rm -rf sprints/mysprint/.loop_state.json sprints/mysprint/.loop sprints/mysprint/.gitignore
