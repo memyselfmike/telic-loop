@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
+import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
 from datetime import datetime
@@ -280,8 +282,12 @@ def run_tests_parallel(
 
     max_workers = max_workers or min(os.cpu_count() or 4, 10)
     results: dict[str, tuple[int, str, str]] = {}
+    base_port = 3100  # Avoid default 3000 to prevent collisions
 
-    def run_one(test: VerificationState) -> tuple[str, tuple[int, str, str]]:
+    def run_one(
+        test: VerificationState, port_offset: int,
+    ) -> tuple[str, tuple[int, str, str]]:
+        tmp_dir: str | None = None
         try:
             cmd = _build_script_command(test.script_path)
             use_shell = isinstance(cmd, str)
@@ -296,12 +302,19 @@ def run_tests_parallel(
             if not script_dir.exists():
                 script_dir = Path.cwd()
 
+            # Isolated environment: unique port + temp data dir per test
+            env = os.environ.copy()
+            env["PORT"] = str(base_port + port_offset)
+            tmp_dir = tempfile.mkdtemp(prefix=f"tl-test-{port_offset}-")
+            env["TEST_DATA_DIR"] = tmp_dir
+
             proc = subprocess.run(
                 cmd,
                 capture_output=True, text=True,
                 timeout=timeout,
                 shell=use_shell,
                 cwd=str(script_dir),
+                env=env,
             )
             return test.verification_id, (
                 proc.returncode, proc.stdout or "", proc.stderr or "",
@@ -320,9 +333,14 @@ def run_tests_parallel(
             return test.verification_id, (
                 1, "", f"Unexpected error: {type(e).__name__}: {e}",
             )
+        finally:
+            if tmp_dir:
+                shutil.rmtree(tmp_dir, ignore_errors=True)
 
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
-        futures = {pool.submit(run_one, t): t for t in tests}
+        futures = {
+            pool.submit(run_one, t, i): t for i, t in enumerate(tests)
+        }
         for future in as_completed(futures):
             test_id, result = future.result()
             results[test_id] = result

@@ -98,6 +98,39 @@ def run_all_quality_checks(state: LoopState, config: LoopConfig) -> None:
     _scan_test_ratio(pm, source_files, context=state.context)
     _scan_todo_debt(pm, source_files)
     _scan_debug_artifacts(pm, source_files)
+    _scan_artifact_files(pm, project_dir)
+
+
+# ---------------------------------------------------------------------------
+# Check 0b: File-based debug artifacts (.log, .bak, .tmp, .orig)
+# ---------------------------------------------------------------------------
+
+def _scan_artifact_files(pm: ProcessMonitorState, project_dir: Path) -> None:
+    """Detect file-based debug artifacts: .log, .bak, .tmp, .orig files."""
+    _ARTIFACT_PATTERNS = [
+        "*.log",
+        "*.bak",
+        "*.tmp",
+        "*.orig",
+    ]
+    seen: set[Path] = set()
+    for pattern in _ARTIFACT_PATTERNS:
+        for f in project_dir.rglob(pattern):
+            if f in seen:
+                continue
+            seen.add(f)
+            parts = f.relative_to(project_dir).parts
+            if any(p.startswith(".") or p in _SKIP_DIRS for p in parts[:-1]):
+                continue
+            pm.debug_artifact_count += 1
+
+    if pm.debug_artifact_count > 0:
+        # Append only if _scan_debug_artifacts didn't already add a warning
+        if not any("DEBUG_ARTIFACT" in w for w in pm.code_health_warnings):
+            pm.code_health_warnings.append(
+                f"DEBUG_ARTIFACT: {pm.debug_artifact_count} debug artifact(s) "
+                f"(statements + files) in production code"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -655,12 +688,16 @@ def create_quality_tasks(state: LoopState, config: LoopConfig) -> int:
             task_id=task_id,
             source="code_health",
             description=(
-                f"Remove {pm.debug_artifact_count} debug statement(s) "
-                f"(print/console.log/breakpoint/debugger) from production code. "
+                f"Remove {pm.debug_artifact_count} debug artifact(s) "
+                f"(print/console.log/breakpoint/debugger statements, "
+                f"empty .log files, .bak files) from production code. "
                 f"Replace with proper logging if output is needed."
             ),
             value="Remove debug artifacts before shipping",
-            acceptance="Zero print/console.log/breakpoint/debugger in non-test files.",
+            acceptance=(
+                "Zero print/console.log/breakpoint/debugger in non-test files. "
+                "No .log, .bak, .tmp, or .orig files in project root or data directories."
+            ),
             epic_id=epic_id,
             created_at=datetime.now().isoformat(),
         )
@@ -710,14 +747,15 @@ def _upsert_task(
             return 0  # Respect manual descope decisions
         if existing.status == "done":
             # Builder provided architectural justification — auto-descope
-            if existing.resolution_note and existing.retry_count >= 1:
+            # after 3 retries (was 1 — too easy to auto-descope)
+            if existing.resolution_note and existing.retry_count >= 3:
                 existing.status = "descoped"
                 existing.blocked_reason = (
                     f"Builder justified: {existing.resolution_note}"
                 )
                 print(f"    -> Auto-descoped {task_id} (builder justification)")
                 return 0
-            if existing.retry_count >= 2:
+            if existing.retry_count >= 4:
                 # Task has been completed and reopened too many times —
                 # the underlying check may be a false positive. Auto-descope.
                 existing.status = "descoped"

@@ -86,6 +86,27 @@ Write scripts to the `.loop/verifications/` directory inside `{SPRINT_DIR}`:
 3. Include descriptive output so failures are diagnosable without reading the script
 4. Reference which PRD section or Vision goal it verifies (in a comment at the top)
 
+### Test Isolation (CRITICAL)
+
+Verification scripts run **in parallel**. Each script receives these environment variables:
+- `PORT` — a unique port number (default 3000 if not set). **Always use this** instead of hardcoding a port.
+- `TEST_DATA_DIR` — a unique temporary directory for test data. Use this for any data files the test creates.
+
+**Every script that starts a server MUST:**
+```bash
+# Use the assigned port (falls back to 3000 for manual runs)
+TEST_PORT="${PORT:-3000}"
+node server.js --port "$TEST_PORT" &
+# OR for servers that read PORT env:
+PORT="$TEST_PORT" node server.js &
+
+# Use assigned data dir for isolation
+DATA_DIR="${TEST_DATA_DIR:-$(mktemp -d)}"
+```
+
+**Never hardcode port 3000** in test scripts. Always use `${PORT:-3000}`.
+**Never write to the project's data directory** — use `$TEST_DATA_DIR` or a temp directory.
+
 ### Step 4: Organize by Category
 
 Name scripts with a category prefix so the loop can run them selectively:
@@ -155,11 +176,20 @@ set -euo pipefail
 
 echo "=== [Verification Name] ==="
 
-# Setup (if needed)
-# ...
+cd "$(dirname "$0")/../.."
 
-# Test
-# ...
+# Isolated test environment (ports assigned by test runner)
+TEST_PORT="${PORT:-3000}"
+DATA_DIR="${TEST_DATA_DIR:-$(mktemp -d)}"
+trap 'kill $SERVER_PID 2>/dev/null; rm -rf "$DATA_DIR"' EXIT
+
+# Start server with isolated port and data (if needed)
+PORT="$TEST_PORT" DATA_DIR="$DATA_DIR" node server.js &
+SERVER_PID=$!
+sleep 2
+
+# Test using $TEST_PORT
+result=$(curl -s "http://localhost:$TEST_PORT/api/endpoint")
 
 # Assert
 if [[ "$result" == "$expected" ]]; then
@@ -169,9 +199,6 @@ else
   echo "FAIL: Expected [expected], got [result]"
   exit 1
 fi
-
-# Cleanup (if needed)
-# ...
 ```
 
 ## Anti-Patterns
