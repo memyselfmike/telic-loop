@@ -212,3 +212,5 @@ fi
 - Generating tests for features the PRD does not require — stay within scope
 - Making tests dependent on specific data that may not exist — create or seed test data
 - Writing scripts that modify production data or state — use test databases, temp files, isolated environments
+- Creating wrapper/runner scripts (`run_all.sh`, `run_all_unit.sh`) that aggregate other test scripts — the loop runs each script independently in parallel; aggregators always fail when any sub-test fails and waste fix budget
+- Placing config files (playwright.config.js, jest.config.js) in the verifications directory — config is not a verification script

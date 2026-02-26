@@ -83,7 +83,7 @@ def do_generate_qc(config: LoopConfig, state: LoopState, claude: Claude) -> bool
     )
     session.send(prompt)
 
-    # Discover generated scripts.
+    # Discover generated scripts (skip wrappers/configs).
     # Agents may write scripts in two layouts:
     #   1. Flat with prefix:  verifications/unit_api_test.sh
     #   2. Nested in subdirs: verifications/unit/api_test.sh
@@ -96,6 +96,8 @@ def do_generate_qc(config: LoopConfig, state: LoopState, claude: Claude) -> bool
             if script.is_dir():
                 continue
             if script.suffix not in (".sh", ".py", ".js"):
+                continue
+            if _is_non_test_script(script.stem):
                 continue
             # Parse category from prefix: "unit_api_test.sh" → category="unit"
             stem = script.stem
@@ -128,6 +130,8 @@ def do_generate_qc(config: LoopConfig, state: LoopState, claude: Claude) -> bool
                 state.verification_categories.append(category)
             for script in sorted(category_dir.iterdir()):
                 if script.suffix not in (".sh", ".py", ".js"):
+                    continue
+                if _is_non_test_script(script.stem):
                     continue
                 v_id = f"{category}/{script.stem}"
                 if v_id not in state.verifications:
@@ -457,6 +461,22 @@ def do_fix(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+_NON_TEST_STEMS = frozenset({
+    "run_all", "run_all_unit", "run_all_integration", "run_all_value",
+    "playwright.config", "jest.config", "vitest.config",
+    "tsconfig", "setup", "teardown", "helpers", "fixtures", "conftest",
+})
+
+
+def _is_non_test_script(stem: str) -> bool:
+    """Return True if the script is a wrapper/config/helper, not a real test."""
+    if stem in _NON_TEST_STEMS:
+        return True
+    if stem.startswith("run_all"):
+        return True
+    return False
+
 
 def _parse_requires(script: Path) -> list[str]:
     """Parse '# requires: category1, category2' from verification script header."""

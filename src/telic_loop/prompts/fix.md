@@ -40,6 +40,17 @@ Key questions:
 3. What files are involved?
 4. What was tried before and why did it fail?
 
+### Test Script Bugs vs App Code Bugs
+
+Not all failures are app code bugs. If the error originates in the **verification script itself**, fix the script:
+
+- `Cannot find module` / `MODULE_NOT_FOUND` — wrong import path in the test. Fix the import.
+- `ENOENT: no such file or directory` — test references a path that doesn't exist. Fix the path.
+- Wrong CSS selector / DOM query — test looks for markup that doesn't match the implementation. Update the test selector.
+- Test assumes a different API shape than what was built — update the test to match the real API.
+
+**Rule of thumb:** Read the app code first. If the app is correct and the test has a bug, fix the test. If the app is wrong, fix the app. Never delete or disable a test.
+
 ### Step 2: Diagnose the Root Cause
 
 The Triage agent grouped these failures and suggested an approach. Use that as a starting point, but verify it. The Triage agent is fast and cheap — it may have misclassified.
