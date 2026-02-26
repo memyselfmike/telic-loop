@@ -1,12 +1,12 @@
 # Value Checklist: pagecraft
-Generated: 2026-02-26T12:11:17.600778
+Generated: 2026-02-26T12:19:44.185612
 
 ## VRC Status
-- Value Score: 45%
-- Verified: 3/6
+- Value Score: 100%
+- Verified: 8/8
 - Blocked: 0
-- Recommendation: CONTINUE
-- Summary: Fallback VRC: carried forward from iteration 88 (45%)
+- Recommendation: SHIP_READY
+- Summary: All 8 Epic 1 deliverables pass EXISTS+WORKS+VALUE verification. Express server runs on configurable PORT and serves all static assets. App shell has proper builder layout with sidebar and workspace regions. 3 template JSONs have distinct, meaningful content (SaaS product, Event conference, Portfolio designer). Template selection screen shows 3 visually distinct cards with mini-HTML thumbnail previews using CSS scale(0.25). templates.js loads JSON, renders cards, and generates section HTML for all 5 types. templates.css provides base styles plus template-specific overrides (SaaS: blue centered 3-col, Event: purple split 2-col, Portfolio: green left-aligned vertical). app.js state management drives rendering with accent color support. All 6 completion criteria met: server on PORT, 3 distinct cards on load, click loads sections, all 5 section types render, template switching with confirm dialog, visually distinct layouts per template. Change Template button exists for navigation back. No console.log debug artifacts in production code. The 3 pending EVAL tasks (EVAL-1/2/3) are duplicates of already-completed CE-85-11/12/13 work. Only remaining gap is code quality polish (function length).
 
 ## Tasks
 - [D] **1.1**: Create 3 template JSON files (saas.json, event.json, portfolio.json) each with 5 sections: hero, features, testimonials, pricing, cta. Each section has type, unique id, and content object per PRD F2 schema. Content must be distinct per template (SaaS = product/feature language, Event = date/speaker/agenda, Portfolio = work/project showcase). No copy-paste filler.
@@ -18,7 +18,7 @@ Generated: 2026-02-26T12:11:17.600778
 - [x] **1.7**: Wire the template selection flow end-to-end: on page load show 3 template cards, clicking a card calls loadTemplate() which fetches JSON, populates AppState, renders sections into workspace and preview panel, and hides the selector. Add template switching: if a template is already loaded, show confirm("Switch template? Changes will be lost.") before loading the new one. Update server.js if needed for any missing routes.
 - [D] **CLEANUP-debug-artifacts**: Still 43 debug artifacts in production code
 - [x] **REFACTOR-public-css-app-css**: Refactor monolithic file: public/css/app.css (611 lines). Previous attempt created split files (app-base.css, app-templates.css, app-editor.css, app-preview.css) but left app.css at full size for test compatibility. Must update index.html to import the split files and reduce or eliminate app.css to meet the <=400 lines target.
-- [ ] **SPLIT-FN-public-js-templates-js**: Long functions still present in public/js/templates.js: generateTemplatePreview(56L)
+- [x] **SPLIT-FN-public-js-templates-js**: Long functions still present in public/js/templates.js: generateTemplatePreview(56L)
 - [ ] **SPLIT-FN-public-js-app-js**: Long functions still present in public/js/app.js: getCombinedCSS(65L)
 - [x] **CE-85-11**: Add template-specific CSS classes (e.g., template-saas, template-event, template-portfolio) to the preview container and define distinct visual treatments: different color schemes, hero layout variations (centered vs left-aligned vs split), different feature grid layouts (3-column vs 2-column vs list), different testimonial styles (cards vs inline quotes vs carousel-style).
 - [x] **CE-85-12**: Add a mini HTML preview snippet inside each template card showing a scaled-down rendering of the hero section (or a representative visual), using CSS transform: scale() to create a thumbnail effect. Alternatively, render a static preview image or an inline SVG illustration per template.

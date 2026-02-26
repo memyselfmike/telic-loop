@@ -236,13 +236,17 @@ function exportHTML() {
   URL.revokeObjectURL(url);
 }
 
-function getCombinedCSS() {
-  // Return inline CSS for export including template-specific styles
+function getBaseCSS() {
   return `
     :root { --accent-color: ${AppState.accentColor}; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
     .section { padding: 3rem 2rem; }
+  `;
+}
+
+function getSectionCSS() {
+  return `
     .section-hero { background: linear-gradient(135deg, var(--accent-color) 0%, #1e40af 100%); color: white; text-align: center; padding: 5rem 2rem; }
     .section-hero h1 { font-size: 3rem; margin-bottom: 1rem; }
     .section-hero p { font-size: 1.25rem; margin-bottom: 2rem; opacity: 0.9; }
@@ -271,7 +275,11 @@ function getCombinedCSS() {
     .section-cta h2 { font-size: 2.5rem; margin-bottom: 1rem; }
     .section-cta p { font-size: 1.25rem; margin-bottom: 2rem; opacity: 0.9; }
     .section-cta button { background: white; color: var(--accent-color); border: none; padding: 1rem 2rem; font-size: 1.125rem; font-weight: 600; border-radius: 8px; cursor: pointer; }
+  `;
+}
 
+function getTemplateCSS() {
+  return `
     /* SaaS Product Template */
     .template-saas .section-hero { background: linear-gradient(135deg, var(--accent-color) 0%, #1e40af 100%); text-align: center; }
     .template-saas .features-grid { grid-template-columns: repeat(3, 1fr); }
@@ -300,4 +308,9 @@ function getCombinedCSS() {
     .template-portfolio .testimonial-card { background: transparent; border: none; box-shadow: none; padding: 2rem 0; border-bottom: 1px solid #e5e7eb; }
     .template-portfolio .testimonial-card blockquote { font-size: 1.25rem; font-style: normal; font-weight: 300; }
   `;
+}
+
+function getCombinedCSS() {
+  // Combine all CSS sections for export
+  return getBaseCSS() + getSectionCSS() + getTemplateCSS();
 }
