@@ -73,9 +73,12 @@ body {
   background: var(--bg-primary);
   border: 2px solid var(--border);
   border-radius: 8px;
-  padding: 1.5rem;
+  padding: 0;
   cursor: pointer;
   transition: all 0.2s;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .template-card:hover {
@@ -84,10 +87,180 @@ body {
   transform: translateY(-2px);
 }
 
+.template-preview {
+  height: 200px;
+  background: var(--bg-secondary);
+  overflow: hidden;
+  position: relative;
+  border-bottom: 1px solid var(--border);
+}
+
+.template-info {
+  padding: 1.5rem;
+}
+
 .template-card h3 {
   font-size: 1.25rem;
   margin-bottom: 0.5rem;
   color: var(--accent-color);
+}
+
+/* Mini preview styles */
+.preview-miniature {
+  transform: scale(0.25);
+  transform-origin: top left;
+  width: 400%;
+  height: 400%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.mini-section {
+  padding: 60px 40px;
+  text-align: center;
+}
+
+/* Mini Hero Section */
+.mini-hero {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  padding: 100px 40px;
+}
+
+.mini-headline {
+  height: 36px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 6px;
+  margin: 0 auto 16px;
+  max-width: 600px;
+}
+
+.mini-subheadline {
+  height: 20px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 4px;
+  margin: 0 auto 32px;
+  max-width: 400px;
+}
+
+.mini-button {
+  height: 40px;
+  width: 160px;
+  background: white;
+  border-radius: 8px;
+  margin: 0 auto;
+}
+
+/* Mini Features Section */
+.mini-features {
+  background: white;
+  padding: 60px 40px;
+}
+
+.mini-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.mini-feature {
+  height: 140px;
+  background: #f3f4f6;
+  border-radius: 8px;
+}
+
+/* SaaS Template Variations */
+.template-saas .mini-hero {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  text-align: center;
+}
+
+.template-saas .mini-feature-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* Event Template Variations */
+.template-event .mini-hero {
+  background: linear-gradient(to right, #7c3aed 0%, #a855f7 100%);
+  text-align: left;
+  padding: 120px 60px;
+}
+
+.template-event .mini-hero-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+}
+
+.template-event .mini-hero-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.template-event .mini-headline {
+  margin: 0;
+  max-width: none;
+}
+
+.template-event .mini-subheadline {
+  margin: 0;
+  max-width: none;
+}
+
+.template-event .mini-button {
+  margin: 0;
+  width: 180px;
+}
+
+.template-event .mini-feature-grid {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 48px;
+}
+
+.template-event .mini-feature {
+  height: 180px;
+  background: #f9fafb;
+  border-radius: 12px;
+}
+
+/* Portfolio Template Variations */
+.template-portfolio .mini-hero {
+  background: linear-gradient(to bottom, #10b981 0%, #059669 100%);
+  text-align: left;
+  padding: 140px 60px;
+  max-width: 800px;
+  margin: 0;
+}
+
+.template-portfolio .mini-headline {
+  margin: 0 0 16px 0;
+  max-width: 600px;
+  height: 48px;
+}
+
+.template-portfolio .mini-subheadline {
+  margin: 0 0 32px 0;
+  max-width: 400px;
+}
+
+.template-portfolio .mini-button {
+  margin: 0;
+  background: transparent;
+  border: 3px solid white;
+}
+
+.template-portfolio .mini-feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  max-width: 600px;
+}
+
+.template-portfolio .mini-feature-row {
+  height: 80px;
+  background: #f3f4f6;
+  border-radius: 6px;
 }
 
 .editor-container {
