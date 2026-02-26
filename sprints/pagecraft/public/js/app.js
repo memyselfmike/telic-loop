@@ -153,6 +153,15 @@ function renderSectionContent(section) {
   }
 }
 
+function showTemplateSelector() {
+  if (confirm('Switch template? Your current changes will be lost.')) {
+    // Show template selector
+    document.getElementById('template-selector').style.display = 'block';
+    // Hide editor
+    document.querySelector('.editor-container').style.display = 'none';
+  }
+}
+
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
   // Viewport toggle
@@ -186,6 +195,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const exportBtn = document.getElementById('export-btn');
   if (exportBtn) {
     exportBtn.addEventListener('click', exportHTML);
+  }
+
+  // Change Template button
+  const changeTemplateBtn = document.getElementById('change-template-btn');
+  if (changeTemplateBtn) {
+    changeTemplateBtn.addEventListener('click', showTemplateSelector);
   }
 });
 
