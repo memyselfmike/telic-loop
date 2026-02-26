@@ -1,0 +1,110 @@
+{
+  "name": "Event/Webinar",
+  "sections": [
+    {
+      "id": "event-hero",
+      "type": "hero",
+      "content": {
+        "headline": "Web Development Summit 2026",
+        "subheadline": "Join 500+ developers for the biggest web dev conference of the year",
+        "cta_text": "Register Now"
+      }
+    },
+    {
+      "id": "event-features",
+      "type": "features",
+      "content": {
+        "features": [
+          {
+            "icon": "🎤",
+            "title": "Expert Speakers",
+            "description": "Learn from industry leaders and pioneers in web development"
+          },
+          {
+            "icon": "🤝",
+            "title": "Networking",
+            "description": "Connect with fellow developers and potential collaborators"
+          },
+          {
+            "icon": "💻",
+            "title": "Hands-on Workshops",
+            "description": "Interactive sessions to level up your development skills"
+          }
+        ]
+      }
+    },
+    {
+      "id": "event-testimonials",
+      "type": "testimonials",
+      "content": {
+        "testimonials": [
+          {
+            "quote": "Last year's summit was incredible. I learned so much and made connections that changed my career!",
+            "author": "Alex Martinez, Senior Developer"
+          },
+          {
+            "quote": "The workshops were practical and immediately applicable. Best conference I've attended.",
+            "author": "Jordan Lee, Full Stack Engineer"
+          },
+          {
+            "quote": "Amazing speakers, great content, and an inspiring community. Can't wait for 2026!",
+            "author": "Taylor Kim, Tech Lead"
+          }
+        ]
+      }
+    },
+    {
+      "id": "event-pricing",
+      "type": "pricing",
+      "content": {
+        "tiers": [
+          {
+            "name": "Early Bird",
+            "price": "$299",
+            "features": [
+              "Full conference access",
+              "All workshops",
+              "Lunch included",
+              "Networking events",
+              "Conference swag"
+            ],
+            "cta_text": "Register Early"
+          },
+          {
+            "name": "Standard",
+            "price": "$399",
+            "features": [
+              "Full conference access",
+              "All workshops",
+              "Lunch included",
+              "Networking events",
+              "Conference swag"
+            ],
+            "cta_text": "Buy Ticket"
+          },
+          {
+            "name": "VIP",
+            "price": "$699",
+            "features": [
+              "Everything in Standard",
+              "VIP lounge access",
+              "Speaker dinners",
+              "Premium seating",
+              "Exclusive workshops"
+            ],
+            "cta_text": "Go VIP"
+          }
+        ]
+      }
+    },
+    {
+      "id": "event-cta",
+      "type": "cta",
+      "content": {
+        "headline": "Don't Miss Out!",
+        "description": "Limited seats available. Secure your spot today.",
+        "button_text": "Register Now"
+      }
+    }
+  ]
+}

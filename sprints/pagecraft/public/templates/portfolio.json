@@ -1,0 +1,110 @@
+{
+  "name": "Portfolio Showcase",
+  "sections": [
+    {
+      "id": "portfolio-hero",
+      "type": "hero",
+      "content": {
+        "headline": "Hi, I'm Alex Designer",
+        "subheadline": "Creative designer crafting beautiful digital experiences",
+        "cta_text": "View My Work"
+      }
+    },
+    {
+      "id": "portfolio-features",
+      "type": "features",
+      "content": {
+        "features": [
+          {
+            "icon": "🎨",
+            "title": "Brand Identity",
+            "description": "Crafting memorable visual identities that tell your story"
+          },
+          {
+            "icon": "📱",
+            "title": "UI/UX Design",
+            "description": "Designing intuitive interfaces that users love"
+          },
+          {
+            "icon": "✨",
+            "title": "Motion Design",
+            "description": "Bringing designs to life with engaging animations"
+          }
+        ]
+      }
+    },
+    {
+      "id": "portfolio-testimonials",
+      "type": "testimonials",
+      "content": {
+        "testimonials": [
+          {
+            "quote": "Alex transformed our brand completely. The new identity perfectly captures who we are.",
+            "author": "Rachel Green, Founder of GreenTech"
+          },
+          {
+            "quote": "Working with Alex was a dream. Professional, creative, and always on time.",
+            "author": "David Park, CEO at StartupCo"
+          },
+          {
+            "quote": "The UI designs exceeded our expectations. Our users love the new interface!",
+            "author": "Lisa Chen, Product Manager"
+          }
+        ]
+      }
+    },
+    {
+      "id": "portfolio-pricing",
+      "type": "pricing",
+      "content": {
+        "tiers": [
+          {
+            "name": "Brand Package",
+            "price": "$2,500",
+            "features": [
+              "Logo design",
+              "Brand guidelines",
+              "Color palette",
+              "Typography system",
+              "3 revisions"
+            ],
+            "cta_text": "Get Started"
+          },
+          {
+            "name": "UI/UX Package",
+            "price": "$5,000",
+            "features": [
+              "User research",
+              "Wireframes",
+              "High-fidelity mockups",
+              "Interactive prototype",
+              "Design system"
+            ],
+            "cta_text": "Book Project"
+          },
+          {
+            "name": "Full Service",
+            "price": "$10,000",
+            "features": [
+              "Everything included",
+              "Brand + UI/UX",
+              "Motion design",
+              "Development handoff",
+              "Unlimited revisions"
+            ],
+            "cta_text": "Let's Talk"
+          }
+        ]
+      }
+    },
+    {
+      "id": "portfolio-cta",
+      "type": "cta",
+      "content": {
+        "headline": "Let's Work Together",
+        "description": "Have a project in mind? I'd love to hear about it.",
+        "button_text": "Get In Touch"
+      }
+    }
+  ]
+}

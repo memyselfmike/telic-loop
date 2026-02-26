@@ -1,0 +1,192 @@
+/* Template section styles */
+
+.section {
+  padding: 3rem 2rem;
+}
+
+.section-hero {
+  background: linear-gradient(135deg, var(--accent-color) 0%, #1e40af 100%);
+  color: white;
+  text-align: center;
+  padding: 5rem 2rem;
+}
+
+.section-hero h1 {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.section-hero p {
+  font-size: 1.25rem;
+  margin-bottom: 2rem;
+  opacity: 0.9;
+}
+
+.section-hero button {
+  background: white;
+  color: var(--accent-color);
+  border: none;
+  padding: 1rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.section-features {
+  background: white;
+}
+
+.section-features h2 {
+  text-align: center;
+  font-size: 2.5rem;
+  margin-bottom: 3rem;
+  color: var(--accent-color);
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.feature-card {
+  text-align: center;
+  padding: 2rem;
+}
+
+.feature-card h3 {
+  font-size: 1.5rem;
+  margin: 1rem 0;
+  color: var(--accent-color);
+}
+
+.section-testimonials {
+  background: #f9fafb;
+}
+
+.section-testimonials h2 {
+  text-align: center;
+  font-size: 2.5rem;
+  margin-bottom: 3rem;
+  color: var(--accent-color);
+}
+
+.testimonials-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.testimonial-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.testimonial-card blockquote {
+  font-style: italic;
+  margin-bottom: 1rem;
+  font-size: 1.125rem;
+}
+
+.testimonial-card cite {
+  font-weight: 600;
+  color: var(--accent-color);
+}
+
+.section-pricing {
+  background: white;
+}
+
+.section-pricing h2 {
+  text-align: center;
+  font-size: 2.5rem;
+  margin-bottom: 3rem;
+  color: var(--accent-color);
+}
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.pricing-card {
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.pricing-card h3 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: var(--accent-color);
+}
+
+.pricing-card .price {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 1rem 0;
+  color: var(--accent-color);
+}
+
+.pricing-card ul {
+  list-style: none;
+  margin: 2rem 0;
+  text-align: left;
+}
+
+.pricing-card li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.pricing-card button {
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.section-cta {
+  background: var(--accent-color);
+  color: white;
+  text-align: center;
+  padding: 5rem 2rem;
+}
+
+.section-cta h2 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.section-cta p {
+  font-size: 1.25rem;
+  margin-bottom: 2rem;
+  opacity: 0.9;
+}
+
+.section-cta button {
+  background: white;
+  color: var(--accent-color);
+  border: none;
+  padding: 1rem 2rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+}
