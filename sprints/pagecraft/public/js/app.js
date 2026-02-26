@@ -319,7 +319,7 @@ function getSectionCSS() {
     .section-pricing { background: white; }
     .section-pricing h2 { text-align: center; font-size: 2.5rem; margin-bottom: 3rem; color: var(--accent-color); }
     .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; max-width: 1000px; margin: 0 auto; }
-    .pricing-card { border: 2px solid #e5e7eb; border-radius: 8px; padding: 2rem; text-align: center; }
+    .pricing-card { border: 2px solid var(--accent-color); border-radius: 8px; padding: 2rem; text-align: center; }
     .pricing-card h3 { font-size: 1.5rem; margin-bottom: 1rem; color: var(--accent-color); }
     .pricing-card .price { font-size: 2.5rem; font-weight: 700; margin: 1rem 0; color: var(--accent-color); }
     .pricing-card ul { list-style: none; margin: 2rem 0; text-align: left; }

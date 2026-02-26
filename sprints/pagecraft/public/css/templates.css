@@ -124,7 +124,7 @@
 }
 
 .pricing-card {
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--accent-color);
   border-radius: 8px;
   padding: 2rem;
   text-align: center;
