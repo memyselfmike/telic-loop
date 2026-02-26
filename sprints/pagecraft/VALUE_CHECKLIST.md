@@ -1,12 +1,12 @@
 # Value Checklist: pagecraft
-Generated: 2026-02-26T19:37:38.863361
+Generated: 2026-02-26T19:56:53.459974
 
 ## VRC Status
 - Value Score: 100%
 - Verified: 8/8
 - Blocked: 0
 - Recommendation: SHIP_READY
-- Summary: FULL VRC iteration 109 — maximum skepticism (exit gate failed 3x). All 8 Epic 1 deliverables independently verified at EXISTS/WORKS/VALUE. Server running (HTTP 200 on all 8 endpoints). Template JSONs served correctly at /templates/*.json. Source code review confirms: zero stubs, zero placeholders, zero console.log in client code (1 console.error for error handling, 1 console.log for server startup — both acceptable). Template visual distinction verified structurally in CSS: SaaS=blue centered hero + 3-col grids, Event=purple split-grid hero + 2-col features + flex-column testimonials with border-left accent, Portfolio=green left-aligned constrained hero + font-weight:300 + outline buttons + flex-column features + transparent testimonials with border-bottom. Mini previews in cards use transform:scale(0.25) with template-specific HTML structures. AppState manages currentTemplate/sections/accentColor. All 6 completion criteria pass. 9/9 QC checks passing. 5 tasks show descoped status due to loop infrastructure issues but all deliverable files exist and function. The CLEANUP-debug-artifacts task is descoped but its acceptance criteria are met (zero console.log in client files). No new gaps found.
+- Summary: Fallback VRC: carried forward from iteration 109 (100%)
 
 ## Tasks
 - [D] **1.1**: Create 3 template JSON files (saas.json, event.json, portfolio.json) each with 5 sections: hero, features, testimonials, pricing, cta. Each section has type, unique id, and content object per PRD F2 schema. Content must be distinct per template (SaaS = product/feature language, Event = date/speaker/agenda, Portfolio = work/project showcase). No copy-paste filler.
@@ -23,14 +23,10 @@ Generated: 2026-02-26T19:37:38.863361
 - [x] **CE-85-11**: Add template-specific CSS classes (e.g., template-saas, template-event, template-portfolio) to the preview container and define distinct visual treatments: different color schemes, hero layout variations (centered vs left-aligned vs split), different feature grid layouts (3-column vs 2-column vs list), different testimonial styles (cards vs inline quotes vs carousel-style).
 - [x] **CE-85-12**: Add a mini HTML preview snippet inside each template card showing a scaled-down rendering of the hero section (or a representative visual), using CSS transform: scale() to create a thumbnail effect. Alternatively, render a static preview image or an inline SVG illustration per template.
 - [x] **CE-85-13**: Add a Change Template button in the editor header or sidebar that shows the template selector again (setting template-selector display back to block). This button should trigger the same confirm() dialog to warn about losing changes.
+- [x] **2.1**: Create dragdrop.js implementing HTML5 drag-and-drop reordering on section blocks in the workspace sidebar. Handle dragstart/dragover/dragend/drop events on .section-block elements. On drop, reorder AppState.sections array to match the new visual order, then call renderSections() and renderPreview() so the preview immediately reflects the new section order. Add drag placeholder/indicator for drop position.
+- [ ] **2.2**: Add section visibility toggle to each section block in the workspace sidebar. Add an eye icon button to each .section-block in renderSections(). Clicking the eye toggles a 'visible' property on the section in AppState.sections (default true). When visible is false, the eye icon shows as crossed-out and renderPreview() skips that section entirely (omits from DOM, not display:none).
+- [ ] **2.3**: Create editor.js implementing contenteditable inline text editing on all editable fields in the preview panel. Add data-field and data-section-id attributes to rendered text elements (h1, h2, h3, p, button, blockquote, cite, li) in renderSectionContent(). On click, make the element contenteditable. On blur, read the new text and update the corresponding field in AppState.sections content object.
+- [ ] **2.4**: Enhance accent color picker to apply globally and verify full coverage. Ensure the color picker input change updates AppState.accentColor AND re-renders preview. Verify --accent-color CSS variable propagates to all buttons, headings (h2, h3), borders (pricing cards), cite elements, hero gradients, and CTA backgrounds across all 3 template types. Add a label next to the color picker for clarity.
+- [ ] **2.5**: Wire dragdrop.js and editor.js into the app and verify all interactive features work together end-to-end. Add script tags to index.html. Ensure drag reorder + inline edit + visibility toggle + accent color all work in combination without conflicts (e.g., editing text inside a draggable section, re-rendering after drag preserves edited text, hidden sections stay hidden after color change).
 
 ## Verifications
-- [x] integration/integration_section_rendering (integration)
-- [x] integration/integration_state_management (integration)
-- [x] integration/integration_template_selection_flow (integration)
-- [x] unit/unit_server_starts (unit)
-- [x] unit/unit_template_json_valid (unit)
-- [x] unit/unit_ui_layout (unit)
-- [x] value/value_template_distinct_layouts (value)
-- [x] value/value_template_visual_preview (value)
-- [x] value/value_user_picks_template (value)

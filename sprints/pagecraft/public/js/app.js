@@ -15,7 +15,11 @@ async function loadTemplate(templateName) {
     const data = await response.json();
 
     AppState.currentTemplate = templateName;
-    AppState.sections = data.sections || [];
+    // Initialize each section with visible:true by default
+    AppState.sections = (data.sections || []).map(section => ({
+      ...section,
+      visible: section.visible !== undefined ? section.visible : true
+    }));
 
     renderSections();
     renderPreview();
@@ -39,13 +43,34 @@ function renderSections() {
     div.className = 'section-block';
     div.draggable = true;
     div.dataset.index = index;
+
+    const isVisible = section.visible !== false;
+    const eyeIcon = isVisible ? '👁️' : '👁️‍🗨️';
+    const eyeClass = isVisible ? 'eye-visible' : 'eye-hidden';
+
     div.innerHTML = `
-      <strong>${section.type}</strong>
-      <p style="font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem;">
-        ${section.content.headline || section.content.title || 'Section ' + (index + 1)}
-      </p>
+      <div style="display: flex; justify-content: space-between; align-items: start;">
+        <div style="flex: 1;">
+          <strong>${section.type}</strong>
+          <p style="font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem;">
+            ${section.content.headline || section.content.title || 'Section ' + (index + 1)}
+          </p>
+        </div>
+        <button class="eye-toggle ${eyeClass}" data-index="${index}" title="${isVisible ? 'Hide section' : 'Show section'}">
+          ${eyeIcon}
+        </button>
+      </div>
     `;
     sectionList.appendChild(div);
+  });
+
+  // Attach event listeners to eye toggle buttons
+  document.querySelectorAll('.eye-toggle').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const index = parseInt(btn.dataset.index, 10);
+      toggleSectionVisibility(index);
+    });
   });
 }
 
@@ -59,11 +84,14 @@ function renderPreview() {
     previewContent.classList.add(`template-${AppState.currentTemplate}`);
   }
 
+  // Only render visible sections - completely omit hidden sections from DOM
   AppState.sections.forEach(section => {
-    const sectionDiv = document.createElement('div');
-    sectionDiv.className = `section section-${section.type}`;
-    sectionDiv.innerHTML = renderSectionContent(section);
-    previewContent.appendChild(sectionDiv);
+    if (section.visible !== false) {
+      const sectionDiv = document.createElement('div');
+      sectionDiv.className = `section section-${section.type}`;
+      sectionDiv.innerHTML = renderSectionContent(section);
+      previewContent.appendChild(sectionDiv);
+    }
   });
 
   // Apply accent color
@@ -150,6 +178,14 @@ function renderSectionContent(section) {
       return renderCtaSection(section.content);
     default:
       return '<p>Unknown section type</p>';
+  }
+}
+
+function toggleSectionVisibility(index) {
+  if (index >= 0 && index < AppState.sections.length) {
+    AppState.sections[index].visible = !AppState.sections[index].visible;
+    renderSections();
+    renderPreview();
   }
 }
 

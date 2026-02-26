@@ -307,6 +307,30 @@ body {
   opacity: 0.5;
 }
 
+.eye-toggle {
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+  line-height: 1;
+}
+
+.eye-toggle:hover {
+  background: var(--border);
+}
+
+.eye-toggle.eye-visible {
+  opacity: 1;
+}
+
+.eye-toggle.eye-hidden {
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+
 .drop-indicator {
   height: 4px;
   background: var(--accent-color);
