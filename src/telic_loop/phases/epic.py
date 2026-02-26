@@ -75,6 +75,7 @@ def run_epic_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
                 state.verifications = {}
                 state.verification_categories = []
                 state.tasks_since_last_critical_eval = 0
+                state.qc_generation_count = 0
                 if "verifications_generated" in state.gates_passed:
                     state.gates_passed.remove("verifications_generated")
                 state.save(config.state_file)
@@ -118,6 +119,7 @@ def run_epic_loop(config: LoopConfig, state: LoopState, claude: Claude) -> None:
                 state.exit_gate_attempts = 0
                 state.verifications = {}
                 state.verification_categories = []
+                state.qc_generation_count = 0
                 if "verifications_generated" in state.gates_passed:
                     state.gates_passed.remove("verifications_generated")
                 state.save(config.state_file)

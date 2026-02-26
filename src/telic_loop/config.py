@@ -88,6 +88,9 @@ class LoopConfig:
     # Fix rollback
     max_fix_rollbacks: int = 2  # skip root cause after N rollbacks
 
+    # QC regeneration cap — prevent generate→fix→fail→regenerate death spirals
+    max_qc_regenerations: int = 2  # cap test regeneration cycles per epic
+
     # Reliability
     max_task_retries: int = 3
     max_rollbacks_per_sprint: int = 3

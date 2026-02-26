@@ -90,7 +90,7 @@ def do_course_correct(config: LoopConfig, state: LoopState, claude: Claude) -> b
         return True
 
     if action == "regenerate_tests":
-        state.invalidate_tests()
+        state.invalidate_failed_tests()
         return True
 
     if action == "escalate":

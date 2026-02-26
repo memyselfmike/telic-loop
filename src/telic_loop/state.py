@@ -339,6 +339,9 @@ class LoopState:
     # Fix rollback tracking — root causes that regressed and were rolled back
     fix_rollback_causes: set[str] = field(default_factory=set)
 
+    # QC regeneration tracking — cap generate→fix→fail→regenerate cycles
+    qc_generation_count: int = 0
+
     # ----- Properties -----
 
     @property
@@ -404,6 +407,21 @@ class LoopState:
         self.verifications.clear()
         self.regression_baseline.clear()
         self.gates_passed.discard("verifications_generated")
+
+    def invalidate_failed_tests(self) -> None:
+        """Clear only failed/blocked verifications, keep passing ones.
+
+        Use this when regenerating tests after fix exhaustion — passing
+        tests still represent verified value and should not be discarded.
+        """
+        to_remove = [
+            vid for vid, v in self.verifications.items()
+            if v.status in ("failed", "blocked")
+        ]
+        for vid in to_remove:
+            del self.verifications[vid]
+            self.regression_baseline.discard(vid)
+        # Don't clear verifications_generated gate — passing tests remain valid
 
     # ----- Persistence -----
 

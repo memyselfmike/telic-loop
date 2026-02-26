@@ -155,6 +155,7 @@ def do_generate_qc(config: LoopConfig, state: LoopState, claude: Claude) -> bool
 
     if state.verifications:
         state.pass_gate("verifications_generated")
+        state.qc_generation_count += 1
     return bool(state.verifications)
 
 

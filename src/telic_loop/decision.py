@@ -105,7 +105,15 @@ def decide_next_action(config: LoopConfig, state: LoopState) -> Action:
             return Action.FIX
         if not state.research_attempted_for_current_failures:
             return Action.RESEARCH
-        return Action.COURSE_CORRECT
+        # If regeneration cap reached, skip unfixable tests instead of
+        # entering another generate→fix→fail→regenerate death spiral
+        if state.qc_generation_count >= config.max_qc_regenerations:
+            for v in failing:
+                if v.attempts >= max_fix:
+                    v.status = "blocked"
+            # Fall through to P5+ (may reach EXIT_GATE)
+        else:
+            return Action.COURSE_CORRECT
 
     # P5: Human blocked task
     human_blocked = [
