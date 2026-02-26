@@ -1,114 +1,87 @@
 # PageCraft Verification Scripts
 
-This directory contains executable verification scripts that prove the Foundation + Template Selection epic delivers its promised value.
+This directory contains executable verification scripts that prove the sprint delivers its promised value. All scripts use Playwright and run in parallel.
 
-## Script Categories
+## Test Organization
 
-### Unit Verifications (Fast, < 10s)
-These verify individual components work correctly in isolation:
+### Unit Tests (Fast, <10s each)
+Run after every task to catch regressions early:
 
-- **unit_server_starts.sh** - Express server starts on configurable PORT
-- **unit_templates_valid_json.sh** - All 3 template JSON files are valid and parseable
-- **unit_template_sections_schema.sh** - Each template has exactly 5 sections (hero, features, testimonials, pricing, cta) with correct schema
-- **unit_template_content_distinct.sh** - SaaS/Event/Portfolio templates have meaningfully different content (< 30% similarity)
-- **unit_html_structure.sh** - index.html has all required regions (template-selector, workspace, preview-panel) and script/CSS tags
-- **unit_css_accent_color_vars.sh** - templates.css uses --accent-color variable for buttons, headings, and borders
-- **unit_template_css_completeness.sh** - templates.css defines styles for all 5 section types with proper layouts
+- **unit_server_starts.js** - Server starts on PORT, serves static files (HTML/CSS/JS)
+- **unit_template_json_valid.js** - All 3 template JSONs are valid, have 5 sections each, distinct content
+- **unit_ui_layout.js** - App shell has correct layout regions (header, selector, workspace, preview)
 
-### Integration Verifications (Medium, < 60s)
-These verify components work together correctly:
+### Integration Tests (Medium, <60s each)
+Run after related tasks complete:
 
-- **integration_template_loading.sh** - Templates load via HTTP and are accessible
-- **integration_static_assets.sh** - All static assets (CSS, JS) are served correctly by Express
-- **integration_app_state_management.sh** - AppState object initializes and manages state correctly
-- **integration_css_styles_applied.sh** - CSS files contain required styles for all section types
-- **integration_template_css_classes.sh** - Template-specific CSS classes exist for visual distinction (CE-85-11, EVAL-1)
-- **integration_preview_thumbnails.sh** - Template cards include preview/thumbnail elements (CE-85-12, EVAL-2)
-- **integration_change_template_button.sh** - Change Template button exists in HTML/JS (CE-85-13, EVAL-3)
+- **integration_template_selection_flow.js** - Template cards display, clicking loads template, switching works
+- **integration_state_management.js** - App state initializes, populates on template load, manages visibility/color
+- **integration_section_rendering.js** - All 5 section types render with correct content from JSON
 
-### Value Delivery Verifications (Playwright Browser Tests)
-These simulate real user workflows and verify the user gets the promised outcome:
+### Value Delivery Tests (Variable time)
+Run before exit gate to prove user gets promised outcomes:
 
-- **value_template_selection_flow.spec.js** - User sees 3 template cards and can select one to load into editor
-- **value_all_section_types_render.spec.js** - All 5 section types render with correct content in preview
-- **value_template_distinct_content.spec.js** - Each template loads with distinct, template-specific content (SaaS/Event/Portfolio)
-- **value_viewport_toggle.spec.js** - User can toggle between desktop and mobile preview
-- **value_accent_color_changes.spec.js** - User can change accent color and see it applied globally
-- **value_html_export.spec.js** - User can export standalone HTML file with inlined CSS
-- **value_complete_workflow.spec.js** - Complete Vision workflow: pick template, customize, preview mobile, export
-- **value_template_visual_distinction.spec.js** - Each template produces visually distinct landing pages (different layouts, colors, styles)
-- **value_template_thumbnails.spec.js** - Template cards show visual thumbnail previews (not just text)
-- **value_change_template_button.spec.js** - User can return to template selector from editor with confirmation
-- **value_foundation_epic_complete.spec.js** - Foundation epic delivers all core features: app shell, template selection, preview, state management
+- **value_template_visual_preview.js** - Template cards show visual previews (not just text), distinct styling
+- **value_template_distinct_layouts.js** - Each template produces visually distinct layout (critical epic criterion)
+- **value_user_picks_template.js** - Complete user journey: open app → see 3 cards → pick one → editor loads
 
-## Running Verifications
+## What These Tests Verify
 
-### Run Individual Scripts
+### Epic 1 Deliverables Covered:
+✅ Express server serving static files on configurable PORT
+✅ App shell (index.html) with builder UI layout
+✅ App CSS with clean builder UI styles
+✅ 3 template JSON definitions with distinct content
+✅ Template selection screen with 3 visual cards
+✅ templates.js module loading and rendering sections
+✅ Template section CSS for all 5 section types
+✅ app.js state management foundation
+
+### Vision Promises Verified:
+✅ "User opens PageCraft in a browser and sees 3 template cards (SaaS Product, Event/Webinar, Portfolio Showcase) with visual previews"
+✅ "can click one to load it into the editor workspace"
+✅ Each template produces "visually distinct landing page layout" (not just different text)
+
+### PRD Requirements Verified:
+✅ F1: Template Selection - 3 templates with thumbnails, clicking loads template
+✅ F2: Section Management - 5 section types with editable content structure
+✅ Architecture - Express server, static file serving, modular JS/CSS
+✅ Acceptance Criteria #1: "All 3 templates load and display correctly with distinct layouts"
+
+## Running Tests
+
 ```bash
-# Unit tests (shell scripts)
-bash .loop/verifications/unit_server_starts.sh
-
-# Integration tests (shell scripts)
-bash .loop/verifications/integration_template_loading.sh
-
-# Playwright tests (individual)
-npx playwright test .loop/verifications/value_template_selection_flow.spec.js
-```
-
-### Run All Playwright Tests
-```bash
+# Run all tests
 npm test
-# or
-npx playwright test
-```
 
-### Run with Isolated Ports (for parallel execution)
-```bash
-PORT=3456 bash .loop/verifications/unit_server_starts.sh
+# Run specific category
+npm test -- --grep "^unit_"
+npm test -- --grep "^integration_"
+npm test -- --grep "^value_"
+
+# Run single test file
+npm test -- unit_server_starts.js
 ```
 
 ## Test Isolation
 
-All verification scripts support parallel execution:
-- **PORT** environment variable - Each script uses `${PORT:-3000}` for server isolation
-- **TEST_DATA_DIR** environment variable - For data isolation (if needed)
+Each test runs in parallel with unique PORT assignment. Tests use:
+- `PORT` env variable for server port (falls back to 3000)
+- `TEST_DATA_DIR` for isolated test data (if needed)
+- Playwright's `webServer` config handles server lifecycle
 
-Scripts that start servers:
-1. Use the assigned PORT from the environment
-2. Clean up server processes on exit (trap handlers)
-3. Wait for server readiness before testing
+## Expected Behavior
 
-## What These Tests Prove
+- **Unit tests** should all pass if foundation is built correctly
+- **Integration tests** may fail if features are not yet implemented (expected)
+- **Value tests** prove the user experience - these are the ultimate acceptance criteria
 
-These scripts verify that Epic 1 (Foundation + Template Selection) delivers:
+## Critical Tests
 
-1. ✓ Express server serves the app on configurable PORT
-2. ✓ 3 template JSON files with distinct, template-specific content
-3. ✓ All 5 section types (hero, features, testimonials, pricing, cta) defined
-4. ✓ Builder UI layout with template selector, workspace, and preview panel
-5. ✓ CSS styling for builder UI and template sections
-6. ✓ AppState management foundation
-7. ✓ Template selection flow (pick template → load into editor)
-8. ✓ Preview rendering for all section types
-9. ✓ Viewport toggle (desktop/mobile)
-10. ✓ Accent color customization
-11. ✓ HTML export with inlined CSS
+These tests verify the MOST IMPORTANT epic completion criteria:
 
-## Playwright Configuration
+1. **value_template_distinct_layouts.js** - Epic requirement: "Each template produces a visually distinct landing page layout (not just different text on the same layout)"
+2. **value_user_picks_template.js** - Vision promise: User can pick template and load it into editor
+3. **value_template_visual_preview.js** - Vision promise: Cards show "visual previews" not just text
 
-The `playwright.config.js` in the project root:
-- Automatically starts the server before tests
-- Uses PORT environment variable for isolation
-- Runs tests in headless mode
-- Takes screenshots on failure
-
-## Expected Results
-
-All tests should PASS when the Foundation + Template Selection epic is complete.
-
-Tests may FAIL if:
-- Features from later epics (drag-and-drop, inline editing) are not yet implemented - this is EXPECTED
-- Server fails to start
-- Template JSON files are invalid or missing
-- Required HTML elements are missing
-- CSS files don't contain required styles
+If these pass, the epic delivers real value. If they fail, the epic is incomplete.

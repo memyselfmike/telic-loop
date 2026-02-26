@@ -155,6 +155,9 @@ function renderSectionContent(section) {
 
 function showTemplateSelector() {
   if (confirm('Switch template? Your current changes will be lost.')) {
+    // Clear current template state so clicking a new template doesn't show another confirmation
+    AppState.currentTemplate = null;
+    AppState.sections = [];
     // Show template selector
     document.getElementById('template-selector').style.display = 'block';
     // Hide editor
