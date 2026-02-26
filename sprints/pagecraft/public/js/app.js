@@ -98,84 +98,99 @@ function renderPreview() {
   document.documentElement.style.setProperty('--accent-color', AppState.accentColor);
 }
 
-function renderHeroSection(content) {
+// Helper function to add data attributes for inline editing
+function makeEditable(sectionId, field, content) {
+  return `data-section-id="${sectionId}" data-field="${field}"`;
+}
+
+function renderHeroSection(section) {
+  const content = section.content;
+  const sectionId = section.id;
   return `
-    <h1>${content.headline || 'Hero Headline'}</h1>
-    <p>${content.subheadline || 'Hero subheadline'}</p>
-    <button>${content.cta_text || 'Get Started'}</button>
+    <h1 ${makeEditable(sectionId, 'headline')}>${content.headline || 'Hero Headline'}</h1>
+    <p ${makeEditable(sectionId, 'subheadline')}>${content.subheadline || 'Hero subheadline'}</p>
+    <button ${makeEditable(sectionId, 'cta_text')}>${content.cta_text || 'Get Started'}</button>
   `;
 }
 
-function renderFeaturesSection(content) {
+function renderFeaturesSection(section) {
+  const content = section.content;
+  const sectionId = section.id;
   const features = content.features || [];
   return `
     <h2>Features</h2>
     <div class="features-grid">
-      ${features.map(f => `
+      ${features.map((f, index) => `
         <div class="feature-card">
           <div style="font-size: 3rem;">${f.icon || '⭐'}</div>
-          <h3>${f.title || 'Feature'}</h3>
-          <p>${f.description || ''}</p>
+          <h3 ${makeEditable(sectionId, `features.${index}.title`)}>${f.title || 'Feature'}</h3>
+          <p ${makeEditable(sectionId, `features.${index}.description`)}>${f.description || ''}</p>
         </div>
       `).join('')}
     </div>
   `;
 }
 
-function renderTestimonialsSection(content) {
+function renderTestimonialsSection(section) {
+  const content = section.content;
+  const sectionId = section.id;
   const testimonials = content.testimonials || [];
   return `
     <h2>What Our Customers Say</h2>
     <div class="testimonials-grid">
-      ${testimonials.map(t => `
+      ${testimonials.map((t, index) => `
         <div class="testimonial-card">
-          <blockquote>"${t.quote || ''}"</blockquote>
-          <cite>- ${t.author || 'Anonymous'}</cite>
+          <blockquote ${makeEditable(sectionId, `testimonials.${index}.quote`)}>"${t.quote || ''}"</blockquote>
+          <cite ${makeEditable(sectionId, `testimonials.${index}.author`)}>- ${t.author || 'Anonymous'}</cite>
         </div>
       `).join('')}
     </div>
   `;
 }
 
-function renderPricingSection(content) {
+function renderPricingSection(section) {
+  const content = section.content;
+  const sectionId = section.id;
   const tiers = content.tiers || [];
   return `
     <h2>Pricing</h2>
     <div class="pricing-grid">
-      ${tiers.map(tier => `
+      ${tiers.map((tier, index) => `
         <div class="pricing-card">
-          <h3>${tier.name || 'Plan'}</h3>
-          <div class="price">${tier.price || '$0'}</div>
+          <h3 ${makeEditable(sectionId, `tiers.${index}.name`)}>${tier.name || 'Plan'}</h3>
+          <div class="price" ${makeEditable(sectionId, `tiers.${index}.price`)}>${tier.price || '$0'}</div>
           <ul>
-            ${(tier.features || []).map(f => `<li>${f}</li>`).join('')}
+            ${(tier.features || []).map((f, fIndex) => `<li ${makeEditable(sectionId, `tiers.${index}.features.${fIndex}`)}>${f}</li>`).join('')}
           </ul>
-          <button>${tier.cta_text || 'Choose Plan'}</button>
+          <button ${makeEditable(sectionId, `tiers.${index}.cta_text`)}>${tier.cta_text || 'Choose Plan'}</button>
         </div>
       `).join('')}
     </div>
   `;
 }
 
-function renderCtaSection(content) {
+function renderCtaSection(section) {
+  const content = section.content;
+  const sectionId = section.id;
   return `
-    <h2>${content.headline || 'Ready to Get Started?'}</h2>
-    <p>${content.description || 'Join us today'}</p>
-    <button>${content.button_text || 'Get Started'}</button>
+    <h2 ${makeEditable(sectionId, 'headline')}>${content.headline || 'Ready to Get Started?'}</h2>
+    <p ${makeEditable(sectionId, 'description')}>${content.description || 'Join us today'}</p>
+    <button ${makeEditable(sectionId, 'button_text')}>${content.button_text || 'Get Started'}</button>
   `;
 }
 
 function renderSectionContent(section) {
   switch (section.type) {
     case 'hero':
-      return renderHeroSection(section.content);
+      return renderHeroSection(section);
     case 'features':
-      return renderFeaturesSection(section.content);
+      return renderFeaturesSection(section);
     case 'testimonials':
-      return renderTestimonialsSection(section.content);
+      return renderTestimonialsSection(section);
     case 'pricing':
-      return renderPricingSection(section.content);
+      return renderPricingSection(section);
     case 'cta':
-      return renderCtaSection(section.content);
+      return renderCtaSection(section);
     default:
       return '<p>Unknown section type</p>';
   }

@@ -402,3 +402,26 @@ body {
   box-shadow: 0 0 40px var(--shadow);
   min-height: 600px;
 }
+
+/* Inline Editor Styles */
+[data-field] {
+  cursor: text;
+  transition: all 0.2s;
+  position: relative;
+}
+
+[data-field]:hover {
+  outline: 2px solid rgba(59, 130, 246, 0.3);
+  outline-offset: 2px;
+}
+
+[data-field].editing {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+  background: rgba(59, 130, 246, 0.05);
+}
+
+[data-field]:focus {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
