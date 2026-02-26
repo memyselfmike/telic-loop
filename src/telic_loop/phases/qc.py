@@ -133,6 +133,10 @@ def do_generate_qc(config: LoopConfig, state: LoopState, claude: Claude) -> bool
                     continue
                 if _is_non_test_script(script.stem):
                     continue
+                # Skip Playwright/Jest/Vitest test files (.spec.js, .test.js)
+                # These should only be run via their .sh wrapper scripts
+                if script.suffix == ".js" and (".spec." in script.name or ".test." in script.name):
+                    continue
                 v_id = f"{category}/{script.stem}"
                 if v_id not in state.verifications:
                     if sys.platform != "win32":

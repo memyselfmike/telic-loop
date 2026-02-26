@@ -232,6 +232,7 @@ def _build_script_command(script_path: str) -> list[str] | str:
     On Windows, .sh scripts can't be executed directly (WinError 193).
     Route them through bash (Git Bash / WSL) or convert to equivalent commands.
     .py scripts use sys.executable, .js scripts use node.
+    Playwright test files (.spec.js, .test.js) use npx playwright test.
 
     IMPORTANT: script_path should use forward slashes (POSIX format) for bash compatibility.
     """
@@ -247,6 +248,19 @@ def _build_script_command(script_path: str) -> list[str] | str:
         return [sys.executable, str(p)]
 
     if suffix == ".js":
+        # Check if this is a Playwright test file
+        if ".spec." in p.name or ".test." in p.name:
+            # Playwright test files: return marker command that will be replaced in run_one
+            # with proper relative path from project root. We can't compute the relative
+            # path here because we don't know the working directory yet.
+            # Use absolute path as fallback if run_one can't find project root.
+            posix_path = p.as_posix()
+            npx = shutil.which("npx")
+            if npx:
+                return [npx, "playwright", "test", posix_path]
+            return ["npx", "playwright", "test", posix_path]
+
+        # Regular JavaScript file - run with node
         node = shutil.which("node")
         if node:
             return [node, str(p)]
@@ -301,6 +315,35 @@ def run_tests_parallel(
             # If still doesn't exist, use CWD as fallback
             if not script_dir.exists():
                 script_dir = Path.cwd()
+
+            # Playwright tests MUST run from project root (where playwright.config.js lives)
+            # Running from .loop/verifications/ causes "test() to be called here" errors
+            # because Playwright can't find its config and loads tests in wrong context
+            if ".spec." in script_path_resolved.name or ".test." in script_path_resolved.name:
+                if script_path_resolved.suffix.lower() == ".js":
+                    # Find project root by walking up from script dir to find playwright.config.js
+                    project_root = script_dir
+                    for parent in [script_dir] + list(script_dir.parents):
+                        if (parent / "playwright.config.js").exists() or (parent / "playwright.config.ts").exists():
+                            project_root = parent
+                            break
+                    script_dir = project_root
+
+                    # CRITICAL: Rebuild command with relative path from project root
+                    # Passing absolute path causes Playwright to load test in wrong context
+                    try:
+                        relative_path = script_path_resolved.relative_to(project_root)
+                        # Convert to POSIX path (forward slashes) for cross-platform compatibility
+                        relative_posix = relative_path.as_posix()
+                        npx = shutil.which("npx")
+                        if npx:
+                            cmd = [npx, "playwright", "test", relative_posix]
+                        else:
+                            cmd = ["npx", "playwright", "test", relative_posix]
+                        use_shell = False
+                    except ValueError:
+                        # Script is outside project root - use absolute path as fallback
+                        pass
 
             # Isolated environment: unique port + temp data dir per test
             env = os.environ.copy()
@@ -365,6 +408,35 @@ def run_test_script(
         # If still doesn't exist, use CWD as fallback
         if not script_dir.exists():
             script_dir = Path.cwd()
+
+        # Playwright tests MUST run from project root (where playwright.config.js lives)
+        # Running from .loop/verifications/ causes "test() to be called here" errors
+        # because Playwright can't find its config and loads tests in wrong context
+        if ".spec." in script_path_resolved.name or ".test." in script_path_resolved.name:
+            if script_path_resolved.suffix.lower() == ".js":
+                # Find project root by walking up from script dir to find playwright.config.js
+                project_root = script_dir
+                for parent in [script_dir] + list(script_dir.parents):
+                    if (parent / "playwright.config.js").exists() or (parent / "playwright.config.ts").exists():
+                        project_root = parent
+                        break
+                script_dir = project_root
+
+                # CRITICAL: Rebuild command with relative path from project root
+                # Passing absolute path causes Playwright to load test in wrong context
+                try:
+                    relative_path = script_path_resolved.relative_to(project_root)
+                    # Convert to POSIX path (forward slashes) for cross-platform compatibility
+                    relative_posix = relative_path.as_posix()
+                    npx = shutil.which("npx")
+                    if npx:
+                        cmd = [npx, "playwright", "test", relative_posix]
+                    else:
+                        cmd = ["npx", "playwright", "test", relative_posix]
+                    use_shell = False
+                except ValueError:
+                    # Script is outside project root - use absolute path as fallback
+                    pass
 
         proc = subprocess.run(
             cmd,
