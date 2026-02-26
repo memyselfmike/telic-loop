@@ -46,61 +46,90 @@ function renderTemplateCards() {
   });
 }
 
-function generateTemplatePreview(templateKey) {
-  // Generate a mini HTML preview based on template type
-  const previews = {
-    saas: `
-      <div class="preview-miniature template-saas">
-        <div class="mini-section mini-hero">
+/**
+ * Generate SaaS template preview miniature
+ * @returns {string} HTML string for SaaS preview
+ */
+function generateSaasPreview() {
+  return `
+    <div class="preview-miniature template-saas">
+      <div class="mini-section mini-hero">
+        <div class="mini-headline"></div>
+        <div class="mini-subheadline"></div>
+        <div class="mini-button"></div>
+      </div>
+      <div class="mini-section mini-features">
+        <div class="mini-feature-grid">
+          <div class="mini-feature"></div>
+          <div class="mini-feature"></div>
+          <div class="mini-feature"></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Generate Event template preview miniature
+ * @returns {string} HTML string for Event preview
+ */
+function generateEventPreview() {
+  return `
+    <div class="preview-miniature template-event">
+      <div class="mini-section mini-hero mini-hero-split">
+        <div class="mini-hero-content">
           <div class="mini-headline"></div>
           <div class="mini-subheadline"></div>
           <div class="mini-button"></div>
         </div>
-        <div class="mini-section mini-features">
-          <div class="mini-feature-grid">
-            <div class="mini-feature"></div>
-            <div class="mini-feature"></div>
-            <div class="mini-feature"></div>
-          </div>
+      </div>
+      <div class="mini-section mini-features">
+        <div class="mini-feature-grid mini-feature-grid-2col">
+          <div class="mini-feature"></div>
+          <div class="mini-feature"></div>
         </div>
       </div>
-    `,
-    event: `
-      <div class="preview-miniature template-event">
-        <div class="mini-section mini-hero mini-hero-split">
-          <div class="mini-hero-content">
-            <div class="mini-headline"></div>
-            <div class="mini-subheadline"></div>
-            <div class="mini-button"></div>
-          </div>
-        </div>
-        <div class="mini-section mini-features">
-          <div class="mini-feature-grid mini-feature-grid-2col">
-            <div class="mini-feature"></div>
-            <div class="mini-feature"></div>
-          </div>
+    </div>
+  `;
+}
+
+/**
+ * Generate Portfolio template preview miniature
+ * @returns {string} HTML string for Portfolio preview
+ */
+function generatePortfolioPreview() {
+  return `
+    <div class="preview-miniature template-portfolio">
+      <div class="mini-section mini-hero mini-hero-left">
+        <div class="mini-headline"></div>
+        <div class="mini-subheadline"></div>
+        <div class="mini-button mini-button-outline"></div>
+      </div>
+      <div class="mini-section mini-features">
+        <div class="mini-feature-list">
+          <div class="mini-feature-row"></div>
+          <div class="mini-feature-row"></div>
+          <div class="mini-feature-row"></div>
         </div>
       </div>
-    `,
-    portfolio: `
-      <div class="preview-miniature template-portfolio">
-        <div class="mini-section mini-hero mini-hero-left">
-          <div class="mini-headline"></div>
-          <div class="mini-subheadline"></div>
-          <div class="mini-button mini-button-outline"></div>
-        </div>
-        <div class="mini-section mini-features">
-          <div class="mini-feature-list">
-            <div class="mini-feature-row"></div>
-            <div class="mini-feature-row"></div>
-            <div class="mini-feature-row"></div>
-          </div>
-        </div>
-      </div>
-    `
+    </div>
+  `;
+}
+
+/**
+ * Generate template preview based on template type
+ * @param {string} templateKey - Template identifier (saas, event, portfolio)
+ * @returns {string} HTML string for template preview
+ */
+function generateTemplatePreview(templateKey) {
+  const previewGenerators = {
+    saas: generateSaasPreview,
+    event: generateEventPreview,
+    portfolio: generatePortfolioPreview
   };
 
-  return previews[templateKey] || '';
+  const generator = previewGenerators[templateKey];
+  return generator ? generator() : '';
 }
 
 // Initialize template cards on load

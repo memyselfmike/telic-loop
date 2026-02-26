@@ -1,12 +1,12 @@
 # Value Checklist: pagecraft
-Generated: 2026-02-26T12:04:55.202881
+Generated: 2026-02-26T12:11:17.600778
 
 ## VRC Status
 - Value Score: 45%
 - Verified: 3/6
 - Blocked: 0
 - Recommendation: CONTINUE
-- Summary: Fallback VRC: carried forward from iteration 87 (45%)
+- Summary: Fallback VRC: carried forward from iteration 88 (45%)
 
 ## Tasks
 - [D] **1.1**: Create 3 template JSON files (saas.json, event.json, portfolio.json) each with 5 sections: hero, features, testimonials, pricing, cta. Each section has type, unique id, and content object per PRD F2 schema. Content must be distinct per template (SaaS = product/feature language, Event = date/speaker/agenda, Portfolio = work/project showcase). No copy-paste filler.
@@ -22,7 +22,7 @@ Generated: 2026-02-26T12:04:55.202881
 - [ ] **SPLIT-FN-public-js-app-js**: Long functions still present in public/js/app.js: getCombinedCSS(65L)
 - [x] **CE-85-11**: Add template-specific CSS classes (e.g., template-saas, template-event, template-portfolio) to the preview container and define distinct visual treatments: different color schemes, hero layout variations (centered vs left-aligned vs split), different feature grid layouts (3-column vs 2-column vs list), different testimonial styles (cards vs inline quotes vs carousel-style).
 - [x] **CE-85-12**: Add a mini HTML preview snippet inside each template card showing a scaled-down rendering of the hero section (or a representative visual), using CSS transform: scale() to create a thumbnail effect. Alternatively, render a static preview image or an inline SVG illustration per template.
-- [ ] **CE-85-13**: Add a Change Template button in the editor header or sidebar that shows the template selector again (setting template-selector display back to block). This button should trigger the same confirm() dialog to warn about losing changes.
+- [x] **CE-85-13**: Add a Change Template button in the editor header or sidebar that shows the template selector again (setting template-selector display back to block). This button should trigger the same confirm() dialog to warn about losing changes.
 - [ ] **EVAL-1**: Make each template visually distinct: add template-specific CSS classes and define unique visual treatments per template. SaaS needs a different color scheme and layout pattern from Event and Portfolio. Each template should have distinct hero style (e.g., gradient vs solid vs image placeholder), different feature grid layout (3-col vs 2-col vs list), and unique color palettes so users can see meaningful differences when browsing templates.
 - [ ] **EVAL-2**: Add visual thumbnail previews to template selection cards. Each card should show a mini rendered preview of what the template looks like (e.g., a scaled-down hero section or representative visual). Use CSS transform: scale() on a small inline-rendered preview, or generate a static visual snapshot per template.
 - [ ] **EVAL-3**: Add a Change Template or Back button visible in the editor view that returns the user to the template selection screen. When clicked, show the same confirm dialog (Switch template? Changes will be lost.) if a template is loaded. On confirm, hide the editor container and show the template selector.
