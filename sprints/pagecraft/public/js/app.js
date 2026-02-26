@@ -53,6 +53,12 @@ function renderPreview() {
   const previewContent = document.getElementById('preview-content');
   previewContent.innerHTML = '';
 
+  // Add template-specific class to preview container
+  previewContent.className = 'preview-content';
+  if (AppState.currentTemplate) {
+    previewContent.classList.add(`template-${AppState.currentTemplate}`);
+  }
+
   AppState.sections.forEach(section => {
     const sectionDiv = document.createElement('div');
     sectionDiv.className = `section section-${section.type}`;
@@ -187,6 +193,10 @@ function exportHTML() {
   const previewContent = document.getElementById('preview-content');
   if (!previewContent) return;
 
+  // Wrap content in a div with the template class
+  const templateClass = AppState.currentTemplate ? `template-${AppState.currentTemplate}` : '';
+  const wrappedContent = `<div class="${templateClass}">${previewContent.innerHTML}</div>`;
+
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -198,7 +208,7 @@ function exportHTML() {
   </style>
 </head>
 <body>
-  ${previewContent.innerHTML}
+  ${wrappedContent}
 </body>
 </html>`;
 
@@ -212,7 +222,7 @@ function exportHTML() {
 }
 
 function getCombinedCSS() {
-  // Return inline CSS for export
+  // Return inline CSS for export including template-specific styles
   return `
     :root { --accent-color: ${AppState.accentColor}; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -220,7 +230,7 @@ function getCombinedCSS() {
     .section { padding: 3rem 2rem; }
     .section-hero { background: linear-gradient(135deg, var(--accent-color) 0%, #1e40af 100%); color: white; text-align: center; padding: 5rem 2rem; }
     .section-hero h1 { font-size: 3rem; margin-bottom: 1rem; }
-    .section-hero p { font-size: 1.25rem; margin-bottom: 2rem; }
+    .section-hero p { font-size: 1.25rem; margin-bottom: 2rem; opacity: 0.9; }
     .section-hero button { background: white; color: var(--accent-color); border: none; padding: 1rem 2rem; font-size: 1rem; font-weight: 600; border-radius: 8px; cursor: pointer; }
     .section-features { background: white; }
     .section-features h2 { text-align: center; font-size: 2.5rem; margin-bottom: 3rem; color: var(--accent-color); }
@@ -244,7 +254,35 @@ function getCombinedCSS() {
     .pricing-card button { background: var(--accent-color); color: white; border: none; padding: 0.75rem 2rem; font-size: 1rem; font-weight: 600; border-radius: 8px; cursor: pointer; width: 100%; }
     .section-cta { background: var(--accent-color); color: white; text-align: center; padding: 5rem 2rem; }
     .section-cta h2 { font-size: 2.5rem; margin-bottom: 1rem; }
-    .section-cta p { font-size: 1.25rem; margin-bottom: 2rem; }
+    .section-cta p { font-size: 1.25rem; margin-bottom: 2rem; opacity: 0.9; }
     .section-cta button { background: white; color: var(--accent-color); border: none; padding: 1rem 2rem; font-size: 1.125rem; font-weight: 600; border-radius: 8px; cursor: pointer; }
+
+    /* SaaS Product Template */
+    .template-saas .section-hero { background: linear-gradient(135deg, var(--accent-color) 0%, #1e40af 100%); text-align: center; }
+    .template-saas .features-grid { grid-template-columns: repeat(3, 1fr); }
+    .template-saas .testimonials-grid { grid-template-columns: repeat(3, 1fr); }
+
+    /* Event/Webinar Template */
+    .template-event .section-hero { background: linear-gradient(to right, #7c3aed 0%, #a855f7 100%); text-align: left; padding: 6rem 3rem; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; }
+    .template-event .section-hero h1 { font-size: 3.5rem; line-height: 1.1; grid-column: 1; }
+    .template-event .section-hero p { font-size: 1.5rem; grid-column: 1; }
+    .template-event .section-hero button { grid-column: 1; justify-self: start; font-size: 1.25rem; padding: 1.25rem 2.5rem; }
+    .template-event .features-grid { grid-template-columns: repeat(2, 1fr); gap: 3rem; }
+    .template-event .feature-card { text-align: left; padding: 2.5rem; background: #f9fafb; border-radius: 12px; }
+    .template-event .testimonials-grid { display: flex; flex-direction: column; gap: 1.5rem; }
+    .template-event .testimonial-card { border-left: 4px solid var(--accent-color); box-shadow: none; background: white; }
+    .template-event .testimonial-card blockquote { font-size: 1.25rem; }
+
+    /* Portfolio Template */
+    .template-portfolio .section-hero { background: linear-gradient(to bottom, #10b981 0%, #059669 100%); text-align: left; padding: 7rem 3rem; max-width: 800px; margin: 0; }
+    .template-portfolio .section-hero h1 { font-size: 4rem; font-weight: 300; letter-spacing: -0.05em; }
+    .template-portfolio .section-hero p { font-size: 1.5rem; font-weight: 300; }
+    .template-portfolio .section-hero button { background: transparent; border: 2px solid white; color: white; padding: 0.875rem 2rem; }
+    .template-portfolio .features-grid { display: flex; flex-direction: column; gap: 2rem; max-width: 600px; }
+    .template-portfolio .feature-card { text-align: left; padding: 0; display: flex; gap: 1.5rem; align-items: flex-start; }
+    .template-portfolio .feature-card h3 { font-size: 1.75rem; font-weight: 400; }
+    .template-portfolio .testimonials-grid { display: grid; grid-template-columns: 1fr; gap: 2rem; max-width: 700px; margin: 0 auto; }
+    .template-portfolio .testimonial-card { background: transparent; border: none; box-shadow: none; padding: 2rem 0; border-bottom: 1px solid #e5e7eb; }
+    .template-portfolio .testimonial-card blockquote { font-size: 1.25rem; font-style: normal; font-weight: 300; }
   `;
 }

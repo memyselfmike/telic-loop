@@ -12,6 +12,8 @@ These verify individual components work correctly in isolation:
 - **unit_template_sections_schema.sh** - Each template has exactly 5 sections (hero, features, testimonials, pricing, cta) with correct schema
 - **unit_template_content_distinct.sh** - SaaS/Event/Portfolio templates have meaningfully different content (< 30% similarity)
 - **unit_html_structure.sh** - index.html has all required regions (template-selector, workspace, preview-panel) and script/CSS tags
+- **unit_css_accent_color_vars.sh** - templates.css uses --accent-color variable for buttons, headings, and borders
+- **unit_template_css_completeness.sh** - templates.css defines styles for all 5 section types with proper layouts
 
 ### Integration Verifications (Medium, < 60s)
 These verify components work together correctly:
@@ -20,6 +22,9 @@ These verify components work together correctly:
 - **integration_static_assets.sh** - All static assets (CSS, JS) are served correctly by Express
 - **integration_app_state_management.sh** - AppState object initializes and manages state correctly
 - **integration_css_styles_applied.sh** - CSS files contain required styles for all section types
+- **integration_template_css_classes.sh** - Template-specific CSS classes exist for visual distinction (CE-85-11, EVAL-1)
+- **integration_preview_thumbnails.sh** - Template cards include preview/thumbnail elements (CE-85-12, EVAL-2)
+- **integration_change_template_button.sh** - Change Template button exists in HTML/JS (CE-85-13, EVAL-3)
 
 ### Value Delivery Verifications (Playwright Browser Tests)
 These simulate real user workflows and verify the user gets the promised outcome:
@@ -31,6 +36,10 @@ These simulate real user workflows and verify the user gets the promised outcome
 - **value_accent_color_changes.spec.js** - User can change accent color and see it applied globally
 - **value_html_export.spec.js** - User can export standalone HTML file with inlined CSS
 - **value_complete_workflow.spec.js** - Complete Vision workflow: pick template, customize, preview mobile, export
+- **value_template_visual_distinction.spec.js** - Each template produces visually distinct landing pages (different layouts, colors, styles)
+- **value_template_thumbnails.spec.js** - Template cards show visual thumbnail previews (not just text)
+- **value_change_template_button.spec.js** - User can return to template selector from editor with confirmation
+- **value_foundation_epic_complete.spec.js** - Foundation epic delivers all core features: app shell, template selection, preview, state management
 
 ## Running Verifications
 
