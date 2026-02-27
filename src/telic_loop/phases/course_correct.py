@@ -46,6 +46,8 @@ def do_course_correct(config: LoopConfig, state: LoopState, claude: Claude) -> b
     state.agent_results.pop("course_correction", None)
     session.send(prompt)
 
+    state.course_correct_attempted_for_current_failures = True
+
     correction = state.agent_results.get("course_correction")
     if not correction:
         return False

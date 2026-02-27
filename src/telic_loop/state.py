@@ -316,6 +316,7 @@ class LoopState:
     # Research tracking
     research_briefs: list[dict] = field(default_factory=list)
     research_attempted_for_current_failures: bool = False
+    course_correct_attempted_for_current_failures: bool = False
 
     # Structured tool results
     agent_results: dict[str, Any] = field(default_factory=dict)

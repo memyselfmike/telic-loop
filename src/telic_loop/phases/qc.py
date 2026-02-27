@@ -268,6 +268,7 @@ def do_run_qc(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
                     stderr=(stderr or "")[:2000],
                 ))
                 state.research_attempted_for_current_failures = False
+                state.course_correct_attempted_for_current_failures = False
 
         # Stop at first category with failures
         if any(
@@ -452,6 +453,7 @@ def do_fix(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
             _restore_verifications(state, snapshot)
             state.fix_rollback_causes.add(cause_sig)
             state.research_attempted_for_current_failures = False
+            state.course_correct_attempted_for_current_failures = False
         else:
             if net_change > 0:
                 print(f"  Fix improved: {pre_fix_passing}→{post_fix_passing} passing (+{net_change})")
