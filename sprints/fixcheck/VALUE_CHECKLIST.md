@@ -1,12 +1,12 @@
 # Value Checklist: fixcheck
-Generated: 2026-02-27T18:34:10.144834
+Generated: 2026-02-27T19:34:08.446159
 
 ## VRC Status
-- Value Score: 100%
-- Verified: 7/7
+- Value Score: 67%
+- Verified: 2/3
 - Blocked: 0
-- Recommendation: SHIP_READY
-- Summary: Epic 1 (Notes CRUD) delivers full value — all 7 deliverables verified through live testing at iteration 32. (1) Express server runs on port 3000 via npm start. (2) JSON-file persistence with atomic writes — notes verified to survive server restart (create → kill → restart → note present). (3) All 4 REST API endpoints working: GET /api/notes 200, POST /api/notes 201/400, GET /api/notes/:id 200/404, DELETE /api/notes/:id 204/404 — 10/10 Jest tests pass, 9/9 live curl tests pass. (4) Notes list page renders cards with title + 80-char preview sorted newest-first. (5) Inline new-note form creates notes without page reload. (6) Click-to-expand toggles full note body inline. (7) Delete button removes notes from UI and JSON file with confirmation dialog. All 6 completion criteria met. Core application code (server.js, persistence.js, routes/notes.js, public/app.js) contains zero debug artifacts. Remaining open tasks (CLEANUP-debug-artifacts, SPLIT-FN-*) affect only verification utility scripts, not the user-facing application. The user can open localhost:3000 and immediately create, view, expand, and delete notes — all persisted to disk.
+- Recommendation: CONTINUE
+- Summary: Epic 2 (Stats Dashboard) progress: API endpoint (task 2.1) is now complete. GET /api/stats endpoint correctly computes and returns all four required metrics. However, the user-facing stats dashboard page (task 2.2) and integration tests (task 2.3) remain incomplete. User cannot achieve the promised outcome of viewing stats on /stats without the dashboard UI. Two blocking gaps exist: (1) Stats page needs immediate implementation to unlock user value, (2) Tests needed to verify stats correctness. Epic 1 remains ship-ready (5/5 verified from iteration 36). Recommendation: Execute tasks 2.2 and 2.3 in sequence to complete Epic 2 delivery.
 
 ## Tasks
 - [x] **1.1**: Implement JSON-file persistence module (persistence.js) exporting readNotes() and writeNotes(notes). readNotes returns parsed array from data/notes.json or empty array if file missing/empty. writeNotes serializes and overwrites atomically. Refactor server.js: add express.static for public/ dir with extensions:["html"] so /stats resolves to stats.html, wire express.json() middleware, export app via module.exports and only call app.listen when require.main===module (enables Supertest testing). Create public/ directory.
@@ -17,9 +17,10 @@ Generated: 2026-02-27T18:34:10.144834
 - [x] **VRC-6-gap-1**: Task 1.5 is already in the plan and unblocked — execute it to verify the complete user journey: create note via UI → verify list update → expand → delete → restart server → verify persistence
 - [D] **SPLIT-FN-final-e2e-check-js**: Split long functions in final-e2e-check.js: finalCheck(87L). Extract helper functions to keep each function under 50 lines.
 - [D] **SPLIT-FN-verify-e2e-js**: Split long functions in verify-e2e.js: verify(140L). Extract helper functions to keep each function under 50 lines.
+- [x] **2.1**: Implement GET /api/stats endpoint in routes/stats.js, mounted at /api/stats in server.js. Read all notes via readNotes(). Compute totalNotes (array length), averageBodyLength (mean of body.length, rounded to integer, 0 when no notes), newestDate (max createdAt ISO string, null when no notes), oldestDate (min createdAt ISO string, null when no notes). Return 200 JSON with all four fields. Handle zero-notes edge case gracefully.
+- [ ] **2.2**: Build Stats Dashboard page: public/stats.html and public/stats.js. stats.html has same header/nav pattern as index.html with NoteBox title and Back to Notes link. Main section displays four stat cards: Total Notes, Average Body Length, Newest Note Date, Oldest Note Date. stats.js fetches GET /api/stats on load and populates card values. Dates formatted as readable locale strings. Zero-notes state shows sensible defaults (0 counts, "No notes yet" for dates). Append stats-page styles to existing style.css.
+- [ ] **2.3**: Write stats API tests in tests/stats.test.js using Jest + Supertest. Test GET /api/stats with zero notes returns {totalNotes:0, averageBodyLength:0, newestDate:null, oldestDate:null}. Create 2+ notes via POST /api/notes, then verify stats reflect correct count, average body length, and correct newest/oldest dates. Delete a note, verify stats update. Ensure test isolation by resetting data/notes.json between tests.
+- [ ] **VRC-37-gap-stats-ui**: Complete task 2.2: Build Stats Dashboard page with stats.html and stats.js. Display four stat cards (Total Notes, Average Body Length, Newest Note Date, Oldest Note Date) populated from GET /api/stats. Add back-to-notes navigation link. Styles appended to existing style.css.
+- [ ] **VRC-37-gap-stats-tests**: Complete task 2.3: Write stats API tests in tests/stats.test.js. Test zero-notes edge case, multi-note correctness, stats update after note deletion. Ensure test isolation via notes.json reset between tests.
 
 ## Verifications
-- [x] integration/integration_api_crud (integration)
-- [x] integration/integration_persistence_flow (integration)
-- [x] unit/unit_persistence (unit)
-- [!] value/value_notes_ui_expand (value)
