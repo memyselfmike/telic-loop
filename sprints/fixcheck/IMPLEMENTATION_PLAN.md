@@ -1,6 +1,6 @@
 # Implementation Plan (rendered from state)
 
-Generated: 2026-02-27T19:29:55.123355
+Generated: 2026-02-27T22:29:37.884950
 
 
 ## Foundation
@@ -22,12 +22,12 @@ Generated: 2026-02-27T19:29:55.123355
   - Acceptance: 1. GET / serves page showing note cards with title + 80-char preview. 2. New Note form creates note; card appears without reload. 3. Click title expands full body; click again collapses. 4. Delete removes card and persists deletion. 5. Nav link to /stats is present.
   - Deps: 1.2
 
-- [ ] **2.1**: Implement GET /api/stats endpoint in routes/stats.js, mounted at /api/stats in server.js. Read all notes via readNotes(). Compute totalNotes (array length), averageBodyLength (mean of body.length, rounded to integer, 0 when no notes), newestDate (max createdAt ISO string, null when no notes), oldestDate (min createdAt ISO string, null when no notes). Return 200 JSON with all four fields. Handle zero-notes edge case gracefully.
+- [x] **2.1**: Implement GET /api/stats endpoint in routes/stats.js, mounted at /api/stats in server.js. Read all notes via readNotes(). Compute totalNotes (array length), averageBodyLength (mean of body.length, rounded to integer, 0 when no notes), newestDate (max createdAt ISO string, null when no notes), oldestDate (min createdAt ISO string, null when no notes). Return 200 JSON with all four fields. Handle zero-notes edge case gracefully.
   - Value: Enables the stats dashboard to display real-time aggregate data computed from existing notes — the data backbone for the stats page that lets users understand their notes collection at a glance.
   - Acceptance: 1. GET /api/stats returns 200 with JSON containing totalNotes, averageBodyLength, newestDate, oldestDate. 2. With 3 notes, totalNotes=3 and averageBodyLength reflects actual mean. 3. newestDate/oldestDate match the most recent and earliest createdAt. 4. With zero notes, returns totalNotes=0, averageBodyLength=0, newestDate=null, oldestDate=null.
   - Deps: 1.1
 
-- [ ] **2.2**: Build Stats Dashboard page: public/stats.html and public/stats.js. stats.html has same header/nav pattern as index.html with NoteBox title and Back to Notes link. Main section displays four stat cards: Total Notes, Average Body Length, Newest Note Date, Oldest Note Date. stats.js fetches GET /api/stats on load and populates card values. Dates formatted as readable locale strings. Zero-notes state shows sensible defaults (0 counts, "No notes yet" for dates). Append stats-page styles to existing style.css.
+- [x] **2.2**: Build Stats Dashboard page: public/stats.html and public/stats.js. stats.html has same header/nav pattern as index.html with NoteBox title and Back to Notes link. Main section displays four stat cards: Total Notes, Average Body Length, Newest Note Date, Oldest Note Date. stats.js fetches GET /api/stats on load and populates card values. Dates formatted as readable locale strings. Zero-notes state shows sensible defaults (0 counts, "No notes yet" for dates). Append stats-page styles to existing style.css.
   - Value: Delivers the stats dashboard experience — user navigates to /stats and instantly sees a clear summary of their notes collection with four key metrics, fulfilling the Vision promise of a stats page.
   - Acceptance: 1. GET /stats serves stats.html with four stat cards rendered. 2. Stats values match current notes data from /api/stats. 3. Dates displayed in human-readable format (not raw ISO). 4. Zero-notes state shows 0 total, 0 average, no-dates message. 5. Back to Notes link navigates to /.
   - Deps: 2.1
@@ -40,7 +40,7 @@ Generated: 2026-02-27T19:29:55.123355
   - Acceptance: 1. npm test runs Jest and all tests pass. 2. Tests cover all 4 endpoints for both success and error cases. 3. Tests verify status codes and response body shapes. 4. No state leakage between test runs.
   - Deps: 1.2
 
-- [ ] **2.3**: Write stats API tests in tests/stats.test.js using Jest + Supertest. Test GET /api/stats with zero notes returns {totalNotes:0, averageBodyLength:0, newestDate:null, oldestDate:null}. Create 2+ notes via POST /api/notes, then verify stats reflect correct count, average body length, and correct newest/oldest dates. Delete a note, verify stats update. Ensure test isolation by resetting data/notes.json between tests.
+- [x] **2.3**: Write stats API tests in tests/stats.test.js using Jest + Supertest. Test GET /api/stats with zero notes returns {totalNotes:0, averageBodyLength:0, newestDate:null, oldestDate:null}. Create 2+ notes via POST /api/notes, then verify stats reflect correct count, average body length, and correct newest/oldest dates. Delete a note, verify stats update. Ensure test isolation by resetting data/notes.json between tests.
   - Value: Proves the stats computation is correct and stays correct — automated regression protection for the aggregate calculations so users always see accurate statistics.
   - Acceptance: 1. npm test runs all tests including stats tests and they pass. 2. Zero-notes case returns correct defaults. 3. Multi-note case returns accurate totalNotes, averageBodyLength, newestDate, oldestDate. 4. Stats update correctly after note deletion. 5. No test state leakage.
   - Deps: 2.1
@@ -59,6 +59,14 @@ Generated: 2026-02-27T19:29:55.123355
 - [ ] **SPLIT-FN-verify-e2e-js**: Split long functions in verify-e2e.js: verify(140L). Extract helper functions to keep each function under 50 lines.
   - Value: Improve readability and testability of verify-e2e.js
   - Acceptance: No function in verify-e2e.js exceeds 50 lines. All existing tests still pass.
+
+- [x] **VRC-37-gap-stats-tests**: Complete task 2.3: Write stats API tests in tests/stats.test.js. Test zero-notes edge case, multi-note correctness, stats update after note deletion. Ensure test isolation via notes.json reset between tests.
+  - Value: Stats API integration tests not yet written. Task 2.3 pending. Without tests, we cannot verify stats computation correctness or catch regressions.
+  - Acceptance: Gap 'gap-stats-tests' resolved: Stats API integration tests not yet written. Task 2.3 pending. Without tests, we cannot verify stats computation correctness or catch regressions.
+
+- [x] **VRC-37-gap-stats-ui**: Complete task 2.2: Build Stats Dashboard page with stats.html and stats.js. Display four stat cards (Total Notes, Average Body Length, Newest Note Date, Oldest Note Date) populated from GET /api/stats. Add back-to-notes navigation link. Styles appended to existing style.css.
+  - Value: Stats dashboard page (/stats) not yet implemented. Task 2.2 pending execution. User cannot view the promised stats metrics without this UI.
+  - Acceptance: Gap 'gap-stats-ui' resolved: Stats dashboard page (/stats) not yet implemented. Task 2.2 pending execution. User cannot view the promised stats metrics without this UI.
 
 - [x] **VRC-6-gap-1**: Task 1.5 is already in the plan and unblocked — execute it to verify the complete user journey: create note via UI → verify list update → expand → delete → restart server → verify persistence
   - Value: End-to-end verification not yet run — task 1.5 is pending. Cannot confirm that all pieces (UI, API, persistence) work together from the user perspective through the running app. This is the definitive proof of VALUE.
