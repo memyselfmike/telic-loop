@@ -56,17 +56,20 @@ def _needs_browser_eval(state: LoopState, config: LoopConfig | None = None) -> b
 
 def _build_playwright_config(config: LoopConfig) -> dict:
     """Build MCP server config dict for Playwright."""
+    eval_dir = config.sprint_dir / "eval"
+    eval_dir.mkdir(exist_ok=True)
     args = [
         "@playwright/mcp",
         "--caps", "vision",
         "--viewport-size", config.browser_eval_viewport,
+        "--output-dir", str(eval_dir),
     ]
     if config.browser_eval_headless:
         args.append("--headless")
     return {"playwright": {"command": "npx", "args": args}}
 
 
-def _cleanup_playwright_artifacts(config: LoopConfig, pre_existing_pngs: set[str]) -> None:
+def _cleanup_playwright_artifacts(config: LoopConfig) -> None:
     """Remove Playwright screenshots and logs created during evaluation."""
     import shutil
 
@@ -78,14 +81,13 @@ def _cleanup_playwright_artifacts(config: LoopConfig, pre_existing_pngs: set[str
         shutil.rmtree(pw_dir, ignore_errors=True)
         print("    Cleaned .playwright-mcp/")
 
-    # Delete screenshots from project root that weren't there before
-    cleaned = 0
-    for png in project_dir.glob("*.png"):
-        if str(png) not in pre_existing_pngs:
-            png.unlink(missing_ok=True)
-            cleaned += 1
-    if cleaned:
-        print(f"    Cleaned {cleaned} screenshot(s) from project root")
+    # Delete eval screenshots from sprint dir
+    eval_dir = config.sprint_dir / "eval"
+    if eval_dir.is_dir():
+        cleaned = sum(1 for _ in eval_dir.glob("*.png"))
+        shutil.rmtree(eval_dir, ignore_errors=True)
+        if cleaned:
+            print(f"    Cleaned {cleaned} screenshot(s) from eval/")
 
 
 def do_critical_eval(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
@@ -175,16 +177,11 @@ def do_critical_eval(config: LoopConfig, state: LoopState, claude: Claude) -> bo
         BROWSER_SECTION=browser_section,
     )
 
-    # Capture pre-existing screenshots for cleanup
-    from pathlib import Path
-    project_dir = Path(config.effective_project_dir)
-    pre_pngs = {str(p) for p in project_dir.glob("*.png")} if use_browser else set()
-
     try:
         session.send(prompt)
     finally:
         if use_browser:
-            _cleanup_playwright_artifacts(config, pre_pngs)
+            _cleanup_playwright_artifacts(config)
 
     # Findings arrive via report_eval_finding tool calls.
     # Critical/blocking findings auto-create CE-* tasks.
