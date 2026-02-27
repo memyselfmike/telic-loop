@@ -6,6 +6,10 @@ const PORT = 3000;
 // Middleware
 app.use(express.json());
 
+// API Routes
+const notesRouter = require('./routes/notes');
+app.use('/api/notes', notesRouter);
+
 // Serve static files from public/ directory with extension fallback
 // This allows /stats to resolve to stats.html
 app.use(express.static(path.join(__dirname, 'public'), {

@@ -1,0 +1,19 @@
+# Value Checklist: fixcheck
+Generated: 2026-02-27T15:38:51.892813
+
+## VRC Status
+- Value Score: 0%
+- Verified: 0/7
+- Blocked: 0
+- Recommendation: CONTINUE
+- Summary: Epic 1 (Notes CRUD) at iteration 1: 0/7 deliverables verified. Task 1.1 (foundation) is complete — persistence.js provides atomic JSON read/write, server.js has Express skeleton with app export pattern for testing. However, no user-facing value exists yet: no API endpoints, no UI pages, no tests. All 5 remaining critical gaps are covered by existing plan tasks 1.2-1.5 which are now unblocked (1.1 dependency satisfied). One degraded gap noted: the hardcoded GET / health-check route in server.js will shadow index.html and must be removed when building the UI (task 1.3). The console.error debug artifact in persistence.js is tracked by CLEANUP-debug-artifacts. Critical path is clear: 1.2 (API) -> 1.3 (UI) -> 1.4 (tests) -> 1.5 (E2E). No external blockers. Recommendation: CONTINUE executing the plan.
+
+## Tasks
+- [x] **1.1**: Implement JSON-file persistence module (persistence.js) exporting readNotes() and writeNotes(notes). readNotes returns parsed array from data/notes.json or empty array if file missing/empty. writeNotes serializes and overwrites atomically. Refactor server.js: add express.static for public/ dir with extensions:["html"] so /stats resolves to stats.html, wire express.json() middleware, export app via module.exports and only call app.listen when require.main===module (enables Supertest testing). Create public/ directory.
+- [ ] **1.2**: Implement Notes CRUD API routes in routes/notes.js, mounted at /api/notes in server.js. GET /api/notes returns all notes (200). POST /api/notes accepts {title,body}, validates both present and non-empty (400 with error message otherwise), generates id via crypto.randomUUID() and createdAt via new Date().toISOString(), persists via writeNotes, returns 201 with created note. GET /api/notes/:id returns note (200) or 404. DELETE /api/notes/:id removes note (204) or 404.
+- [ ] **1.3**: Build Notes List page: public/index.html, public/app.js, public/style.css. Display all notes as cards with title and first 80 chars of body as preview. New Note button reveals inline form (title input, body textarea, Save button). Save calls POST /api/notes and appends card without reload. Each card has Delete button calling DELETE /api/notes/:id. Clicking title toggles full body expanded inline. Clean CSS with centered max-width layout, card borders/shadows, styled form, nav area with Stats link.
+- [ ] **1.4**: Install Jest and Supertest as devDependencies. Write API integration tests in tests/api.test.js covering all four CRUD endpoints: GET /api/notes (empty list, populated list), POST /api/notes (valid input returns 201, missing fields returns 400), GET /api/notes/:id (found 200, not-found 404), DELETE /api/notes/:id (found 204, not-found 404). Tests import app from server.js and use supertest. Each test resets data/notes.json to avoid state leakage. Add test script to package.json.
+- [ ] **1.5**: End-to-end verification through the running app. Start server, create a note via the UI form (POST), verify it appears in the list with correct title and preview. Click title to expand and verify full body displays. Delete the note and verify it disappears from the list. Verify data/notes.json reflects all changes. Restart the server and verify a previously-created note survives the restart (JSON persistence proof).
+- [ ] **CLEANUP-debug-artifacts**: Remove 1 debug artifact(s) (print/console.log/breakpoint/debugger statements, empty .log files, .bak files) from production code. Replace with proper logging if output is needed.
+
+## Verifications
