@@ -63,8 +63,14 @@ def decide_next_action(config: LoopConfig, state: LoopState) -> Action:
         return Action.SERVICE_FIX
 
     # P2: Stuck -> course correct
+    # Skip when there are failing verifications — P4 has its own bounded
+    # exhaustion path (FIX → RESEARCH → COURSE_CORRECT → block).
+    # P2 firing here just wastes course_correction budget without helping.
+    has_failing_verifications = any(
+        v.status == "failed" for v in state.verifications.values()
+    )
     course_correction_count = len(state.progress_log_count("course_correct"))
-    if state.is_stuck(config):
+    if state.is_stuck(config) and not has_failing_verifications:
         if course_correction_count >= config.max_course_corrections:
             if state.pause is None:
                 state.pause = PauseState(

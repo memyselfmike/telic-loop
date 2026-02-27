@@ -87,6 +87,48 @@ Write scripts to the `.loop/verifications/` directory inside `{SPRINT_DIR}`:
 3. Include descriptive output so failures are diagnosable without reading the script
 4. Reference which PRD section or Vision goal it verifies (in a comment at the top)
 
+### Test Count and Focus
+
+Generate **3–5 verification scripts per epic** — fewer, more thorough tests
+beat many shallow ones. Each failing test costs 3+ fix iterations (~30k tokens).
+Prioritize:
+
+1. One value test for each core user flow in the Vision
+2. One integration test for the critical data path
+3. Unit tests only for complex logic (skip trivial CRUD unit tests)
+
+Do NOT generate tests for:
+- Simple getter/setter endpoints that are exercised by value tests
+- Features already covered by another test's assertions
+- Edge cases the PRD doesn't mention
+
+### Data Independence (CRITICAL)
+
+Every test MUST assume the database/store is **empty** when it starts.
+Tests run in parallel on isolated ports with isolated data directories —
+there is NO shared state between tests.
+
+**Each test that needs data MUST create it at the start of the test:**
+
+```bash
+# GOOD — test creates its own data, then verifies
+curl -s -X POST "http://localhost:$TEST_PORT/api/notes" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Test Note","body":"Created by this test"}' > /dev/null
+
+result=$(curl -s "http://localhost:$TEST_PORT/api/notes")
+echo "$result" | grep -q "Test Note" || { echo "FAIL: Note not found"; exit 1; }
+
+# BAD — test assumes notes already exist from somewhere
+result=$(curl -s "http://localhost:$TEST_PORT/api/notes")
+echo "$result" | grep -q "Note" || { echo "FAIL: No notes"; exit 1; }
+```
+
+**Anti-pattern that causes fix spirals:** Test B depends on data created
+by Test A. Since tests run in parallel, Test B sees an empty store and
+fails. The fix agent then tries to modify the app, creating a cascade
+of broken fixes.
+
 ### Test Isolation (CRITICAL)
 
 Verification scripts run **in parallel**. Each script receives these environment variables:
@@ -214,3 +256,5 @@ fi
 - Writing scripts that modify production data or state — use test databases, temp files, isolated environments
 - Creating wrapper/runner scripts (`run_all.sh`, `run_all_unit.sh`) that aggregate other test scripts — the loop runs each script independently in parallel; aggregators always fail when any sub-test fails and waste fix budget
 - Placing config files (playwright.config.js, jest.config.js) in the verifications directory — config is not a verification script
+- Generating more than 5 verification scripts per epic — each failing test costs 3+ fix iterations; fewer focused tests deliver more value than many shallow ones
+- Writing tests that assume pre-existing data — every test must seed its own data because tests run in parallel on isolated environments
