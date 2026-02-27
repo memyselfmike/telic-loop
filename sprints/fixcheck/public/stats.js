@@ -27,14 +27,14 @@ async function loadStats() {
 function renderStatsDashboard(stats) {
   const dashboard = document.getElementById('stats-dashboard');
 
-  // Format dates for display (or show "N/A" if null)
+  // Format dates for display (or show "No notes yet" if null)
   const newestDateFormatted = stats.newestDate
     ? new Date(stats.newestDate).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
         day: 'numeric'
       })
-    : 'N/A';
+    : 'No notes yet';
 
   const oldestDateFormatted = stats.oldestDate
     ? new Date(stats.oldestDate).toLocaleDateString('en-US', {
@@ -42,7 +42,7 @@ function renderStatsDashboard(stats) {
         month: 'long',
         day: 'numeric'
       })
-    : 'N/A';
+    : 'No notes yet';
 
   dashboard.innerHTML = `
     <div class="stat-card">
