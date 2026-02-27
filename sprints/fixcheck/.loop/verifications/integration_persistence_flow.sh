@@ -13,6 +13,9 @@ cd "$(dirname "$0")/../.."
 TEST_PORT="${PORT:-3300}"
 DATA_DIR="${TEST_DATA_DIR:-$(mktemp -d)}"
 
+# Convert Windows backslashes to forward slashes for Node.js
+DATA_DIR_NORM="${DATA_DIR//\\//}"
+
 # Server script template (will be reused)
 create_server() {
   cat > .test_persist_temp.js <<EOF
@@ -21,7 +24,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-const NOTES_FILE = '${DATA_DIR}/notes.json';
+const NOTES_FILE = '${DATA_DIR_NORM}/notes.json';
 
 function readNotes() {
   try {

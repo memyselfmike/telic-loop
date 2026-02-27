@@ -13,6 +13,9 @@ cd "$(dirname "$0")/../.."
 TEST_PORT="${PORT:-3200}"
 DATA_DIR="${TEST_DATA_DIR:-$(mktemp -d)}"
 
+# Convert Windows backslashes to forward slashes for Node.js
+DATA_DIR_NORM="${DATA_DIR//\\//}"
+
 # Ensure clean data directory
 mkdir -p "${DATA_DIR}"
 echo "[]" > "${DATA_DIR}/notes.json"
@@ -24,7 +27,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-const NOTES_FILE = '${DATA_DIR}/notes.json';
+const NOTES_FILE = '${DATA_DIR_NORM}/notes.json';
 
 function readNotes() {
   try {

@@ -8,10 +8,32 @@ set -euo pipefail
 echo "=== Value: Delete Note via UI ==="
 
 cd "$(dirname "$0")/../.."
+PROJECT_DIR="$(pwd)"
+
+# Convert Unix-style paths to Windows-style for Node.js on Windows
+# Git Bash pwd returns /e/... but Node.js needs E:/...
+PROJECT_DIR="$(echo "$PROJECT_DIR" | sed 's|^/\([a-z]\)/|\U\1:/|')"
 
 # Isolated test environment
 TEST_PORT="${PORT:-3000}"
 DATA_DIR="${TEST_DATA_DIR:-$(mktemp -d)}"
+
+# Convert DATA_DIR to Windows format for Node.js
+# On Git Bash, mktemp -d returns paths like /tmp/tmp.XXXXXX
+# We need to convert to Windows format for Node.js to resolve correctly
+if [[ "$DATA_DIR" =~ ^/([a-z])/ ]]; then
+  # Drive letter path: /e/... → E:/...
+  DATA_DIR="$(echo "$DATA_DIR" | sed 's|^/\([a-z]\)/|\U\1:/|')"
+elif [[ "$DATA_DIR" =~ ^/tmp/ ]]; then
+  # Git Bash /tmp maps to Windows TEMP dir
+  # Use cygpath if available, otherwise use realpath
+  if command -v cygpath &> /dev/null; then
+    DATA_DIR="$(cygpath -w "$DATA_DIR" | tr '\\' '/')"
+  else
+    # Fallback: get absolute Windows path
+    DATA_DIR="$(cd "$DATA_DIR" && pwd -W 2>/dev/null || pwd | sed 's|^/\([a-z]\)/|\U\1:/|')"
+  fi
+fi
 
 # Pre-populate with test notes
 mkdir -p "${DATA_DIR}"
@@ -34,7 +56,6 @@ EOF
 
 # Start server
 cat > /tmp/test_ui_delete_$$.js <<EOF
-const app = require('./server.js');
 const fs = require('fs');
 const path = require('path');
 
@@ -58,7 +79,22 @@ const persistence = {
   }
 };
 
-require.cache[require.resolve('./persistence')].exports = persistence;
+// Clear all potentially cached modules to ensure clean state
+delete require.cache[require.resolve('${PROJECT_DIR}/server.js')];
+delete require.cache[require.resolve('${PROJECT_DIR}/routes/notes')];
+delete require.cache[require.resolve('${PROJECT_DIR}/persistence')];
+
+// Inject patched persistence into require.cache
+const persistencePath = require.resolve('${PROJECT_DIR}/persistence');
+require.cache[persistencePath] = {
+  id: persistencePath,
+  filename: persistencePath,
+  loaded: true,
+  exports: persistence
+};
+
+// Now require server.js - routes/notes.js will get the patched persistence from cache
+const app = require('${PROJECT_DIR}/server.js');
 
 app.listen(${TEST_PORT}, () => {
   console.log('Delete test server on ${TEST_PORT}');

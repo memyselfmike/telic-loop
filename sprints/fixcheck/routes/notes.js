@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
-const { readNotes, writeNotes } = require('../persistence');
+const persistence = require('../persistence');
 
 /**
  * GET /api/notes
@@ -9,7 +9,7 @@ const { readNotes, writeNotes } = require('../persistence');
  */
 router.get('/', (req, res) => {
   try {
-    const notes = readNotes();
+    const notes = persistence.readNotes();
     res.status(200).json(notes);
   } catch (error) {
     res.status(500).json({ error: 'Failed to retrieve notes' });
@@ -44,9 +44,9 @@ router.post('/', (req, res) => {
     };
 
     // Persist the note
-    const notes = readNotes();
+    const notes = persistence.readNotes();
     notes.push(newNote);
-    writeNotes(notes);
+    persistence.writeNotes(notes);
 
     res.status(201).json(newNote);
   } catch (error) {
@@ -62,7 +62,7 @@ router.post('/', (req, res) => {
 router.get('/:id', (req, res) => {
   try {
     const { id } = req.params;
-    const notes = readNotes();
+    const notes = persistence.readNotes();
     const note = notes.find(n => n.id === id);
 
     if (!note) {
@@ -83,7 +83,7 @@ router.get('/:id', (req, res) => {
 router.delete('/:id', (req, res) => {
   try {
     const { id } = req.params;
-    const notes = readNotes();
+    const notes = persistence.readNotes();
     const noteIndex = notes.findIndex(n => n.id === id);
 
     if (noteIndex === -1) {
@@ -92,7 +92,7 @@ router.delete('/:id', (req, res) => {
 
     // Remove the note and persist
     notes.splice(noteIndex, 1);
-    writeNotes(notes);
+    persistence.writeNotes(notes);
 
     res.status(204).send();
   } catch (error) {

@@ -10,6 +10,9 @@ app.use(express.json());
 const notesRouter = require('./routes/notes');
 app.use('/api/notes', notesRouter);
 
+const statsRouter = require('./routes/stats');
+app.use('/api/stats', statsRouter);
+
 // Serve static files from public/ directory with extension fallback
 // This allows / to resolve to index.html and /stats to resolve to stats.html
 app.use(express.static(path.join(__dirname, 'public'), {

@@ -11,6 +11,10 @@ cd "$(dirname "$0")/../.."
 
 # Isolated test environment
 DATA_DIR="${TEST_DATA_DIR:-$(mktemp -d)}"
+
+# Convert Windows backslashes to forward slashes for Node.js
+DATA_DIR_NORM="${DATA_DIR//\\//}"
+
 trap 'rm -rf "$DATA_DIR"' EXIT
 
 # Create test script that uses isolated data directory
@@ -19,13 +23,13 @@ const fs = require('fs');
 const path = require('path');
 
 // Override NOTES_FILE path to use test directory
-const NOTES_FILE = path.join('${DATA_DIR}', 'notes.json');
+const NOTES_FILE = path.join('${DATA_DIR_NORM}', 'notes.json');
 
 // Copy persistence module and patch it for testing
 const persistenceCode = fs.readFileSync('./persistence.js', 'utf-8');
 const patchedCode = persistenceCode.replace(
   "const NOTES_FILE = path.join(__dirname, 'data', 'notes.json');",
-  "const NOTES_FILE = path.join('${DATA_DIR}', 'notes.json');"
+  "const NOTES_FILE = path.join('${DATA_DIR_NORM}', 'notes.json');"
 );
 
 // Evaluate patched module

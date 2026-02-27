@@ -8,20 +8,37 @@ set -euo pipefail
 echo "=== Value: Create Note via UI Form ==="
 
 cd "$(dirname "$0")/../.."
+PROJECT_DIR="$(pwd)"
+
+# Convert Unix-style paths to Windows-style for Node.js on Windows
+# Git Bash pwd returns /e/... but Node.js needs E:/...
+PROJECT_DIR="$(echo "$PROJECT_DIR" | sed 's|^/\([a-z]\)/|\U\1:/|')"
 
 # Isolated test environment
 TEST_PORT="${PORT:-3000}"
 DATA_DIR="${TEST_DATA_DIR:-$(mktemp -d)}"
 
+# Convert DATA_DIR to Windows format for Node.js
+# On Git Bash, mktemp -d returns paths like /tmp/tmp.XXXXXX
+# We need to convert to Windows format for Node.js to resolve correctly
+if [[ "$DATA_DIR" =~ ^/([a-z])/ ]]; then
+  # Drive letter path: /e/... → E:/...
+  DATA_DIR="$(echo "$DATA_DIR" | sed 's|^/\([a-z]\)/|\U\1:/|')"
+elif [[ "$DATA_DIR" =~ ^/tmp/ ]]; then
+  # Git Bash /tmp maps to Windows TEMP dir
+  # Use cygpath if available, otherwise use realpath
+  if command -v cygpath &> /dev/null; then
+    DATA_DIR="$(cygpath -w "$DATA_DIR" | tr '\\' '/')"
+  else
+    # Fallback: get absolute Windows path
+    DATA_DIR="$(cd "$DATA_DIR" && pwd -W 2>/dev/null || pwd | sed 's|^/\([a-z]\)/|\U\1:/|')"
+  fi
+fi
+
 # Start server with port isolation
 cat > /tmp/test_ui_server_$$.js <<EOF
-const app = require('./server.js');
 const fs = require('fs');
 const path = require('path');
-
-// Override persistence path
-const originalReadNotes = require('./persistence').readNotes;
-const originalWriteNotes = require('./persistence').writeNotes;
 
 const NOTES_FILE = path.join('${DATA_DIR}', 'notes.json');
 
@@ -43,8 +60,22 @@ const persistence = {
   }
 };
 
-// Patch the routes to use test persistence
-require.cache[require.resolve('./persistence')].exports = persistence;
+// Clear all potentially cached modules to ensure clean state
+delete require.cache[require.resolve('${PROJECT_DIR}/server.js')];
+delete require.cache[require.resolve('${PROJECT_DIR}/routes/notes')];
+delete require.cache[require.resolve('${PROJECT_DIR}/persistence')];
+
+// Inject patched persistence into require.cache
+const persistencePath = require.resolve('${PROJECT_DIR}/persistence');
+require.cache[persistencePath] = {
+  id: persistencePath,
+  filename: persistencePath,
+  loaded: true,
+  exports: persistence
+};
+
+// Now require server.js - routes/notes.js will get the patched persistence from cache
+const app = require('${PROJECT_DIR}/server.js');
 
 app.listen(${TEST_PORT}, () => {
   console.log('UI test server on ${TEST_PORT}');
@@ -108,10 +139,12 @@ fi
 
 echo ""
 echo "Test 4: Create note via API (simulating form submission)"
-RESPONSE=$(curl -s -X POST \
+echo "DEBUG: About to curl POST to ${BASE_URL}/api/notes" >&2
+RESPONSE=$(curl -v -X POST \
   -H "Content-Type: application/json" \
   -d '{"title":"UI Test Note","body":"This note was created via the form submission flow"}' \
-  "${BASE_URL}/api/notes")
+  "${BASE_URL}/api/notes" 2>&1 | tee /tmp/curl_debug.txt | grep -v '^[*>< ]' || true)
+echo "DEBUG: curl completed, RESPONSE length: ${#RESPONSE}" >&2
 
 NOTE_ID=$(echo "$RESPONSE" | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
 

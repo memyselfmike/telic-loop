@@ -8,6 +8,11 @@ set -euo pipefail
 echo "=== Value: Expand Note to View Full Content ==="
 
 cd "$(dirname "$0")/../.."
+PROJECT_DIR="$(pwd)"
+
+# Convert Unix-style paths to Windows-style for Node.js on Windows
+# Git Bash pwd returns /e/... but Node.js needs E:/...
+PROJECT_DIR="$(echo "$PROJECT_DIR" | sed 's|^/\([a-z]\)/|\U\1:/|')"
 
 # Isolated test environment
 TEST_PORT="${PORT:-3000}"
@@ -28,7 +33,7 @@ EOF
 
 # Start server
 cat > /tmp/test_ui_expand_$$.js <<EOF
-const app = require('./server.js');
+const app = require('${PROJECT_DIR}/server.js');
 const fs = require('fs');
 const path = require('path');
 
@@ -52,7 +57,7 @@ const persistence = {
   }
 };
 
-require.cache[require.resolve('./persistence')].exports = persistence;
+require.cache[require.resolve('${PROJECT_DIR}/persistence')].exports = persistence;
 
 app.listen(${TEST_PORT}, () => {
   console.log('Expand test server on ${TEST_PORT}');
