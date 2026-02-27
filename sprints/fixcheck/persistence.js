@@ -31,8 +31,7 @@ function readNotes() {
 
     return notes;
   } catch (error) {
-    // Log error but return empty array to maintain resilience
-    console.error('Error reading notes:', error.message);
+    // Return empty array to maintain resilience
     return [];
   }
 }
@@ -59,8 +58,8 @@ function writeNotes(notes) {
     fs.renameSync(tempFile, NOTES_FILE);
 
   } catch (error) {
-    console.error('Error writing notes:', error.message);
-    throw error; // Re-throw to let caller handle persistence failures
+    // Re-throw to let caller handle persistence failures
+    throw error;
   }
 }
 

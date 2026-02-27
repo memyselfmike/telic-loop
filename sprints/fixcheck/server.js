@@ -21,7 +21,5 @@ module.exports = app;
 
 // Only start server when run directly (not when required by tests)
 if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`NoteBox server listening on port ${PORT}`);
-  });
+  app.listen(PORT);
 }

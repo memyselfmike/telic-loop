@@ -42,7 +42,6 @@ async function loadNotes() {
     notes = await response.json();
     renderNotes();
   } catch (error) {
-    console.error('Error loading notes:', error);
     notesList.innerHTML = '<p class="error">Failed to load notes. Please refresh the page.</p>';
   }
 }
@@ -77,7 +76,6 @@ async function handleCreateNote(event) {
     renderNotes();
     hideNewNoteForm();
   } catch (error) {
-    console.error('Error creating note:', error);
     alert('Failed to create note: ' + error.message);
   }
 }
@@ -100,7 +98,6 @@ async function deleteNote(noteId) {
     notes = notes.filter(note => note.id !== noteId);
     renderNotes();
   } catch (error) {
-    console.error('Error deleting note:', error);
     alert('Failed to delete note: ' + error.message);
   }
 }
