@@ -11,15 +11,10 @@ const notesRouter = require('./routes/notes');
 app.use('/api/notes', notesRouter);
 
 // Serve static files from public/ directory with extension fallback
-// This allows /stats to resolve to stats.html
+// This allows / to resolve to index.html and /stats to resolve to stats.html
 app.use(express.static(path.join(__dirname, 'public'), {
   extensions: ['html']
 }));
-
-// Health check endpoint
-app.get('/', (req, res) => {
-  res.status(200).send('NoteBox server running');
-});
 
 // Export app for testing (Supertest compatibility)
 module.exports = app;
