@@ -154,6 +154,12 @@ def run_value_loop(
                 crash_type=crash_record["crash_type"] if crash_record else "",
             )
 
+            # Persist handler state changes BEFORE post-handler monitoring.
+            # Monitoring calls session.send() which triggers _sync_state(),
+            # reloading state from disk — wiping any in-memory changes the
+            # handler made (e.g. verification attempts increments in do_fix).
+            state.save(config.state_file)
+
             # Post-handler monitoring — wrapped so crashes don't kill the loop.
             # VRC, process monitor, plan health, and coherence check all call
             # Claude and can hit SDK timeouts or transient failures.
