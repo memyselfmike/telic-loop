@@ -267,9 +267,15 @@ def _build_script_command(script_path: str) -> list[str] | str:
         return ["node", str(p)]
 
     if suffix == ".sh":
-        # Bash requires forward slashes on all platforms
+        # Bash requires POSIX paths. On Windows, convert Windows paths to Git Bash format.
         posix_path = p.as_posix()
         if sys.platform == "win32":
+            # Convert Windows path (E:/foo/bar.sh) to Git Bash path (/e/foo/bar.sh)
+            # Git Bash on Windows expects paths like /c/Users/... not C:/Users/...
+            if len(posix_path) >= 3 and posix_path[1] == ':' and posix_path[2] == '/':
+                drive = posix_path[0].lower()
+                posix_path = f"/{drive}{posix_path[2:]}"
+
             # Try Git Bash first (most common on Windows dev machines)
             git_bash = shutil.which("bash")
             if git_bash:
