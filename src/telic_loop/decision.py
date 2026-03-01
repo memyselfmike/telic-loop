@@ -82,19 +82,16 @@ def decide_next_action(config: LoopConfig, state: LoopState) -> Action:
             return Action.INTERACTIVE_PAUSE
         return Action.COURSE_CORRECT
 
-    # P3: Generate QC when enough tasks are done to be meaningful
-    # Require at least 3 done tasks (or all tasks done) to avoid premature QC
-    # that produces nothing and wastes the generation opportunity.
+    # P3: Generate QC after BUILD completes
+    # Verifications test the COMPLETE feature set, not half-built scaffolding.
     # Guard: if QC generation has failed 3+ times total, stop trying.
-    # Guard: need at least 1 done task (don't fire QC with nothing completed).
     total_qc_fails = sum(
         1 for e in state.progress_log
         if e.get("action") == "generate_qc" and e.get("result") == "no_progress"
     )
-    min_for_qc = min(3, len(scoped))
-    if (not state.verifications
+    if (not pending_tasks
+            and not state.verifications
             and done_count > 0
-            and done_count >= max(config.generate_verifications_after, min_for_qc)
             and state.gate_passed("plan_generated")
             and not state.gate_passed("verifications_generated")
             and total_qc_fails < 3):
@@ -156,7 +153,8 @@ def decide_next_action(config: LoopConfig, state: LoopState) -> Action:
         if e.get("action") == "critical_eval" and e.get("result") == "no_progress"
     )
     crit_eval_due = (
-        total_crit_eval_fails < 3
+        not pending_tasks
+        and total_crit_eval_fails < 3
         and (
             state.tasks_since_last_critical_eval >= config.critical_eval_interval
             or (config.critical_eval_on_all_pass

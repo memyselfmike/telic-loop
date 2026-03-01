@@ -185,6 +185,16 @@ def run_value_loop(
                     task_hash = _task_status_hash(state)
                     now = time.perf_counter()
                     skip_vrc = False
+
+                    # Skip VRC during BUILD phase — scoring half-built apps is noise.
+                    build_phase = (
+                        not state.verifications
+                        and not state.gate_passed("verifications_generated")
+                        and action in (Action.EXECUTE, Action.SERVICE_FIX)
+                    )
+                    if build_phase:
+                        skip_vrc = True
+
                     if not force_full_vrc:
                         if not progress:
                             skip_vrc = True  # No work done — score can't change
