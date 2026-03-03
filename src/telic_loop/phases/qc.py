@@ -71,6 +71,23 @@ def do_generate_qc(config: LoopConfig, state: LoopState, claude: Claude) -> bool
     from ..state import VerificationState
 
     session = claude.session(AgentRole.QC)
+    platform_guidance = ""
+    if sys.platform == "win32":
+        platform_guidance = (
+            "## Platform: Windows (Git Bash)\n\n"
+            "Scripts run in Git Bash on Windows. **Avoid these Unix-only patterns:**\n"
+            "- `mktemp -d` — produces MSYS paths (`/tmp/tmp.XXX`) that Node.js "
+            "cannot resolve. Use `$PWD/.test_data_$$` with `mkdir -p` instead.\n"
+            "- `ps -p $PID` — not available. Use `kill -0 $PID 2>/dev/null` or "
+            "rely on HTTP health checks (curl) instead.\n"
+            "- `lsof`, `ss`, `netstat` — not reliably available. Use `curl` to "
+            "check if a port is listening.\n"
+            "- GNU-specific awk/sed features (e.g., gawk builtins like `exp`). "
+            "Use POSIX-compatible patterns only.\n"
+            "- Absolute Unix paths like `/tmp/`. Use relative paths or `$PWD`.\n\n"
+            "**Use the portable patterns from the Script Template section above.**"
+        )
+
     prompt = load_prompt("generate_verifications",
         SPRINT=config.sprint,
         SPRINT_DIR=str(config.sprint_dir),
@@ -80,6 +97,7 @@ def do_generate_qc(config: LoopConfig, state: LoopState, claude: Claude) -> bool
         VERIFICATION_STRATEGY=json.dumps(state.context.verification_strategy, indent=2),
         SPRINT_CONTEXT=json.dumps(asdict(state.context), indent=2),
         EPIC_SCOPE=_epic_scope_instruction(state),
+        PLATFORM_GUIDANCE=platform_guidance,
     )
     session.send(prompt)
 

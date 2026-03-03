@@ -2,12 +2,37 @@
 
 from __future__ import annotations
 
+import re
+import sys
 from enum import Enum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .config import LoopConfig
     from .state import LoopState, TaskState
+
+
+_PLATFORM_ERROR_RE = re.compile(
+    r"mktemp.*not found|ps -p.*not found|ps:.*not found|lsof.*not found"
+    r"|ENOENT.*[A-Z]:[\\/]|/tmp/tmp\."
+    r"|is not recognized as .* command"
+    r"|gawk.*not found|WinError"
+    r"|cannot use gawk builtin",
+    re.IGNORECASE,
+)
+
+
+def _has_platform_failures(state: LoopState) -> bool:
+    """Check if failing verifications have Windows/MSYS-specific errors."""
+    if sys.platform != "win32":
+        return False
+    for v in state.verifications.values():
+        if v.status != "failed" or not v.failures:
+            continue
+        last = v.failures[-1]
+        if _PLATFORM_ERROR_RE.search(f"{last.stdout}\n{last.stderr}"):
+            return True
+    return False
 
 
 class Action(Enum):
@@ -105,6 +130,12 @@ def decide_next_action(config: LoopConfig, state: LoopState) -> Action:
         )
         fixable = [v for v in failing if v.attempts < max_fix]
         if fixable:
+            # Platform error fast-path: if failures are Windows/MSYS-specific,
+            # skip FIX and go directly to COURSE_CORRECT → regenerate_tests.
+            if (_has_platform_failures(state)
+                    and not state.course_correct_attempted_for_current_failures
+                    and state.qc_generation_count < config.max_qc_regenerations):
+                return Action.COURSE_CORRECT
             return Action.FIX
         if not state.research_attempted_for_current_failures:
             return Action.RESEARCH
@@ -161,7 +192,7 @@ def decide_next_action(config: LoopConfig, state: LoopState) -> Action:
                 and all(v.status == "passed" for v in state.verifications.values()
                         if v.status != "blocked")
                 and state.verifications
-                and not any(vrc.value_score >= 0.9 for vrc in state.vrc_history))
+                and not (state.vrc_history and state.vrc_history[-1].value_score >= 0.9))
         )
     )
     if crit_eval_due:

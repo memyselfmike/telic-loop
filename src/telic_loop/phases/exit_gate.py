@@ -139,8 +139,15 @@ def do_exit_gate(
         return False
 
     # 3. Final critical evaluation
-    # Skip inside epic loop — critical eval runs at epic boundary instead
-    if inside_epic_loop:
+    # Skip inside epic loop for non-last epics — epic boundary handles it.
+    # For the LAST epic, run here: if the final end-to-end eval doesn't run
+    # (timeout, budget), this is the last chance for browser-based evaluation.
+    is_last_epic = (
+        inside_epic_loop
+        and state.epics
+        and state.current_epic_index >= len(state.epics) - 1
+    )
+    if inside_epic_loop and not is_last_epic:
         print("  Skipping critical eval (runs at epic boundary)")
     else:
         print("  Running final critical evaluation...")

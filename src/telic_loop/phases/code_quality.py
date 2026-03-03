@@ -31,7 +31,7 @@ _STYLE_EXTENSIONS: set[str] = {".css", ".scss", ".less"}
 _TEST_PATTERNS: set[str] = {"test_", "_test.py", ".test.", ".spec."}
 
 _DEBUG_PY = re.compile(r"(?<!\w)print\s*\(|breakpoint\s*\(|import\s+pdb")
-_DEBUG_JS = re.compile(r"console\.(log|debug|info)\s*\(|(?<!\w)debugger\b|alert\s*\(")
+_DEBUG_JS = re.compile(r"console\.(log|debug|info)\s*\(|(?<!\w)debugger\b")
 _LOGGING_CALL = re.compile(r"\b(logger|log)\.(debug|info|warn|warning|error|critical)\s*\(")
 _TODO_RE = re.compile(r"\b(TODO|FIXME|HACK|XXX)\b", re.IGNORECASE)
 _COMMENT_LINE = re.compile(r"^\s*(#|//|/\*|\*)")

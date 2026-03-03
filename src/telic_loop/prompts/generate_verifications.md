@@ -144,7 +144,8 @@ node server.js --port "$TEST_PORT" &
 PORT="$TEST_PORT" node server.js &
 
 # Use assigned data dir for isolation
-DATA_DIR="${TEST_DATA_DIR:-$(mktemp -d)}"
+DATA_DIR="${TEST_DATA_DIR:-$PWD/.test_data_$$}"
+mkdir -p "$DATA_DIR"
 ```
 
 **Never hardcode port 3000** in test scripts. Always use `${PORT:-3000}`.
@@ -223,13 +224,19 @@ cd "$(dirname "$0")/../.."
 
 # Isolated test environment (ports assigned by test runner)
 TEST_PORT="${PORT:-3000}"
-DATA_DIR="${TEST_DATA_DIR:-$(mktemp -d)}"
+DATA_DIR="${TEST_DATA_DIR:-$PWD/.test_data_$$}"
+mkdir -p "$DATA_DIR"
 trap 'kill $SERVER_PID 2>/dev/null; rm -rf "$DATA_DIR"' EXIT
 
 # Start server with isolated port and data (if needed)
 PORT="$TEST_PORT" DATA_DIR="$DATA_DIR" node server.js &
 SERVER_PID=$!
-sleep 2
+
+# Wait for server to be ready (portable — works on Windows Git Bash)
+for i in $(seq 1 30); do
+  curl -s "http://localhost:$TEST_PORT/" > /dev/null 2>&1 && break
+  sleep 0.5
+done
 
 # Test using $TEST_PORT
 result=$(curl -s "http://localhost:$TEST_PORT/api/endpoint")
@@ -243,6 +250,8 @@ else
   exit 1
 fi
 ```
+
+{PLATFORM_GUIDANCE}
 
 ## Anti-Patterns
 
