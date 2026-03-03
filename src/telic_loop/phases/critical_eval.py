@@ -89,6 +89,14 @@ def _cleanup_playwright_artifacts(config: LoopConfig) -> None:
         if cleaned:
             print(f"    Cleaned {cleaned} screenshot(s) from eval/")
 
+    # Playwright MCP browser_take_screenshot saves relative to the agent's
+    # CWD (the project dir), not --output-dir.  Clean stray eval-*.png files.
+    stray = list(project_dir.glob("eval-*.png"))
+    for p in stray:
+        p.unlink(missing_ok=True)
+    if stray:
+        print(f"    Cleaned {len(stray)} stray screenshot(s) from project root")
+
 
 def do_critical_eval(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
     """Critical evaluation — Evaluator agent USES the deliverable as a real user.
