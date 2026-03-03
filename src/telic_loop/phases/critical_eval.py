@@ -70,32 +70,27 @@ def _build_playwright_config(config: LoopConfig) -> dict:
 
 
 def _cleanup_playwright_artifacts(config: LoopConfig) -> None:
-    """Remove Playwright screenshots and logs created during evaluation."""
+    """Collect eval screenshots into sprint eval/ dir and remove temp files."""
     import shutil
 
     project_dir = config.effective_project_dir
+    eval_dir = config.sprint_dir / "eval"
+    eval_dir.mkdir(exist_ok=True)
 
-    # Delete .playwright-mcp/ directory (console logs)
+    # Playwright MCP browser_take_screenshot saves relative to the agent's
+    # CWD (project dir), not --output-dir.  Move stray screenshots into the
+    # sprint eval/ directory so they're preserved for review.
+    stray = list(project_dir.glob("eval-*.png"))
+    for p in stray:
+        dest = eval_dir / p.name
+        shutil.move(str(p), str(dest))
+    if stray:
+        print(f"    Collected {len(stray)} screenshot(s) into eval/")
+
+    # Delete .playwright-mcp/ directory (console logs — not useful to keep)
     pw_dir = project_dir / ".playwright-mcp"
     if pw_dir.is_dir():
         shutil.rmtree(pw_dir, ignore_errors=True)
-        print("    Cleaned .playwright-mcp/")
-
-    # Delete eval screenshots from sprint dir
-    eval_dir = config.sprint_dir / "eval"
-    if eval_dir.is_dir():
-        cleaned = sum(1 for _ in eval_dir.glob("*.png"))
-        shutil.rmtree(eval_dir, ignore_errors=True)
-        if cleaned:
-            print(f"    Cleaned {cleaned} screenshot(s) from eval/")
-
-    # Playwright MCP browser_take_screenshot saves relative to the agent's
-    # CWD (the project dir), not --output-dir.  Clean stray eval-*.png files.
-    stray = list(project_dir.glob("eval-*.png"))
-    for p in stray:
-        p.unlink(missing_ok=True)
-    if stray:
-        print(f"    Cleaned {len(stray)} stray screenshot(s) from project root")
 
 
 def do_critical_eval(config: LoopConfig, state: LoopState, claude: Claude) -> bool:
