@@ -21,7 +21,7 @@ from telic_loop.main import determine_phase, run_loop
 from telic_loop.state import LoopState
 
 
-def main():
+def _run():
     sprint = sys.argv[1] if len(sys.argv) > 1 else "temp-calc"
     sprint_dir = Path(f"sprints/{sprint}")
 
@@ -68,6 +68,46 @@ def main():
     print(f"  Value delivered: {state.value_delivered}")
 
     state.save(config.state_file)
+
+
+def main():
+    import time
+    import traceback
+    from telic_loop.errors import backoff_seconds, classify_error, log_crash_jsonl
+
+    sprint = sys.argv[1] if len(sys.argv) > 1 else "temp-calc"
+    sprint_dir = Path(f"sprints/{sprint}")
+
+    max_restarts = 3
+    for attempt in range(1, max_restarts + 1):
+        try:
+            _run()
+            return
+        except SystemExit:
+            raise
+        except Exception as exc:
+            error_kind = classify_error(exc)
+            print(f"\n{'=' * 60}")
+            print(f"  E2E RUNNER CRASHED (attempt {attempt}/{max_restarts}) [{error_kind}]")
+            traceback.print_exc()
+            print(f"{'=' * 60}")
+
+            log_crash_jsonl(
+                sprint_dir / ".crash_log.jsonl",
+                error=exc,
+                phase="e2e_runner",
+                iteration=0,
+                error_kind=error_kind,
+                extra={"restart_attempt": attempt},
+            )
+
+            if attempt < max_restarts:
+                wait = backoff_seconds(attempt - 1, base=5.0, cap=60.0)
+                print(f"  Restarting in {wait:.0f} seconds...")
+                time.sleep(wait)
+            else:
+                print("  Max restarts reached.")
+                sys.exit(1)
 
 
 if __name__ == "__main__":
