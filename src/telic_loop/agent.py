@@ -216,13 +216,7 @@ class ClaudeSession:
                     self.state.save(self.config.state_file)
 
                 result = asyncio.run(self._send_async(user_message))
-
-                # Reload state after query (tool CLI may have modified it)
-                if self.state and self.config and self.config.state_file.exists():
-                    from .state import LoopState
-                    updated = LoopState.load(self.config.state_file)
-                    _sync_state(self.state, updated)
-
+                self._reload_state_from_disk()
                 return result
 
             except RateLimitError:
@@ -232,12 +226,8 @@ class ClaudeSession:
                 elapsed = time.perf_counter() - t0
                 error_kind = classify_error(exc)
 
-                # Sync state from disk before retrying/raising — tool CLI may
-                # have written progress that the in-memory state doesn't have
-                if self.state and self.config and self.config.state_file.exists():
-                    from .state import LoopState
-                    updated = LoopState.load(self.config.state_file)
-                    _sync_state(self.state, updated)
+                # Sync state from disk — tool CLI may have written progress
+                self._reload_state_from_disk()
 
                 # Non-retryable errors bail immediately
                 if error_kind == "non_retryable":
@@ -255,8 +245,7 @@ class ClaudeSession:
                     trail.record(attempt, error_kind, exc, elapsed, wait)
                     print(f"  SDK session failed (attempt {attempt + 1}/{max_attempts},"
                           f" {error_kind}), retrying in {wait:.0f}s...")
-                    import time as time_mod
-                    time_mod.sleep(wait)
+                    time.sleep(wait)
                 else:
                     trail.record(attempt, error_kind, exc, elapsed, 0.0)
 
@@ -264,6 +253,13 @@ class ClaudeSession:
         if last_exc is not None:
             last_exc._failure_trail = trail  # type: ignore[attr-defined]
         raise last_exc  # type: ignore[misc]
+
+    def _reload_state_from_disk(self) -> None:
+        """Reload state from disk after a query — tool CLI may have modified it."""
+        if self.state and self.config and self.config.state_file.exists():
+            from .state import LoopState
+            updated = LoopState.load(self.config.state_file)
+            _sync_state(self.state, updated)
 
     async def _send_async(self, user_message: str) -> str:
         # Allow nested Claude Code sessions
@@ -337,14 +333,9 @@ async def _streaming_prompt(user_message: str) -> AsyncGenerator[dict[str, Any]]
 
 def _is_rate_limit_error(text: str) -> bool:
     """Detect rate-limit / quota errors from Claude SDK output."""
+    from .errors import _RATE_LIMIT_PATTERNS
     lower = text.lower()
-    return any(phrase in lower for phrase in [
-        "you've hit your limit",
-        "you have hit your limit",
-        "rate limit",
-        "quota exceeded",
-        "too many requests",
-    ])
+    return any(phrase in lower for phrase in _RATE_LIMIT_PATTERNS)
 
 
 def parse_rate_limit_wait_seconds(error: RateLimitError) -> int:

@@ -9,6 +9,12 @@ if TYPE_CHECKING:
     from .config import LoopConfig
     from .state import LoopState
 
+# Centralized status icon maps
+_TASK_ICONS = {"done": "x", "blocked": "B", "descoped": "D"}
+_TASK_CHECKLIST_ICONS = {"done": "[x]", "blocked": "[B]", "descoped": "[D]"}
+_VERIFICATION_ICONS = {"passed": "[x]", "failed": "[!]"}
+_DELIVERABLE_LABELS = {"done": "DELIVERED", "descoped": "DESCOPED", "blocked": "BLOCKED"}
+
 
 def render_plan_markdown(state: LoopState) -> str:
     """Render the implementation plan from structured state."""
@@ -23,12 +29,7 @@ def render_plan_markdown(state: LoopState) -> str:
     for phase_name, tasks in phases.items():
         lines.append(f"\n## {phase_name.title()}\n")
         for t in sorted(tasks, key=lambda x: x.task_id):
-            if t.status == "done":
-                check = "x"
-            elif t.status == "blocked":
-                check = "B"
-            else:
-                check = " "
+            check = _TASK_ICONS.get(t.status, " ")
             lines.append(f"- [{check}] **{t.task_id}**: {t.description}")
             if t.value:
                 lines.append(f"  - Value: {t.value}")
@@ -65,27 +66,27 @@ def render_value_checklist(config: LoopConfig, state: LoopState) -> None:
 
     lines.append("## Tasks")
     for t in state.tasks.values():
-        status_icon = {"done": "[x]", "blocked": "[B]", "descoped": "[D]"}.get(t.status, "[ ]")
-        lines.append(f"- {status_icon} **{t.task_id}**: {t.description}")
+        icon = _TASK_CHECKLIST_ICONS.get(t.status, "[ ]")
+        lines.append(f"- {icon} **{t.task_id}**: {t.description}")
 
     lines.append("\n## Verifications")
     for v in state.verifications.values():
-        status_icon = {"passed": "[x]", "failed": "[!]"}.get(v.status, "[ ]")
-        lines.append(f"- {status_icon} {v.verification_id} ({v.category})")
+        icon = _VERIFICATION_ICONS.get(v.status, "[ ]")
+        lines.append(f"- {icon} {v.verification_id} ({v.category})")
 
     config.value_checklist.parent.mkdir(parents=True, exist_ok=True)
     config.value_checklist.write_text("\n".join(lines), encoding="utf-8")
 
 
-def generate_delivery_report(config: LoopConfig, state: LoopState) -> None:
-    """Generate DELIVERY_REPORT.md from full state."""
-    from .git import git_commit
+# ---------------------------------------------------------------------------
+# Delivery report
+# ---------------------------------------------------------------------------
 
+def _build_summary_lines(config: LoopConfig, state: LoopState) -> list[str]:
     vrc = state.latest_vrc
-    passed = len([v for v in state.verifications.values() if v.status == "passed"])
-    done = len([t for t in state.tasks.values() if t.status == "done"])
-
-    lines = [
+    passed = sum(1 for v in state.verifications.values() if v.status == "passed")
+    done = sum(1 for t in state.tasks.values() if t.status == "done")
+    return [
         f"# Delivery Report: {config.sprint}",
         "",
         "## Summary",
@@ -99,70 +100,78 @@ def generate_delivery_report(config: LoopConfig, state: LoopState) -> None:
         "",
     ]
 
-    # Phase usage breakdown
+
+def _build_phase_usage_lines(state: LoopState) -> list[str]:
     phase_stats: dict[str, dict] = {}
     for entry in state.progress_log:
         phase = entry.get("action", "unknown")
-        inp = entry.get("input_tokens", 0)
-        out = entry.get("output_tokens", 0)
-        dur = entry.get("duration_sec", 0.0)
         if phase not in phase_stats:
             phase_stats[phase] = {"calls": 0, "input": 0, "output": 0, "time": 0.0}
         phase_stats[phase]["calls"] += 1
-        phase_stats[phase]["input"] += inp
-        phase_stats[phase]["output"] += out
-        phase_stats[phase]["time"] += dur
+        phase_stats[phase]["input"] += entry.get("input_tokens", 0)
+        phase_stats[phase]["output"] += entry.get("output_tokens", 0)
+        phase_stats[phase]["time"] += entry.get("duration_sec", 0.0)
 
-    if phase_stats:
-        lines.append("## Phase Usage")
-        lines.append("")
-        lines.append("| Phase | Calls | Input Tokens | Output Tokens | Time |")
-        lines.append("|-------|-------|-------------|--------------|------|")
-        for phase, s in sorted(
-            phase_stats.items(),
-            key=lambda x: x[1]["input"] + x[1]["output"],
-            reverse=True,
-        ):
-            mins, secs = divmod(int(s["time"]), 60)
-            time_str = f"{mins}m {secs}s" if mins else f"{secs}s"
-            lines.append(
-                f"| {phase} | {s['calls']} | {s['input']:,} | {s['output']:,} | {time_str} |"
-            )
-        lines.append("")
+    if not phase_stats:
+        return []
 
-    # Crash summary
-    if state.crash_log:
-        lines.append("## Crash Summary")
-        lines.append("")
-        lines.append(f"Total crashes: {len(state.crash_log)}")
-        lines.append("")
-        lines.append("| Time | Phase | Type | Error |")
-        lines.append("|------|-------|------|-------|")
-        for crash in state.crash_log:
-            ts = crash.get("timestamp", "?")[:19]
-            phase = crash.get("phase", "?")
-            ctype = crash.get("crash_type", crash.get("error_kind", "?"))
-            error = crash.get("error", "?")[:80]
-            lines.append(f"| {ts} | {phase} | {ctype} | {error} |")
-        lines.append("")
-
-    lines += [
-        "## Deliverables",
+    lines = [
+        "## Phase Usage", "",
+        "| Phase | Calls | Input Tokens | Output Tokens | Time |",
+        "|-------|-------|-------------|--------------|------|",
     ]
+    for phase, s in sorted(phase_stats.items(),
+                           key=lambda x: x[1]["input"] + x[1]["output"], reverse=True):
+        mins, secs = divmod(int(s["time"]), 60)
+        time_str = f"{mins}m {secs}s" if mins else f"{secs}s"
+        lines.append(f"| {phase} | {s['calls']} | {s['input']:,} | {s['output']:,} | {time_str} |")
+    lines.append("")
+    return lines
+
+
+def _build_crash_summary_lines(state: LoopState) -> list[str]:
+    if not state.crash_log:
+        return []
+    lines = [
+        "## Crash Summary", "",
+        f"Total crashes: {len(state.crash_log)}", "",
+        "| Time | Phase | Type | Error |",
+        "|------|-------|------|-------|",
+    ]
+    for crash in state.crash_log:
+        ts = crash.get("timestamp", "?")[:19]
+        phase = crash.get("phase", "?")
+        ctype = crash.get("crash_type", crash.get("error_kind", "?"))
+        error = crash.get("error", "?")[:80]
+        lines.append(f"| {ts} | {phase} | {ctype} | {error} |")
+    lines.append("")
+    return lines
+
+
+def _build_deliverables_lines(state: LoopState) -> list[str]:
+    lines = ["## Deliverables"]
     for t in state.tasks.values():
-        status = {
-            "done": "DELIVERED",
-            "descoped": "DESCOPED",
-            "blocked": "BLOCKED",
-        }.get(t.status, t.status)
-        lines.append(f"- [{status}] {t.task_id}: {t.description}")
+        label = _DELIVERABLE_LABELS.get(t.status, t.status)
+        lines.append(f"- [{label}] {t.task_id}: {t.description}")
         if t.status == "descoped":
             lines.append(f"  Reason: {t.blocked_reason}")
+    return lines
+
+
+def generate_delivery_report(config: LoopConfig, state: LoopState) -> None:
+    """Generate DELIVERY_REPORT.md from full state."""
+    from .git import git_commit
+
+    lines = _build_summary_lines(config, state)
+    lines.extend(_build_phase_usage_lines(state))
+    lines.extend(_build_crash_summary_lines(state))
+    lines.extend(_build_deliverables_lines(state))
 
     report_path = config.sprint_dir / "DELIVERY_REPORT.md"
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text("\n".join(lines), encoding="utf-8")
 
+    vrc = state.latest_vrc
     git_commit(
         config, state,
         f"telic-loop({config.sprint}): Delivery complete"

@@ -290,22 +290,14 @@ class LoopState:
     @classmethod
     def load(cls, path: Path) -> LoopState:
         from dacite import Config, from_dict
+        from .tools import normalize_gaps, normalize_services
         data = json.loads(path.read_text(encoding="utf-8"))
-        # Normalize VRC gaps: agents sometimes report strings instead of dicts
+        # Normalize VRC gaps and context.services (agents produce variant formats)
         for vrc in data.get("vrc_history", []):
-            gaps = vrc.get("gaps", [])
-            if gaps and isinstance(gaps[0], str):
-                vrc["gaps"] = [{"description": g, "severity": "degraded"} for g in gaps]
-        # Normalize context.services: agents sometimes return list-of-dicts
+            vrc["gaps"] = normalize_gaps(vrc.get("gaps", []))
         ctx = data.get("context", {})
-        svc = ctx.get("services")
-        if isinstance(svc, list):
-            normalised: dict = {}
-            for item in svc:
-                if isinstance(item, dict) and "name" in item:
-                    name = item.pop("name")
-                    normalised[name] = item
-            ctx["services"] = normalised
+        if "services" in ctx:
+            ctx["services"] = normalize_services(ctx["services"])
         return from_dict(
             data_class=cls,
             data=data,

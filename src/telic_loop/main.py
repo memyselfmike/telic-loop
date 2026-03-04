@@ -61,12 +61,19 @@ def _value_gate_passes(state: LoopState) -> bool:
 # Phase dispatchers
 # ---------------------------------------------------------------------------
 
+def _base_prompt_params(config: LoopConfig) -> dict[str, str]:
+    """Common prompt template parameters shared across all phases."""
+    return {
+        "SPRINT": config.sprint,
+        "SPRINT_DIR": str(config.sprint_dir),
+        "PROJECT_DIR": str(config.effective_project_dir),
+    }
+
+
 def _run_plan_phase(config: LoopConfig, state: LoopState, agent: Agent) -> bool:
     """Planner discovers context and creates implementation tasks."""
     prompt = load_prompt("planner",
-        SPRINT=config.sprint,
-        SPRINT_DIR=str(config.sprint_dir),
-        PROJECT_DIR=str(config.effective_project_dir),
+        **_base_prompt_params(config),
         MAX_TASK_DESC_CHARS=str(config.max_task_description_chars),
         MAX_FILES_PER_TASK=str(config.max_files_per_task),
     )
@@ -85,12 +92,9 @@ def _run_plan_phase(config: LoopConfig, state: LoopState, agent: Agent) -> bool:
 
 def _run_review_phase(config: LoopConfig, state: LoopState, agent: Agent) -> bool:
     """Reviewer evaluates plan quality in a separate context."""
-    plan_state = _format_plan_state(state)
     prompt = load_prompt("reviewer",
-        SPRINT=config.sprint,
-        SPRINT_DIR=str(config.sprint_dir),
-        PROJECT_DIR=str(config.effective_project_dir),
-        PLAN_STATE=plan_state,
+        **_base_prompt_params(config),
+        PLAN_STATE=_format_plan_state(state),
     )
     session = agent.session(AgentRole.REVIEWER, system_extra=prompt)
     session.send(
@@ -120,18 +124,13 @@ def _run_review_phase(config: LoopConfig, state: LoopState, agent: Agent) -> boo
 
 def _run_implement_phase(config: LoopConfig, state: LoopState, agent: Agent) -> bool:
     """Builder implements, verifies, and fixes."""
-    state_summary = _format_state_summary(state)
-    budget_warning = _format_budget_warning(config, state)
-
     prompt = load_prompt("builder",
-        SPRINT=config.sprint,
-        SPRINT_DIR=str(config.sprint_dir),
-        PROJECT_DIR=str(config.effective_project_dir),
+        **_base_prompt_params(config),
         ITERATION=str(state.iteration),
         MAX_ITERATIONS=str(config.max_iterations),
-        STATE_SUMMARY=state_summary,
+        STATE_SUMMARY=_format_state_summary(state),
         MAX_FIX_ATTEMPTS=str(config.max_fix_attempts),
-        BUDGET_WARNING=budget_warning,
+        BUDGET_WARNING=_format_budget_warning(config, state),
     )
     session = agent.session(AgentRole.BUILDER, system_extra=prompt)
 
@@ -152,13 +151,9 @@ def _run_implement_phase(config: LoopConfig, state: LoopState, agent: Agent) -> 
 
 def _run_evaluate_phase(config: LoopConfig, state: LoopState, agent: Agent) -> bool:
     """Evaluator judges quality adversarially."""
-    state_summary = _format_state_summary(state)
-
     prompt = load_prompt("evaluator",
-        SPRINT=config.sprint,
-        SPRINT_DIR=str(config.sprint_dir),
-        PROJECT_DIR=str(config.effective_project_dir),
-        STATE_SUMMARY=state_summary,
+        **_base_prompt_params(config),
+        STATE_SUMMARY=_format_state_summary(state),
     )
 
     # Add Playwright MCP for UI evaluation
@@ -387,6 +382,108 @@ def _generate_project_docs(
 # Core loop
 # ---------------------------------------------------------------------------
 
+_PHASE_HANDLERS = {
+    "plan": _run_plan_phase,
+    "review": _run_review_phase,
+    "implement": _run_implement_phase,
+    "evaluate": _run_evaluate_phase,
+}
+
+
+def _handle_phase_crash_budget(
+    config: LoopConfig, state: LoopState, phase: str, crash_record: dict,
+) -> bool:
+    """Handle per-phase crash budget exhaustion. Returns True if loop should halt."""
+    phase_crashes = state.phase_crash_counts.get(phase, 0)
+    if phase_crashes < config.max_phase_crashes:
+        return False
+
+    error_kind = crash_record.get("error_kind", "retryable")
+    print(f"\n  PHASE CRASH BUDGET EXHAUSTED: {phase} crashed "
+          f"{phase_crashes}x consecutively ({error_kind})")
+
+    if error_kind == "non_retryable":
+        print("  Non-retryable error — halting loop")
+        return True
+
+    if phase == "review":
+        print("  Forcing plan_reviewed gate (accepting plan as-is)")
+        state.pass_gate("plan_reviewed")
+    elif phase == "evaluate":
+        print("  Forcing critical_eval_passed gate (accepting deliverable)")
+        state.pass_gate("critical_eval_passed")
+    elif phase == "plan" and not state.tasks:
+        print("  Cannot skip empty plan — halting loop")
+        return True
+
+    state.phase_crash_counts[phase] = 0
+    return False
+
+
+def _run_iteration(
+    config: LoopConfig, state: LoopState, agent: Agent,
+    phase: str, iteration: int,
+) -> bool:
+    """Execute one loop iteration. Returns True if loop should halt (deliver + exit)."""
+    from .git import git_commit
+
+    print(f"\n── Iteration {iteration} ── Phase: {phase}")
+
+    # Timing + token tracking
+    inp_before = state.total_input_tokens
+    out_before = state.total_output_tokens
+    t0 = time.perf_counter()
+
+    crash_record = None
+    progress = False
+    try:
+        handler = _PHASE_HANDLERS[phase]
+        progress = handler(config, state, agent)
+
+    except RateLimitError as rle:
+        wait_secs = parse_rate_limit_wait_seconds(rle)
+        print(f"\n  RATE LIMIT HIT — sleeping {wait_secs // 60}m...")
+        state.save(config.state_file)
+        time.sleep(wait_secs)
+        return False  # continue loop
+
+    except Exception as exc:
+        crash_record = _log_iteration_crash(config, state, phase, exc, iteration)
+
+    # Record progress metrics
+    elapsed = round(time.perf_counter() - t0, 1)
+    state.record_progress(
+        phase,
+        "crash" if crash_record else ("progress" if progress else "no_progress"),
+        progress,
+        input_tokens=state.total_input_tokens - inp_before,
+        output_tokens=state.total_output_tokens - out_before,
+        duration_sec=elapsed,
+        crash_type=crash_record.get("crash_type", "") if crash_record else "",
+    )
+
+    if progress and not crash_record:
+        state.phase_crash_counts[phase] = 0
+
+    # Check crash budget
+    if crash_record and _handle_phase_crash_budget(config, state, phase, crash_record):
+        generate_delivery_report(config, state)
+        state.save(config.state_file)
+        return True  # halt
+
+    # Git commit after implement phases
+    if phase == "implement" and progress:
+        git_commit(config, state, f"telic-loop({config.sprint}): iter {iteration}")
+
+    # Render artifacts
+    render_value_checklist(config, state)
+    if state.tasks:
+        render_plan_snapshot(config, state)
+
+    state.save(config.state_file)
+    return False
+
+
 def run_loop(config: LoopConfig, state: LoopState, agent: Agent) -> None:
     """The main loop: iterate phases until value is delivered or budget exhausted."""
     lock_path = config.sprint_dir / ".loop.lock"
@@ -398,13 +495,10 @@ def run_loop(config: LoopConfig, state: LoopState, agent: Agent) -> None:
         print("  TELIC LOOP V4")
         print("=" * 60)
 
-        from .git import git_commit
-
         start_iter = max(state.iteration + 1, 1)
         for iteration in range(start_iter, start_iter + config.max_iterations):
             state.iteration = iteration
 
-            # Hard limits
             if config.token_budget and state.total_tokens_used > config.token_budget:
                 print(f"  TOKEN BUDGET EXHAUSTED ({state.total_tokens_used:,} tokens)")
                 break
@@ -418,92 +512,8 @@ def run_loop(config: LoopConfig, state: LoopState, agent: Agent) -> None:
                 state.save(config.state_file)
                 return
 
-            print(f"\n── Iteration {iteration} ── Phase: {phase}")
-
-            # Timing + token tracking
-            inp_before = state.total_input_tokens
-            out_before = state.total_output_tokens
-            t0 = time.perf_counter()
-
-            crash_record = None
-            progress = False
-            try:
-                if phase == "plan":
-                    progress = _run_plan_phase(config, state, agent)
-                elif phase == "review":
-                    progress = _run_review_phase(config, state, agent)
-                elif phase == "implement":
-                    progress = _run_implement_phase(config, state, agent)
-                elif phase == "evaluate":
-                    progress = _run_evaluate_phase(config, state, agent)
-
-            except RateLimitError as rle:
-                wait_secs = parse_rate_limit_wait_seconds(rle)
-                print(f"\n  RATE LIMIT HIT — sleeping {wait_secs // 60}m...")
-                state.save(config.state_file)
-                time.sleep(wait_secs)
-                continue
-
-            except Exception as exc:
-                crash_record = _log_iteration_crash(config, state, phase, exc, iteration)
-
-            elapsed = round(time.perf_counter() - t0, 1)
-            phase_inp = state.total_input_tokens - inp_before
-            phase_out = state.total_output_tokens - out_before
-            result_str = "crash" if crash_record else ("progress" if progress else "no_progress")
-            state.record_progress(
-                phase, result_str, progress,
-                input_tokens=phase_inp,
-                output_tokens=phase_out,
-                duration_sec=elapsed,
-                crash_type=crash_record.get("crash_type", "") if crash_record else "",
-            )
-
-            # Reset phase crash count on success
-            if progress and not crash_record:
-                state.phase_crash_counts[phase] = 0
-
-            # Per-phase crash budget check
-            if crash_record:
-                phase_crashes = state.phase_crash_counts.get(phase, 0)
-                if phase_crashes >= config.max_phase_crashes:
-                    error_kind = crash_record.get("error_kind", "retryable")
-                    print(f"\n  PHASE CRASH BUDGET EXHAUSTED: {phase} crashed "
-                          f"{phase_crashes}x consecutively ({error_kind})")
-
-                    if error_kind == "non_retryable":
-                        print("  Non-retryable error — halting loop")
-                        generate_delivery_report(config, state)
-                        state.save(config.state_file)
-                        return
-
-                    if phase == "review":
-                        print("  Forcing plan_reviewed gate (accepting plan as-is)")
-                        state.pass_gate("plan_reviewed")
-                        state.phase_crash_counts[phase] = 0
-                    elif phase == "evaluate":
-                        print("  Forcing critical_eval_passed gate (accepting deliverable)")
-                        state.pass_gate("critical_eval_passed")
-                        state.phase_crash_counts[phase] = 0
-                    elif phase == "plan" and not state.tasks:
-                        print("  Cannot skip empty plan — halting loop")
-                        generate_delivery_report(config, state)
-                        state.save(config.state_file)
-                        return
-                    elif phase == "implement":
-                        # Reset count and let determine_phase re-evaluate
-                        state.phase_crash_counts[phase] = 0
-
-            # Git commit after implement phases
-            if phase == "implement" and progress:
-                git_commit(config, state, f"telic-loop({config.sprint}): iter {iteration}")
-
-            # Render artifacts
-            render_value_checklist(config, state)
-            if state.tasks:
-                render_plan_snapshot(config, state)
-
-            state.save(config.state_file)
+            if _run_iteration(config, state, agent, phase, iteration):
+                return  # halt requested by crash budget
 
         # Max iterations reached
         print("\n  MAX ITERATIONS REACHED — generating partial delivery report")

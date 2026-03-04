@@ -46,6 +46,21 @@ class LoopConfig:
     # Post-delivery documentation
     generate_docs: bool = True
 
+    def __post_init__(self) -> None:
+        if self.max_iterations < 1:
+            raise ValueError(f"max_iterations must be >= 1, got {self.max_iterations}")
+        if self.max_fix_attempts < 1:
+            raise ValueError(f"max_fix_attempts must be >= 1, got {self.max_fix_attempts}")
+        if self.token_budget < 0:
+            raise ValueError(f"token_budget must be >= 0, got {self.token_budget}")
+        if self.max_task_description_chars < 100:
+            raise ValueError(f"max_task_description_chars must be >= 100, got {self.max_task_description_chars}")
+        if self.max_files_per_task < 1:
+            raise ValueError(f"max_files_per_task must be >= 1, got {self.max_files_per_task}")
+        if self.retry_backoff_base < 0:
+            raise ValueError(f"retry_backoff_base must be >= 0, got {self.retry_backoff_base}")
+        self.sprint_dir = Path(self.sprint_dir)
+
     # Derived paths
     @property
     def effective_project_dir(self) -> Path:
