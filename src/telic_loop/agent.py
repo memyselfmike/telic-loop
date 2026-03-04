@@ -217,6 +217,13 @@ class ClaudeSession:
                 raise  # Don't retry rate limits — caller handles with smart sleep
 
             except Exception as exc:
+                # Sync state from disk before retrying/raising — tool CLI may
+                # have written progress that the in-memory state doesn't have
+                if self.state and self.config and self.config.state_file.exists():
+                    from .state import LoopState
+                    updated = LoopState.load(self.config.state_file)
+                    _sync_state(self.state, updated)
+
                 last_exc = exc
                 if attempt < max_attempts - 1:
                     import time
