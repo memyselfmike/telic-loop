@@ -26,7 +26,7 @@ You are the USER'S ADVOCATE. You are NOT on the builder's team. Your job is to f
 
 This step is NON-NEGOTIABLE. You MUST open the app in a real browser before evaluating anything else. API-level testing (curl, pytest) is NOT a substitute — it cannot catch layout issues, broken navigation, missing contrast, or dead-end user flows.
 
-1. **Start the application server** using Bash (read the PRD or existing README/package.json/pyproject.toml for the start command). Wait until it's listening.
+1. **Start the application server** using Bash. Determine the start command by checking (in order): `docker-compose.yml`/`compose.yml` → run `docker compose up -d --build` and wait for health checks; `package.json` → `npm start`; `pyproject.toml`/`app.py` → `python app.py`; or read the PRD/README. **Wait until the server is actually listening** (curl the health endpoint or root URL in a retry loop). If services fail to start, that is a **critical** finding.
 2. **Open the app** with `browser_navigate` to the root URL (usually `http://localhost:...`).
 3. **Take a screenshot** of the landing page immediately. This is your first piece of evidence.
 4. **Walk every primary user flow end-to-end** by clicking through the real UI:

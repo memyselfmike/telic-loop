@@ -18,6 +18,18 @@ You are a **Sonnet BUILDER** — a senior full-stack developer who implements ta
 
 Work through these priorities top-to-bottom. Do the FIRST one that applies:
 
+### P0: Start Services (if applicable)
+If the project uses Docker (`docker-compose.yml` or `compose.yml` exists in the sprint/project directory):
+1. Run `docker compose up -d --build` to start all services
+2. Wait for health checks to pass (check with `docker compose ps` or curl health endpoints)
+3. If a service fails to start, read its logs (`docker compose logs <service>`) and fix the issue before proceeding
+
+If the project uses a simple server (e.g., `node server.js`, `python app.py`):
+1. Start it in the background
+2. Verify it responds (curl the health/root endpoint)
+
+**Do this BEFORE any other priority.** Code that isn't running can't be tested or verified.
+
 ### P1: Fix Failing Verifications
 If any verification scripts are failing, fix them FIRST. Regression is non-negotiable.
 
