@@ -319,6 +319,10 @@ class ClaudeSession:
             real = [e for e in eg.exceptions if not isinstance(e, CLIConnectionError)]
             if real:
                 raise ExceptionGroup("Claude SDK errors", real) from eg
+            else:
+                raise RuntimeError(
+                    f"Claude CLI connection failed ({len(eg.exceptions)} errors): {eg.exceptions[0]}"
+                ) from eg
 
         return "\n".join(text_parts)
 

@@ -327,6 +327,10 @@ def execute_tool(name: str, input_data: dict, state: LoopState,
     snapshot = {
         "tasks": copy.deepcopy(state.tasks),
         "verifications": copy.deepcopy(state.verifications),
+        "context": copy.deepcopy(state.context),
+        "vrc_history": copy.deepcopy(state.vrc_history),
+        "gates_passed": copy.deepcopy(state.gates_passed),
+        "exit_requested": state.exit_requested,
     }
     try:
         result = handler(input_data, state, task_source=task_source)
@@ -334,6 +338,10 @@ def execute_tool(name: str, input_data: dict, state: LoopState,
     except Exception as e:
         state.tasks = snapshot["tasks"]
         state.verifications = snapshot["verifications"]
+        state.context = snapshot["context"]
+        state.vrc_history = snapshot["vrc_history"]
+        state.gates_passed = snapshot["gates_passed"]
+        state.exit_requested = snapshot["exit_requested"]
         return json.dumps({"error": f"Handler failed: {e}", "rolled_back": True})
 
 
