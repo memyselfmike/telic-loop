@@ -109,7 +109,7 @@ function navigateWeek(offset, reset = false) {
 // ===== Load Week Meals =====
 async function loadWeekMeals() {
   try {
-    weekMeals = await apiCall(`/meals?week=${currentWeekStart}`);
+    weekMeals = await apiCall(`/meals/?week=${currentWeekStart}`);
     renderPlannerGrid();
     renderDaySummary();
   } catch (error) {
@@ -270,7 +270,7 @@ async function showRecipePicker(dayOfWeek, mealSlot) {
 
 async function assignRecipeToSlot(recipeId, dayOfWeek, mealSlot) {
   try {
-    await apiCall('/meals', {
+    await apiCall('/meals/', {
       method: 'PUT',
       body: JSON.stringify({
         week_start: currentWeekStart,
@@ -392,7 +392,7 @@ function showCopyToSlotsModal(recipeId) {
     try {
       // Assign to all selected slots
       for (const assignment of assignments) {
-        await apiCall('/meals', {
+        await apiCall('/meals/', {
           method: 'PUT',
           body: JSON.stringify(assignment)
         });

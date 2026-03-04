@@ -103,7 +103,7 @@ async function loadRecipes() {
     if (currentFilters.tag) params.append('tag', currentFilters.tag);
 
     const query = params.toString() ? `?${params.toString()}` : '';
-    recipes = await apiCall(`/recipes${query}`);
+    recipes = await apiCall(`/recipes/${query}`);
     filteredRecipes = recipes;
     renderRecipeGrid();
   } catch (error) {
@@ -438,7 +438,7 @@ function showRecipeModal(existingRecipe = null) {
         });
         showToast('Recipe updated successfully', 'success');
       } else {
-        await apiCall('/recipes', {
+        await apiCall('/recipes/', {
           method: 'POST',
           body: JSON.stringify(formData)
         });

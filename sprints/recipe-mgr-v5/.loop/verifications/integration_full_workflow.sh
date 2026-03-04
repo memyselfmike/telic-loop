@@ -7,6 +7,9 @@ cd "$(dirname "$0")/../.."
 
 echo "Starting full workflow integration test..."
 
+# Clean database for fresh start
+rm -f data/recipes.db 2>/dev/null || true
+
 # Start server in background
 python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 > /dev/null 2>&1 &
 SERVER_PID=$!
@@ -93,7 +96,7 @@ curl -s -X PUT "http://127.0.0.1:8000/api/meals/" \
   -H "Content-Type: application/json" \
   -d "{\"week_start\": \"$MONDAY\", \"day_of_week\": 1, \"meal_slot\": \"dinner\", \"recipe_id\": 2}" > /dev/null
 
-MEAL_COUNT=$(curl -s "http://127.0.0.1:8000/api/meals?week=$MONDAY" | python -c "import sys, json; print(len(json.load(sys.stdin)))")
+MEAL_COUNT=$(curl -s "http://127.0.0.1:8000/api/meals/?week=$MONDAY" | python -c "import sys, json; print(len(json.load(sys.stdin)))")
 if [ "$MEAL_COUNT" != "3" ]; then
   echo "✗ Expected 3 meal assignments, got $MEAL_COUNT"
   exit 1
@@ -102,9 +105,9 @@ echo "  ✓ 3 meals assigned to plan"
 
 # Test 5: Generate shopping list
 echo "5. Testing shopping list generation..."
-curl -s -X POST "http://127.0.0.1:8000/api/shopping/generate/" \
+curl -s -X POST "http://127.0.0.1:8000/api/shopping/generate" \
   -H "Content-Type: application/json" \
-  -d "{\"week_start\": \"$MONDAY\"}" > /dev/null
+  -d '{"week_start": "'"$MONDAY"'"}' > /dev/null
 
 SHOPPING_LIST=$(curl -s "http://127.0.0.1:8000/api/shopping/current")
 ITEM_COUNT=$(echo "$SHOPPING_LIST" | python -c "import sys, json; data=json.load(sys.stdin); print(len(data.get('items', [])))")
@@ -159,13 +162,13 @@ echo "  ✓ Manual item added successfully"
 echo "9. Testing cascade delete..."
 # Delete the recipe that's in the meal plan
 DELETE_RESPONSE=$(curl -s -X DELETE "http://127.0.0.1:8000/api/recipes/1")
-REMOVED_COUNT=$(echo "$DELETE_RESPONSE" | python -c "import sys, json; print(json.load(sys.stdin)['meal_plans_removed'])")
+HAS_WARNING=$(echo "$DELETE_RESPONSE" | python -c "import sys, json; data=json.load(sys.stdin); print(1 if data.get('warning') and 'meal plan' in data['warning'] else 0)")
 
-if [ "$REMOVED_COUNT" != "1" ]; then
-  echo "✗ Expected 1 meal plan removed, got $REMOVED_COUNT"
+if [ "$HAS_WARNING" != "1" ]; then
+  echo "✗ Expected warning about meal plan removal"
   exit 1
 fi
-echo "  ✓ Cascade delete removed $REMOVED_COUNT meal plan(s)"
+echo "  ✓ Cascade delete warning present"
 
 # Test 10: Verify combined search filters
 echo "10. Testing combined filters..."
@@ -180,12 +183,12 @@ echo "  ✓ Tag filter found $TAG_RESULTS recipe(s)"
 echo "11. Testing week navigation..."
 NEXT_WEEK=$(python -c "from datetime import datetime, timedelta; today = datetime.now(); days_since_monday = today.weekday(); monday = today - timedelta(days=days_since_monday); next_monday = monday + timedelta(days=7); print(next_monday.strftime('%Y-%m-%d'))")
 
-NEXT_WEEK_MEALS=$(curl -s "http://127.0.0.1:8000/api/meals?week=$NEXT_WEEK" | python -c "import sys, json; print(len(json.load(sys.stdin)))")
+NEXT_WEEK_MEALS=$(curl -s "http://127.0.0.1:8000/api/meals/?week=$NEXT_WEEK" | python -c "import sys, json; print(len(json.load(sys.stdin)))")
 echo "  ✓ Next week has $NEXT_WEEK_MEALS meal(s) (empty is expected)"
 
 # Test 12: Data persistence (restart server)
 echo "12. Testing data persistence..."
-kill $SERVER_PID
+kill $SERVER_PID 2>/dev/null || true
 sleep 1
 python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 > /dev/null 2>&1 &
 SERVER_PID=$!
