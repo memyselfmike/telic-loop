@@ -18,7 +18,7 @@ You perform TWO jobs in one session:
 
 - **VISION**: Read `{SPRINT_DIR}/VISION.md` — the promised outcome
 - **PRD**: Read `{SPRINT_DIR}/PRD.md` — the detailed requirements
-
+{ARCHITECTURE_SECTION}
 ## Phase 1: Context Discovery
 
 Explore the codebase and environment to understand:

@@ -15,7 +15,7 @@ You receive the plan as structured state (tasks with descriptions, values, accep
 ### Documents (read these)
 - **VISION**: `{SPRINT_DIR}/VISION.md`
 - **PRD**: `{SPRINT_DIR}/PRD.md`
-- **Plan**: `{SPRINT_DIR}/IMPLEMENTATION_PLAN.md`
+{ARCHITECTURE_SECTION}- **Plan**: `{SPRINT_DIR}/IMPLEMENTATION_PLAN.md`
 
 ### Current Plan State
 {PLAN_STATE}

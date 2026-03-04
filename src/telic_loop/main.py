@@ -72,10 +72,17 @@ def _base_prompt_params(config: LoopConfig) -> dict[str, str]:
 
 def _run_plan_phase(config: LoopConfig, state: LoopState, agent: Agent) -> bool:
     """Planner discovers context and creates implementation tasks."""
+    arch_section = ""
+    if config.architecture_file.exists():
+        arch_section = (
+            "- **ARCHITECTURE**: Read `{dir}/ARCHITECTURE.md` "
+            "— technical architecture decisions (follow these closely)\n"
+        ).format(dir=config.sprint_dir)
     prompt = load_prompt("planner",
         **_base_prompt_params(config),
         MAX_TASK_DESC_CHARS=str(config.max_task_description_chars),
         MAX_FILES_PER_TASK=str(config.max_files_per_task),
+        ARCHITECTURE_SECTION=arch_section,
     )
     session = agent.session(AgentRole.PLANNER, system_extra=prompt)
     session.send(
@@ -92,9 +99,16 @@ def _run_plan_phase(config: LoopConfig, state: LoopState, agent: Agent) -> bool:
 
 def _run_review_phase(config: LoopConfig, state: LoopState, agent: Agent) -> bool:
     """Reviewer evaluates plan quality in a separate context."""
+    arch_section = ""
+    if config.architecture_file.exists():
+        arch_section = (
+            "- **ARCHITECTURE**: `{dir}/ARCHITECTURE.md` "
+            "— verify plan aligns with architecture decisions\n"
+        ).format(dir=config.sprint_dir)
     prompt = load_prompt("reviewer",
         **_base_prompt_params(config),
         PLAN_STATE=_format_plan_state(state),
+        ARCHITECTURE_SECTION=arch_section,
     )
     session = agent.session(AgentRole.REVIEWER, system_extra=prompt)
     session.send(

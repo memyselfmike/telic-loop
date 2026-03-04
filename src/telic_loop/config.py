@@ -84,5 +84,9 @@ class LoopConfig:
         return self.sprint_dir / "IMPLEMENTATION_PLAN.md"
 
     @property
+    def architecture_file(self) -> Path:
+        return self.sprint_dir / "ARCHITECTURE.md"
+
+    @property
     def value_checklist(self) -> Path:
         return self.sprint_dir / "VALUE_CHECKLIST.md"
