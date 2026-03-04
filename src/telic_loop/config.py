@@ -30,7 +30,7 @@ class LoopConfig:
 
     # Per-role SDK timeouts (seconds)
     sdk_timeout_reasoning: int = 600   # 10 min — planning, review, eval
-    sdk_timeout_building: int = 600    # 10 min — code generation + tool calls
+    sdk_timeout_building: int = 1800   # 30 min — code generation + tool calls
 
     # Browser evaluation (Critical Evaluator)
     browser_eval_headless: bool = False

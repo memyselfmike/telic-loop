@@ -393,9 +393,22 @@ def _log_iteration_crash(
     """Log a crash during a loop iteration and reset in_progress tasks."""
     from datetime import datetime
     import traceback
+    from .agent import _sync_state
 
     print(f"\n  CRASH in {phase}: {type(exc).__name__}: {exc}")
     traceback.print_exc()
+
+    # Reload state from disk first — tool CLI may have written progress
+    # that the in-memory state doesn't have (sync skipped on crash)
+    if config.state_file.exists():
+        updated = LoopState.load(config.state_file)
+        saved_tokens = state.total_tokens_used
+        saved_input = state.total_input_tokens
+        saved_output = state.total_output_tokens
+        _sync_state(state, updated)
+        state.total_tokens_used = saved_tokens
+        state.total_input_tokens = saved_input
+        state.total_output_tokens = saved_output
 
     crash_record = {
         "timestamp": datetime.now().isoformat(),
