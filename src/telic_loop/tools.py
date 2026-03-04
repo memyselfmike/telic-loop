@@ -1,114 +1,21 @@
-"""Tool implementations and structured output handlers."""
+"""Tool schemas, validation, and structured output handlers.
+
+V4 does NOT define execution tool schemas — the Claude Code SDK provides
+Bash/Read/Write/Edit/Glob/Grep natively. V4 only defines structured output
+tools called via tool CLI for state mutations.
+"""
 
 from __future__ import annotations
 
 import copy
 import json
 import re
-import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-if TYPE_CHECKING:
-    from .claude import AgentRole
-    from .state import LoopState
+from .state import LoopState
 
-
-# ---------------------------------------------------------------------------
-# Execution tools (filesystem + shell)
-# ---------------------------------------------------------------------------
-
-EXECUTION_TOOLS: list[dict] = [
-    {
-        "name": "bash",
-        "description": "Execute a shell command. Returns stdout, stderr, and exit code.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "command": {"type": "string", "description": "Shell command to execute"},
-                "timeout": {"type": "integer", "description": "Timeout in seconds (default 120)", "default": 120},
-            },
-            "required": ["command"],
-        },
-    },
-    {
-        "name": "read_file",
-        "description": "Read file contents. Returns the text content of a file.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "Absolute or relative file path"},
-                "offset": {"type": "integer", "description": "Line offset to start from (0-based)"},
-                "limit": {"type": "integer", "description": "Maximum lines to read"},
-            },
-            "required": ["path"],
-        },
-    },
-    {
-        "name": "write_file",
-        "description": "Create or overwrite a file with the given content.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "File path to write"},
-                "content": {"type": "string", "description": "File content"},
-            },
-            "required": ["path", "content"],
-        },
-    },
-    {
-        "name": "edit_file",
-        "description": "Replace a string in a file. old_string must be unique in the file.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "File path to edit"},
-                "old_string": {"type": "string", "description": "String to find and replace"},
-                "new_string": {"type": "string", "description": "Replacement string"},
-            },
-            "required": ["path", "old_string", "new_string"],
-        },
-    },
-    {
-        "name": "glob_search",
-        "description": "Find files matching a glob pattern.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "pattern": {"type": "string", "description": "Glob pattern (e.g. '**/*.py')"},
-                "path": {"type": "string", "description": "Directory to search in"},
-            },
-            "required": ["pattern"],
-        },
-    },
-    {
-        "name": "grep_search",
-        "description": "Search file contents by regex pattern.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "pattern": {"type": "string", "description": "Regex pattern to search for"},
-                "path": {"type": "string", "description": "Directory or file to search"},
-                "glob": {"type": "string", "description": "File glob filter (e.g. '*.py')"},
-            },
-            "required": ["pattern"],
-        },
-    },
-]
-
-READ_ONLY_TOOLS: list[dict] = [
-    t for t in EXECUTION_TOOLS if t["name"] in ("read_file", "glob_search", "grep_search", "bash")
-]
-
-# ---------------------------------------------------------------------------
-# Provider tools (server-side, Anthropic-executed)
-# ---------------------------------------------------------------------------
-
-PROVIDER_TOOLS: list[dict] = [
-    {"type": "web_search_20250305", "name": "web_search", "max_uses": 5},
-    {"type": "web_fetch_20250910", "name": "web_fetch", "max_size": 100_000},
-]
 
 # ---------------------------------------------------------------------------
 # Structured output tool schemas
@@ -122,7 +29,6 @@ MANAGE_TASK_SCHEMA: dict = {
         "properties": {
             "action": {"type": "string", "enum": ["add", "modify", "remove"]},
             "task_id": {"type": "string"},
-            "reason": {"type": "string"},
             "description": {"type": "string"},
             "value": {"type": "string"},
             "acceptance": {"type": "string"},
@@ -136,6 +42,7 @@ MANAGE_TASK_SCHEMA: dict = {
                          "phase", "status", "blocked_reason", "files_expected"],
             },
             "new_value": {"type": "string"},
+            "reason": {"type": "string"},
         },
         "required": ["action", "task_id"],
     },
@@ -152,10 +59,6 @@ REPORT_TASK_COMPLETE_SCHEMA: dict = {
             "files_modified": {"type": "array", "items": {"type": "string"}},
             "value_verified": {"type": "string"},
             "completion_notes": {"type": "string"},
-            "resolution_note": {
-                "type": "string",
-                "description": "Architectural justification for why a quality violation is intentional (e.g. 'Tailwind v4 uses CSS-first config, no tailwind.config.mjs needed'). Set this when completing a quality task where the violation is by design.",
-            },
         },
         "required": ["task_id", "files_created", "files_modified"],
     },
@@ -175,72 +78,8 @@ REPORT_DISCOVERY_SCHEMA: dict = {
             "verification_strategy": {"type": "object"},
             "value_proofs": {"type": "array", "items": {"type": "string"}},
             "unresolved_questions": {"type": "array", "items": {"type": "string"}},
-            "docker": {
-                "type": "object",
-                "description": "Docker containerization context (if applicable)",
-                "properties": {
-                    "enabled": {"type": "boolean"},
-                    "compose_file": {"type": "string"},
-                    "scripts_dir": {"type": "string"},
-                    "services": {"type": "array", "items": {"type": "object"}},
-                    "recommendation_reason": {"type": "string"},
-                },
-            },
         },
         "required": ["deliverable_type", "project_type", "codebase_state", "value_proofs"],
-    },
-}
-
-REPORT_CRITIQUE_SCHEMA: dict = {
-    "name": "report_critique",
-    "description": "Report PRD feasibility critique result.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "verdict": {"type": "string", "enum": ["APPROVE", "AMEND", "DESCOPE", "REJECT"]},
-            "reason": {"type": "string"},
-            "amendments": {"type": "array", "items": {"type": "string"}},
-            "descope_suggestions": {"type": "array", "items": {"type": "string"}},
-        },
-        "required": ["verdict", "reason"],
-    },
-}
-
-REPORT_TRIAGE_SCHEMA: dict = {
-    "name": "report_triage",
-    "description": "Report root cause analysis of test failures.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "root_causes": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "cause": {"type": "string"},
-                        "affected_tests": {"type": "array", "items": {"type": "string"}},
-                        "priority": {"type": "integer"},
-                        "fix_suggestion": {"type": "string"},
-                    },
-                },
-            },
-        },
-        "required": ["root_causes"],
-    },
-}
-
-REQUEST_HUMAN_ACTION_SCHEMA: dict = {
-    "name": "request_human_action",
-    "description": "Request a human to perform an action the loop cannot do.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "action": {"type": "string"},
-            "instructions": {"type": "string"},
-            "verification_command": {"type": "string"},
-            "blocked_task_id": {"type": "string"},
-        },
-        "required": ["action", "instructions", "blocked_task_id"],
     },
 }
 
@@ -273,21 +112,6 @@ REPORT_VRC_SCHEMA: dict = {
     },
 }
 
-REPORT_COURSE_CORRECTION_SCHEMA: dict = {
-    "name": "report_course_correction",
-    "description": "Report course correction decision.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "action": {"type": "string", "enum": ["restructure", "descope", "new_tasks", "rollback", "regenerate_tests", "escalate"]},
-            "reason": {"type": "string"},
-            "rollback_to_checkpoint": {"type": "string"},
-            "tasks_to_restructure": {"type": "string"},
-        },
-        "required": ["action", "reason"],
-    },
-}
-
 REPORT_EVAL_FINDING_SCHEMA: dict = {
     "name": "report_eval_finding",
     "description": "Report a finding from critical evaluation of the deliverable.",
@@ -299,192 +123,27 @@ REPORT_EVAL_FINDING_SCHEMA: dict = {
             "user_impact": {"type": "string"},
             "suggested_fix": {"type": "string"},
             "evidence": {"type": "string"},
+            "verdict": {
+                "type": "string",
+                "enum": ["SHIP_READY", "CONTINUE"],
+                "description": "Overall evaluation verdict. SHIP_READY = all critical issues resolved.",
+            },
         },
         "required": ["severity", "description", "user_impact"],
     },
 }
 
-REPORT_RESEARCH_SCHEMA: dict = {
-    "name": "report_research",
-    "description": "Report external research findings.",
+REQUEST_EXIT_SCHEMA: dict = {
+    "name": "request_exit",
+    "description": "Builder signals readiness for evaluation. Called when all tasks are done and verifications pass.",
     "input_schema": {
         "type": "object",
         "properties": {
-            "topic": {"type": "string"},
-            "findings": {"type": "string"},
-            "sources": {"type": "array", "items": {"type": "string"}},
-            "affected_verifications": {"type": "array", "items": {"type": "string"}},
+            "reason": {"type": "string", "description": "Why the builder believes work is complete"},
+            "tasks_completed": {"type": "integer"},
+            "verifications_passing": {"type": "integer"},
         },
-        "required": ["topic", "findings", "sources"],
-    },
-}
-
-REPORT_VISION_VALIDATION_SCHEMA: dict = {
-    "name": "report_vision_validation",
-    "description": "Report 5-pass vision validation result.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "verdict": {"type": "string", "enum": ["PASS", "NEEDS_REVISION"]},
-            "dimensions": {
-                "type": "object",
-                "properties": {
-                    "outcome_grounded": {"type": "string", "enum": ["STRONG", "ADEQUATE", "WEAK", "CRITICAL"]},
-                    "adoption_realistic": {"type": "string", "enum": ["STRONG", "ADEQUATE", "WEAK", "CRITICAL"]},
-                    "causally_sound": {"type": "string", "enum": ["STRONG", "ADEQUATE", "WEAK", "CRITICAL"]},
-                    "failure_aware": {"type": "string", "enum": ["STRONG", "ADEQUATE", "WEAK", "CRITICAL"]},
-                },
-            },
-            "strengths": {"type": "array", "items": {"type": "string"}},
-            "issues": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "id": {"type": "string"},
-                        "severity": {"type": "string", "enum": ["hard", "soft"]},
-                        "category": {"type": "string"},
-                        "description": {"type": "string"},
-                        "evidence": {"type": "string"},
-                        "suggested_revision": {"type": "string"},
-                    },
-                    "required": ["id", "severity", "category", "description", "evidence"],
-                },
-            },
-            "kill_criteria": {"type": "array", "items": {"type": "string"}},
-            "reason": {"type": "string"},
-        },
-        "required": ["verdict", "reason", "issues", "strengths"],
-    },
-}
-
-REPORT_STRATEGY_CHANGE_SCHEMA: dict = {
-    "name": "report_strategy_change",
-    "description": "Report process monitor strategy change recommendation.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "pattern": {"type": "string", "enum": ["plateau", "churn", "efficiency_collapse", "category_clustering", "budget_divergence", "file_hotspot"]},
-            "cause": {"type": "string"},
-            "evidence": {"type": "array", "items": {"type": "string"}},
-            "action": {"type": "string", "enum": ["STRATEGY_CHANGE", "ESCALATE", "CONTINUE"]},
-            "changes": {"type": "object"},
-            "rationale": {"type": "string"},
-            "re_evaluate_after": {"type": "integer", "minimum": 3},
-        },
-        "required": ["pattern", "cause", "evidence", "action", "rationale", "re_evaluate_after"],
-    },
-}
-
-REPORT_EPIC_DECOMPOSITION_SCHEMA: dict = {
-    "name": "report_epic_decomposition",
-    "description": "Report epic decomposition of a complex vision.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "epic_count": {"type": "integer", "minimum": 2, "maximum": 5},
-            "epics": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "epic_id": {"type": "string"},
-                        "title": {"type": "string"},
-                        "value_statement": {"type": "string"},
-                        "deliverables": {"type": "array", "items": {"type": "string"}},
-                        "completion_criteria": {"type": "array", "items": {"type": "string"}},
-                        "depends_on": {"type": "array", "items": {"type": "string"}},
-                        "detail_level": {"type": "string", "enum": ["full", "moderate", "sketch"]},
-                        "key_risks": {"type": "array", "items": {"type": "string"}},
-                        "task_sketch": {"type": "array", "items": {"type": "string"}},
-                        "estimated_task_count": {"type": "integer"},
-                    },
-                    "required": ["epic_id", "title", "value_statement", "deliverables", "completion_criteria"],
-                },
-            },
-            "vision_too_large": {"type": "boolean"},
-            "rationale": {"type": "string"},
-        },
-        "required": ["epic_count", "epics", "vision_too_large", "rationale"],
-    },
-}
-
-REPORT_EPIC_SUMMARY_SCHEMA: dict = {
-    "name": "report_epic_summary",
-    "description": "Report curated epic summary for human feedback checkpoint.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "epic_id": {"type": "string"},
-            "summary": {
-                "type": "object",
-                "properties": {
-                    "delivered": {"type": "array", "items": {"type": "string"}},
-                    "vision_progress": {"type": "string"},
-                    "adjustments": {"type": "array", "items": {"type": "string"}},
-                    "next_epic": {
-                        "type": "object",
-                        "properties": {
-                            "title": {"type": "string"},
-                            "value_statement": {"type": "string"},
-                            "key_deliverables": {"type": "array", "items": {"type": "string"}},
-                            "risks": {"type": "array", "items": {"type": "string"}},
-                        },
-                    },
-                    "confidence": {"type": "string", "enum": ["HIGH", "MEDIUM", "LOW"]},
-                    "confidence_rationale": {"type": "string"},
-                },
-            },
-            "vrc_snapshot": {
-                "type": "object",
-                "properties": {
-                    "value_score": {"type": "number"},
-                    "deliverables_verified": {"type": "integer"},
-                    "deliverables_total": {"type": "integer"},
-                    "gaps": {"type": "array"},
-                },
-            },
-        },
-        "required": ["epic_id", "summary"],
-    },
-}
-
-REPORT_COHERENCE_SCHEMA: dict = {
-    "name": "report_coherence",
-    "description": "Report system coherence evaluation result.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "mode": {"type": "string", "enum": ["quick", "full"]},
-            "dimensions": {
-                "type": "object",
-                "additionalProperties": {
-                    "type": "object",
-                    "properties": {
-                        "status": {"type": "string", "enum": ["HEALTHY", "WARNING", "CRITICAL"]},
-                        "findings": {"type": "array", "items": {"type": "string"}},
-                        "trend": {"type": "string", "enum": ["improving", "stable", "degrading"]},
-                    },
-                },
-            },
-            "overall": {"type": "string", "enum": ["HEALTHY", "WARNING", "CRITICAL"]},
-            "top_findings": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "dimension": {"type": "string"},
-                        "severity": {"type": "string"},
-                        "description": {"type": "string"},
-                        "affected_files": {"type": "array", "items": {"type": "string"}},
-                        "suggested_action": {"type": "string"},
-                        "leverage_level": {"type": "integer"},
-                    },
-                },
-            },
-            "comparison_to_previous": {"type": "string"},
-        },
-        "required": ["mode", "dimensions", "overall"],
+        "required": ["reason"],
     },
 }
 
@@ -493,40 +152,10 @@ ALL_STRUCTURED_SCHEMAS: list[dict] = [
     MANAGE_TASK_SCHEMA,
     REPORT_TASK_COMPLETE_SCHEMA,
     REPORT_DISCOVERY_SCHEMA,
-    REPORT_CRITIQUE_SCHEMA,
-    REPORT_TRIAGE_SCHEMA,
-    REQUEST_HUMAN_ACTION_SCHEMA,
     REPORT_VRC_SCHEMA,
-    REPORT_COURSE_CORRECTION_SCHEMA,
     REPORT_EVAL_FINDING_SCHEMA,
-    REPORT_RESEARCH_SCHEMA,
-    REPORT_VISION_VALIDATION_SCHEMA,
-    REPORT_STRATEGY_CHANGE_SCHEMA,
-    REPORT_EPIC_DECOMPOSITION_SCHEMA,
-    REPORT_EPIC_SUMMARY_SCHEMA,
-    REPORT_COHERENCE_SCHEMA,
+    REQUEST_EXIT_SCHEMA,
 ]
-
-
-# ---------------------------------------------------------------------------
-# Tool role mapping
-# ---------------------------------------------------------------------------
-
-def get_tools_for_role(role: AgentRole) -> list[dict]:
-    """Return tools appropriate for this role.
-
-    Structured output tools are added by the orchestrator per-prompt
-    via the session's tools list, not here. This returns base tools only.
-    """
-    match role:
-        case AgentRole.RESEARCHER:
-            return EXECUTION_TOOLS + PROVIDER_TOOLS
-        case AgentRole.EVALUATOR:
-            return READ_ONLY_TOOLS
-        case AgentRole.CLASSIFIER:
-            return []  # structured output tools injected per-prompt
-        case _:
-            return EXECUTION_TOOLS
 
 
 # ---------------------------------------------------------------------------
@@ -536,7 +165,7 @@ def get_tools_for_role(role: AgentRole) -> list[dict]:
 DUPLICATE_SIMILARITY_THRESHOLD = 0.75
 MID_LOOP_TASK_CEILING = 15
 
-# ---------------------------------------------------------------------------
+
 # Meta-instruction and oversized-scope detection
 # ---------------------------------------------------------------------------
 
@@ -677,55 +306,27 @@ def _creates_cycle(task_id: str, new_dep_id: str, state: LoopState) -> bool:
 # Tool execution dispatch (transactional)
 # ---------------------------------------------------------------------------
 
-def execute_tool(name: str, input_data: dict, state: LoopState | None,
+def execute_tool(name: str, input_data: dict, state: LoopState,
                  task_source: str = "agent") -> str:
-    """Dispatch tool calls. Structured tools mutate state transactionally.
-    Execution tools run commands/read files directly."""
+    """Dispatch structured tool calls. State is mutated transactionally."""
 
-    # Execution tools (filesystem + shell)
-    EXEC_HANDLERS = {
-        "bash": _exec_bash,
-        "read_file": _exec_read_file,
-        "write_file": _exec_write_file,
-        "edit_file": _exec_edit_file,
-        "glob_search": _exec_glob_search,
-        "grep_search": _exec_grep_search,
-    }
-
-    if name in EXEC_HANDLERS:
-        return EXEC_HANDLERS[name](input_data)
-
-    # Structured output tools (state mutations)
     HANDLERS = {
         "manage_task": handle_manage_task,
         "report_task_complete": handle_task_complete,
         "report_discovery": handle_discovery,
-        "report_critique": handle_critique,
-        "report_triage": handle_triage,
         "report_vrc": handle_vrc,
         "report_eval_finding": handle_eval_finding,
-        "report_research": handle_research,
-        "report_vision_validation": handle_vision_validation,
-        "report_strategy_change": handle_strategy_change,
-        "report_course_correction": handle_course_correction,
-        "report_epic_decomposition": handle_epic_decomposition,
-        "report_epic_summary": handle_epic_summary,
-        "report_coherence": handle_coherence,
-        "request_human_action": handle_human_action,
+        "request_exit": handle_request_exit,
     }
 
     handler = HANDLERS.get(name)
     if not handler:
         return json.dumps({"error": f"Unknown tool: {name}"})
 
-    if state is None:
-        return json.dumps({"error": "No state available for structured tool"})
-
     # Snapshot mutable state for transactional safety
     snapshot = {
         "tasks": copy.deepcopy(state.tasks),
         "verifications": copy.deepcopy(state.verifications),
-        "agent_results": copy.deepcopy(state.agent_results),
     }
     try:
         result = handler(input_data, state, task_source=task_source)
@@ -733,120 +334,7 @@ def execute_tool(name: str, input_data: dict, state: LoopState | None,
     except Exception as e:
         state.tasks = snapshot["tasks"]
         state.verifications = snapshot["verifications"]
-        state.agent_results = snapshot["agent_results"]
         return json.dumps({"error": f"Handler failed: {e}", "rolled_back": True})
-
-
-# ---------------------------------------------------------------------------
-# Execution tool implementations
-# ---------------------------------------------------------------------------
-
-def _exec_bash(input_data: dict) -> str:
-    cmd = input_data["command"]
-    timeout = input_data.get("timeout", 120)
-    try:
-        result = subprocess.run(
-            cmd, shell=True, capture_output=True, text=True, timeout=timeout,
-        )
-        output = ""
-        if result.stdout:
-            output += result.stdout[:10000]
-        if result.stderr:
-            output += "\nSTDERR:\n" + result.stderr[:5000]
-        output += f"\n[exit code: {result.returncode}]"
-        return output
-    except subprocess.TimeoutExpired:
-        return f"[TIMEOUT after {timeout}s]"
-
-
-def _exec_read_file(input_data: dict) -> str:
-    path = Path(input_data["path"])
-    if not path.exists():
-        return f"[ERROR: File not found: {path}]"
-    try:
-        content = path.read_text(errors="replace")
-        lines = content.split("\n")
-        offset = input_data.get("offset", 0)
-        limit = input_data.get("limit", len(lines))
-        selected = lines[offset:offset + limit]
-        return "\n".join(f"{i + offset + 1:>6}\t{line}" for i, line in enumerate(selected))
-    except Exception as e:
-        return f"[ERROR: {e}]"
-
-
-def _exec_write_file(input_data: dict) -> str:
-    path = Path(input_data["path"])
-    try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(input_data["content"], encoding="utf-8")
-        return f"[Wrote {len(input_data['content'])} chars to {path}]"
-    except Exception as e:
-        return f"[ERROR: {e}]"
-
-
-def _exec_edit_file(input_data: dict) -> str:
-    path = Path(input_data["path"])
-    if not path.exists():
-        return f"[ERROR: File not found: {path}]"
-    try:
-        content = path.read_text(encoding="utf-8")
-        old = input_data["old_string"]
-        new = input_data["new_string"]
-        count = content.count(old)
-        if count == 0:
-            return f"[ERROR: old_string not found in {path}]"
-        if count > 1:
-            return f"[ERROR: old_string found {count} times in {path} — must be unique]"
-        content = content.replace(old, new, 1)
-        path.write_text(content, encoding="utf-8")
-        return f"[Edited {path}]"
-    except Exception as e:
-        return f"[ERROR: {e}]"
-
-
-def _exec_glob_search(input_data: dict) -> str:
-    pattern = input_data["pattern"]
-    base = Path(input_data.get("path", "."))
-    try:
-        matches = sorted(str(p) for p in base.glob(pattern))
-        if not matches:
-            return "[No matches]"
-        return "\n".join(matches[:200])
-    except Exception as e:
-        return f"[ERROR: {e}]"
-
-
-def _exec_grep_search(input_data: dict) -> str:
-    import re
-    pattern = input_data["pattern"]
-    base = Path(input_data.get("path", "."))
-    glob_filter = input_data.get("glob", "**/*")
-
-    try:
-        regex = re.compile(pattern)
-    except re.error as e:
-        return f"[ERROR: Invalid regex: {e}]"
-
-    results: list[str] = []
-    try:
-        files = sorted(base.glob(glob_filter)) if base.is_dir() else [base]
-        for fpath in files:
-            if not fpath.is_file():
-                continue
-            try:
-                content = fpath.read_text(errors="replace")
-                for i, line in enumerate(content.split("\n"), 1):
-                    if regex.search(line):
-                        results.append(f"{fpath}:{i}: {line[:200]}")
-                        if len(results) >= 100:
-                            results.append("[... truncated at 100 matches]")
-                            return "\n".join(results)
-            except Exception:
-                continue
-    except Exception as e:
-        return f"[ERROR: {e}]"
-
-    return "\n".join(results) if results else "[No matches]"
 
 
 # ---------------------------------------------------------------------------
@@ -885,16 +373,12 @@ def handle_manage_task(input_data: dict, state: LoopState, task_source: str = "a
         new_value = input_data.get("new_value", "")
 
         if field_name == "status":
-            # Prevent un-descoping: once descoped, only the human can revert
             if task.status == "descoped" and new_value != "descoped":
                 return (
                     f"Cannot change {task_id} from descoped to {new_value}. "
                     f"Descoped tasks were intentionally removed from scope."
                 )
             if new_value == "descoped":
-                # Only course_correct (REASONER) and exit_gate can descope
-                # plan-originated tasks — builders/fixers cannot unilaterally
-                # remove planned deliverables.
                 if task.source in ("plan", "agent"):
                     if task_source not in ("course_correction", "exit_gate"):
                         return (
@@ -937,7 +421,6 @@ def _normalize_paths(paths: list[str], sprint_prefix: str) -> list[str]:
     for p in paths:
         if not p:
             continue
-        # Skip absolute paths and paths already under sprints/
         if Path(p).is_absolute() or p.startswith("sprints/"):
             result.append(p)
         else:
@@ -954,12 +437,10 @@ def handle_task_complete(input_data: dict, state: LoopState, **_: Any) -> str:
         return f"Task {task_id} is descoped — cannot mark complete"
     task.status = "done"
     task.completed_at = datetime.now().isoformat()
-    # Normalize file paths: ensure sprint dir prefix is present
     sprint_prefix = f"sprints/{state.sprint}/"
     task.files_created = _normalize_paths(input_data.get("files_created", []), sprint_prefix)
     task.files_modified = _normalize_paths(input_data.get("files_modified", []), sprint_prefix)
     task.completion_notes = input_data.get("completion_notes", "")
-    task.resolution_note = input_data.get("resolution_note", "")
     return f"Task {task_id} marked complete"
 
 
@@ -988,23 +469,12 @@ def handle_discovery(input_data: dict, state: LoopState, **_: Any) -> str:
         verification_strategy=input_data.get("verification_strategy", {}),
         value_proofs=input_data.get("value_proofs", []),
         unresolved_questions=input_data.get("unresolved_questions", []),
-        docker=input_data.get("docker", {}),
     )
     return "Discovery reported"
 
 
-def handle_critique(input_data: dict, state: LoopState, **_: Any) -> str:
-    state.agent_results["critique"] = input_data
-    return f"Critique recorded: {input_data.get('verdict', 'unknown')}"
-
-
-def handle_triage(input_data: dict, state: LoopState, **_: Any) -> str:
-    state.agent_results["triage"] = input_data.get("root_causes", [])
-    return f"Triage recorded: {len(input_data.get('root_causes', []))} root causes"
-
-
 def handle_vrc(input_data: dict, state: LoopState, **_: Any) -> str:
-    from .state import VRCSnapshot
+    from .state import VRCSnapshot, TaskState
 
     # Normalize value_score to 0.0-1.0 (agents sometimes use 0-10 or 0-100)
     score = float(input_data.get("value_score", 0.0))
@@ -1039,10 +509,7 @@ def handle_vrc(input_data: dict, state: LoopState, **_: Any) -> str:
     )
     state.vrc_history.append(snapshot)
 
-    # Auto-create tasks from gap suggestions immediately — don't wait for exit gate.
-    # This closes the loop: VRC identifies gap → task created → builder fixes it.
-    from .state import TaskState
-
+    # Auto-create tasks from gap suggestions
     created = 0
     existing_descs = {
         t.description for t in state.tasks.values() if t.status != "descoped"
@@ -1051,10 +518,8 @@ def handle_vrc(input_data: dict, state: LoopState, **_: Any) -> str:
         suggested = gap.get("suggested_task", "")
         if not suggested:
             continue
-        # Dedup: skip if a task with this exact description already exists
         if suggested in existing_descs:
             continue
-        # Polish gaps only create tasks during active loop (not when SHIP_READY)
         severity = gap.get("severity", "degraded")
         if severity == "polish" and rec == "SHIP_READY":
             continue
@@ -1062,7 +527,6 @@ def handle_vrc(input_data: dict, state: LoopState, **_: Any) -> str:
         gap_id = gap.get("id", f"gap-{created}")
         task_id = f"VRC-{state.iteration}-{gap_id}"
 
-        # Validate through the same pipeline as plan-generated tasks
         candidate = {
             "task_id": task_id,
             "description": suggested,
@@ -1074,13 +538,6 @@ def handle_vrc(input_data: dict, state: LoopState, **_: Any) -> str:
             print(f"  VRC task {task_id} rejected: {error}")
             continue
 
-        # Epic-scope new tasks in multi-epic mode
-        epic_id = ""
-        if (state.vision_complexity == "multi_epic"
-                and state.epics
-                and state.current_epic_index < len(state.epics)):
-            epic_id = state.epics[state.current_epic_index].epic_id
-
         state.tasks[task_id] = TaskState(
             task_id=task_id,
             source="vrc",
@@ -1088,7 +545,6 @@ def handle_vrc(input_data: dict, state: LoopState, **_: Any) -> str:
             value=gap.get("description", ""),
             acceptance=f"Gap '{gap_id}' resolved: {gap.get('description', '')}",
             created_at=datetime.now().isoformat(),
-            epic_id=epic_id,
         )
         existing_descs.add(suggested)
         created += 1
@@ -1100,14 +556,14 @@ def handle_vrc(input_data: dict, state: LoopState, **_: Any) -> str:
 def handle_eval_finding(input_data: dict, state: LoopState, **_: Any) -> str:
     from .state import TaskState
     severity = input_data["severity"]
+
+    # Handle verdict for exit gate decisions
+    verdict = input_data.get("verdict", "")
+    if verdict == "SHIP_READY":
+        state.pass_gate("critical_eval_passed")
+
     if severity in ("critical", "blocking"):
         task_id = f"CE-{state.iteration}-{len(state.tasks)}"
-        # Tag with current epic so the decision engine can scope it
-        epic_id = ""
-        if (state.vision_complexity == "multi_epic"
-                and state.epics
-                and state.current_epic_index < len(state.epics)):
-            epic_id = state.epics[state.current_epic_index].epic_id
         state.add_task(TaskState(
             task_id=task_id,
             source="critical_eval",
@@ -1115,84 +571,10 @@ def handle_eval_finding(input_data: dict, state: LoopState, **_: Any) -> str:
             value=input_data["user_impact"],
             acceptance=f"Fix: {input_data['description']}",
             created_at=datetime.now().isoformat(),
-            epic_id=epic_id,
         ))
     return f"Finding recorded: [{severity}] {input_data['description']}"
 
 
-def handle_research(input_data: dict, state: LoopState, **_: Any) -> str:
-    brief = {
-        "topic": input_data.get("topic", ""),
-        "findings": input_data.get("findings", ""),
-        "sources": input_data.get("sources", []),
-        "affected_verifications": input_data.get("affected_verifications", []),
-        "iteration": state.iteration,
-    }
-    state.research_briefs.append(brief)
-    state.agent_results["research"] = input_data
-    return f"Research recorded: {input_data.get('topic', '')}"
-
-
-def handle_vision_validation(input_data: dict, state: LoopState, **_: Any) -> str:
-    state.agent_results["vision_validation"] = input_data
-    return f"Vision validation: {input_data.get('verdict', 'unknown')}"
-
-
-def handle_strategy_change(input_data: dict, state: LoopState, **_: Any) -> str:
-    state.agent_results["strategy_change"] = input_data
-    return f"Strategy change: {input_data.get('action', 'unknown')}"
-
-
-def handle_course_correction(input_data: dict, state: LoopState, **_: Any) -> str:
-    state.agent_results["course_correction"] = input_data
-    return f"Course correction: {input_data.get('action', 'unknown')}"
-
-
-def handle_epic_decomposition(input_data: dict, state: LoopState, **_: Any) -> str:
-    from .state import Epic
-
-    state.agent_results["epic_decomposition"] = input_data
-
-    # Create Epic objects in state.epics from the decomposition result
-    epics: list[Epic] = []
-    for epic_data in input_data.get("epics", []):
-        epic = Epic(
-            epic_id=epic_data.get("epic_id", f"epic_{len(epics) + 1}"),
-            title=epic_data.get("title", ""),
-            value_statement=epic_data.get("value_statement", ""),
-            deliverables=epic_data.get("deliverables", []),
-            completion_criteria=epic_data.get("completion_criteria", []),
-            depends_on=epic_data.get("depends_on", []),
-            detail_level=epic_data.get("detail_level", "sketch"),
-            task_sketch=epic_data.get("task_sketch", []),
-        )
-        epics.append(epic)
-    state.epics = epics
-
-    return f"Epic decomposition: {len(epics)} epics created"
-
-
-def handle_epic_summary(input_data: dict, state: LoopState, **_: Any) -> str:
-    state.agent_results["epic_summary"] = input_data
-    return f"Epic summary recorded for {input_data.get('epic_id', '')}"
-
-
-def handle_coherence(input_data: dict, state: LoopState, **_: Any) -> str:
-    state.agent_results["coherence"] = input_data
-    return f"Coherence reported: {input_data.get('overall', 'unknown')}"
-
-
-def handle_human_action(input_data: dict, state: LoopState, **_: Any) -> str:
-    from .state import PauseState
-    task_id = input_data["blocked_task_id"]
-    task = state.tasks.get(task_id)
-    if task:
-        task.status = "blocked"
-        task.blocked_reason = f"HUMAN_ACTION: {input_data['action']}"
-    state.pause = PauseState(
-        reason=input_data["action"],
-        instructions=input_data["instructions"],
-        verification=input_data.get("verification_command", ""),
-        requested_at=datetime.now().isoformat(),
-    )
-    return f"Human action requested for {task_id}: {input_data['action']}"
+def handle_request_exit(input_data: dict, state: LoopState, **_: Any) -> str:
+    state.exit_requested = True
+    return f"Exit requested: {input_data.get('reason', 'no reason given')}"

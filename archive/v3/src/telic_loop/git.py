@@ -162,7 +162,10 @@ def execute_rollback(
     # 6. Update regression baseline
     state.regression_baseline = set(checkpoint.verifications_passing)
 
-    # 7. Record rollback
+    # 7. Reset iterations_without_progress
+    state.iterations_without_progress = 0
+
+    # 8. Record rollback
     state.git.rollbacks.append({
         "from_hash": wal_data["from_hash"],
         "to_hash": checkpoint.commit_hash,
@@ -172,16 +175,16 @@ def execute_rollback(
         "tasks_reverted": list(reverted_task_ids),
     })
 
-    # 8. Update git state
+    # 9. Update git state
     state.git.last_commit_hash = checkpoint.commit_hash
 
-    # 9. Commit the rollback
+    # 10. Commit the rollback
     git_commit(config, state, f"telic-loop({config.sprint}): Rollback to {checkpoint.label}: {reason}")
 
-    # 10. Save state
+    # 11. Save state
     state.save(config.state_file)
 
-    # 11. Remove WAL
+    # 12. Remove WAL
     wal_path.unlink(missing_ok=True)
 
 
@@ -218,6 +221,13 @@ def check_sensitive_files(state: LoopState) -> list[str]:
         if _matches_sensitive_pattern(f, state.git.sensitive_patterns):
             matches.append(f)
     return matches
+
+
+def check_and_fix_services(config: LoopConfig, state: LoopState) -> None:
+    """Check service health after rollback and restart if needed."""
+    from .decision import _all_services_healthy
+    if not _all_services_healthy(config, state):
+        print("  WARNING: Services unhealthy after rollback — may need manual restart")
 
 
 # ---------------------------------------------------------------------------

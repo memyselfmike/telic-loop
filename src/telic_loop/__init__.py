@@ -1,3 +1,1 @@
-"""Telic Loop: Vision-to-Value Delivery System."""
-
-__version__ = "0.1.0"
+"""Telic Loop V4 — Vision-to-Value autonomous agent loop."""
