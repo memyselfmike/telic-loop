@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bookshelf - Personal Book Tracker</title>
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <h1 class="header-title">📚 Bookshelf</h1>
+                <div class="header-actions">
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search books...">
+                    <button id="addBookBtn" class="btn btn-primary">+ Add Book</button>
+                    <button id="statsBtn" class="btn btn-secondary">📊 Stats</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <!-- Filter Tabs -->
+            <div id="filterTabs" class="filter-tabs">
+                <button class="filter-tab active" data-status="all">All</button>
+                <button class="filter-tab" data-status="want_to_read">Want to Read</button>
+                <button class="filter-tab" data-status="reading">Reading</button>
+                <button class="filter-tab" data-status="finished">Finished</button>
+                <button class="filter-tab" data-status="abandoned">Abandoned</button>
+            </div>
+
+            <!-- Library View -->
+            <div id="libraryView" class="library-view">
+                <div id="bookGrid" class="book-grid">
+                    <!-- Book cards will be rendered here -->
+                </div>
+            </div>
+
+            <!-- Stats Dashboard (hidden by default) -->
+            <div id="statsView" class="stats-view" style="display: none;">
+                <div id="statsContent" class="stats-content">
+                    <!-- Stats will be rendered here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Container -->
+    <div id="modalContainer" class="modal-container"></div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/library.js"></script>
+    <script src="js/modal.js"></script>
+    <script src="js/search.js"></script>
+    <script src="js/stats.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
