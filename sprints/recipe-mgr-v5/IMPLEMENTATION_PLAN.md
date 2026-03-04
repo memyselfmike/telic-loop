@@ -1,6 +1,6 @@
 # Implementation Plan (rendered from state)
 
-Generated: 2026-03-04T12:03:26.774437
+Generated: 2026-03-04T12:16:47.939315
 
 
 ## Foundation
@@ -32,12 +32,12 @@ Generated: 2026-03-04T12:03:26.774437
   - Acceptance: PUT assigns recipe to slot, returns 200. Duplicate PUT to same slot replaces existing. GET returns week plan with recipe titles and times. DELETE clears a slot. week_start validated as Monday. Response includes recipe title, prep_time_minutes, cook_time_minutes.
   - Deps: 1.1, 2.1
 
-- [ ] **2.3**: Implement Shopping List API in backend/routes/shopping.py: POST /api/shopping/generate aggregates ingredients from all meal plan entries for the given week, normalizes compatible units (tsp->tbsp->cup, oz->lb, count equivalents), groups by grocery_section, creates shopping_list + shopping_items rows. Unit normalization: store as single decimal value in largest applicable unit (e.g., 4 tsp = 1.3 tbsp, per PRD 2.2). GET /api/shopping/current returns current list with items. PATCH /api/shopping/items/{id} toggles checked. POST /api/shopping/items adds manual item. DELETE /api/shopping/items/{id} removes item. Register in main.py.
+- [x] **2.3**: Implement Shopping List API in backend/routes/shopping.py: POST /api/shopping/generate aggregates ingredients from all meal plan entries for the given week, normalizes compatible units (tsp->tbsp->cup, oz->lb, count equivalents), groups by grocery_section, creates shopping_list + shopping_items rows. Unit normalization: store as single decimal value in largest applicable unit (e.g., 4 tsp = 1.3 tbsp, per PRD 2.2). GET /api/shopping/current returns current list with items. PATCH /api/shopping/items/{id} toggles checked. POST /api/shopping/items adds manual item. DELETE /api/shopping/items/{id} removes item. Register in main.py.
   - Value: Cook generates a smart shopping list from their meal plan — ingredients auto-aggregated and unit-normalized so they buy the right amounts.
   - Acceptance: Generate merges 2 cups + 1 cup into 3 cups. 4 tsp converts to 1 tbsp + 1 tsp. Items grouped by grocery_section. Check/uncheck persists. Manual items addable. Delete works. Regenerating replaces old list.
   - Deps: 1.1, 2.2
 
-- [ ] **2.4**: Write pytest API integration tests in tests/test_api.py using FastAPI TestClient: test recipe CRUD (create, read, update, delete, search/filter), test meal plan operations (assign, get week, clear slot, week_start validation), test shopping list generation (unit normalization: tsp->tbsp, cup aggregation, grouping by section), test manual item add, test check toggle, test cascade delete (recipe deletion removes meal plan entries). At least 15 test cases covering all endpoints.
+- [x] **2.4**: Write pytest API integration tests in tests/test_api.py using FastAPI TestClient: test recipe CRUD (create, read, update, delete, search/filter), test meal plan operations (assign, get week, clear slot, week_start validation), test shopping list generation (unit normalization: tsp->tbsp, cup aggregation, grouping by section), test manual item add, test check toggle, test cascade delete (recipe deletion removes meal plan entries). At least 15 test cases covering all endpoints.
   - Value: Automated regression safety net — ensures backend correctness is verified and future changes do not break existing functionality.
   - Acceptance: pytest tests/test_api.py passes all tests. Coverage includes: recipe CRUD + filters, meal plan CRUD, shopping generation with unit normalization, manual items, cascade deletes. At least 15 test functions.
   - Deps: 2.1, 2.2, 2.3

@@ -10,24 +10,23 @@ echo "Testing seed data loading..."
 # Remove database to test fresh initialization
 rm -f data/recipes.db
 
-# Start server briefly to initialize database
+# Start server to initialize database (will keep running for API tests below)
 echo "Initializing fresh database..."
-timeout 2 python -m uvicorn backend.main:app --port 8004 > /dev/null 2>&1 || true
-sleep 1
+python -m uvicorn backend.main:app --port 8004 > /tmp/server_seed.log 2>&1 &
+SERVER_PID=$!
+trap "kill $SERVER_PID 2>/dev/null || true" EXIT
+
+# Give server time to fully start and initialize database
+sleep 5
 
 # Verify database was created and seeded
 if [ ! -f "data/recipes.db" ]; then
     echo "✗ Database file not created"
+    cat /tmp/server_seed.log
     exit 1
 fi
 
-# Start server for API check
-python -m uvicorn backend.main:app --port 8004 > /tmp/server_seed.log 2>&1 &
-SERVER_PID=$!
-trap "kill $SERVER_PID 2>/dev/null || true" EXIT
-sleep 3
-
-# Check seed recipes via API
+# Check seed recipes via API (server already running from above)
 RECIPES=$(curl -s http://localhost:8004/api/recipes/)
 RECIPE_COUNT=$(echo "$RECIPES" | python -c "import sys, json; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "0")
 
