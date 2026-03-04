@@ -1,6 +1,6 @@
 # Implementation Plan (rendered from state)
 
-Generated: 2026-03-04T10:52:02.763791
+Generated: 2026-03-04T11:03:59.752573
 
 
 ## Backend-Foundation
@@ -109,18 +109,18 @@ Generated: 2026-03-04T10:52:02.763791
   - Value: Without fixing the critical and blocking issues, the builder will encounter ambiguous specs in 3 of the most complex tasks (2.3, 3.2, 3.4) and will either guess wrong or waste cycles asking for clarification.
   - Acceptance: Fix: OVERALL PLAN ASSESSMENT: The plan has strong architecture — good phasing (backend-first, then frontend, then integration), proper dependency chains, comprehensive test coverage, and clear value delivery per task. However, it has 1 critical issue (unit normalization PRD contradiction) and 3 blocking issues (missing meal-plan-count for delete warning, no shared week state mechanism, shopping UI lacks week selector) that will cause builder confusion or missing functionality. These must be resolved before implementation.
 
-- [ ] **CE-9-16**: In filterRecipePicker() (planner.js line 190), the onclick handler is: onclick="assignMeal(${r.id})". It must be: onclick="assignMeal(${dayIndex}, '${slot}', ${r.id})". The dayIndex and slot variables need to be captured via closure — pass them as parameters to filterRecipePicker or capture them in the search event listener closure.
+- [x] **CE-9-16**: In filterRecipePicker() (planner.js line 190), the onclick handler is: onclick="assignMeal(${r.id})". It must be: onclick="assignMeal(${dayIndex}, '${slot}', ${r.id})". The dayIndex and slot variables need to be captured via closure — pass them as parameters to filterRecipePicker or capture them in the search event listener closure.
   - Value: When user types in the recipe picker search box (in meal planner), the filtered results render onclick handlers as assignMeal(recipeId) with only 1 argument, but the function signature is assignMeal(dayIndex, slot, recipeId). This means clicking any recipe after filtering will pass the recipe ID as dayIndex, undefined as slot, and undefined as recipeId. The API call will fail with a 404 (recipe not found for recipeId=undefined) or create a corrupt meal plan entry.
   - Acceptance: Fix: Recipe picker search filter breaks meal assignment — assignMeal called with wrong arguments after filtering
 
-- [ ] **CE-9-17**: Add a keydown event listener for Escape in the modal.show() method: document.addEventListener("keydown", (e) => { if (e.key === "Escape") modal.hide(); }). Clean up the listener in modal.hide().
+- [x] **CE-9-17**: Add a keydown event listener for Escape in the modal.show() method: document.addEventListener("keydown", (e) => { if (e.key === "Escape") modal.hide(); }). Clean up the listener in modal.hide().
   - Value: Users expect to press Escape to close modals. The app uses modals extensively (recipe detail, recipe form, recipe picker, copy-to-slots, add item, meal options). Without Escape key support, keyboard-only users are stuck and all users lose a standard interaction pattern. The task 4.1 acceptance criteria explicitly requires keyboard navigation for core flows.
   - Acceptance: Fix: No keyboard escape to close modals — modal can only be closed by clicking X button or overlay background
 
-- [ ] **CE-9-18**: merge_quantities() should return a list of (qty, unit) tuples — one per unit family — and the caller should insert multiple shopping_items rows for the same item when incompatible unit families are present. Currently at shopping.py line 146: the function returns only the first non-zero of volume/weight/count/other, discarding the rest.
+- [x] **CE-9-18**: merge_quantities() should return a list of (qty, unit) tuples — one per unit family — and the caller should insert multiple shopping_items rows for the same item when incompatible unit families are present. Currently at shopping.py line 146: the function returns only the first non-zero of volume/weight/count/other, discarding the rest.
   - Value: If a recipe has 2 cups flour and another has 100g flour (or a user adds an ingredient with both volume and weight units for the same item name), the shopping list generator silently drops the weight quantity and only shows the volume total. The PRD section 2.2 says incompatible units should be kept as separate lines, but merge_quantities() returns only one (qty, unit) tuple — the first non-zero aggregate. This means weight data is lost.
   - Acceptance: Fix: Mixed unit ingredients (same item with volume AND weight) silently drops weight data — only the first non-zero aggregate is returned
 
-- [ ] **CE-9-19**: Fix the 3 must-fix issues: (1) CRITICAL: Fix filterRecipePicker onclick to pass dayIndex/slot/recipeId (not just recipeId). (2) BLOCKING: Add Escape key listener to modal.show()/hide(). (3) BLOCKING: Make merge_quantities return multiple rows for incompatible unit families. The 4 degraded issues (320px grid, shopping week nav, duplicate escapeHtml, fragile week math) should also be addressed if time permits.
+- [x] **CE-9-19**: Fix the 3 must-fix issues: (1) CRITICAL: Fix filterRecipePicker onclick to pass dayIndex/slot/recipeId (not just recipeId). (2) BLOCKING: Add Escape key listener to modal.show()/hide(). (3) BLOCKING: Make merge_quantities return multiple rows for incompatible unit families. The 4 degraded issues (320px grid, shopping week nav, duplicate escapeHtml, fragile week math) should also be addressed if time permits.
   - Value: The critical bug (recipe picker filter breaks meal assignment) means users cannot search and assign recipes from the planner — a core workflow. The blocking issues (no Escape key for modals, mixed-unit data loss) degrade the experience significantly.
   - Acceptance: Fix: VERDICT: CONTINUE — 1 critical and 2 blocking issues must be fixed before shipping
