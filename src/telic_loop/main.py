@@ -367,6 +367,41 @@ def run_loop(config: LoopConfig, state: LoopState, agent: Agent) -> None:
                 crash_type=crash_record.get("crash_type", "") if crash_record else "",
             )
 
+            # Reset phase crash count on success
+            if progress and not crash_record:
+                state.phase_crash_counts[phase] = 0
+
+            # Per-phase crash budget check
+            if crash_record:
+                phase_crashes = state.phase_crash_counts.get(phase, 0)
+                if phase_crashes >= config.max_phase_crashes:
+                    error_kind = crash_record.get("error_kind", "retryable")
+                    print(f"\n  PHASE CRASH BUDGET EXHAUSTED: {phase} crashed "
+                          f"{phase_crashes}x consecutively ({error_kind})")
+
+                    if error_kind == "non_retryable":
+                        print("  Non-retryable error — halting loop")
+                        generate_delivery_report(config, state)
+                        state.save(config.state_file)
+                        return
+
+                    if phase == "review":
+                        print("  Forcing plan_reviewed gate (accepting plan as-is)")
+                        state.pass_gate("plan_reviewed")
+                        state.phase_crash_counts[phase] = 0
+                    elif phase == "evaluate":
+                        print("  Forcing critical_eval_passed gate (accepting deliverable)")
+                        state.pass_gate("critical_eval_passed")
+                        state.phase_crash_counts[phase] = 0
+                    elif phase == "plan" and not state.tasks:
+                        print("  Cannot skip empty plan — halting loop")
+                        generate_delivery_report(config, state)
+                        state.save(config.state_file)
+                        return
+                    elif phase == "implement":
+                        # Reset count and let determine_phase re-evaluate
+                        state.phase_crash_counts[phase] = 0
+
             # Git commit after implement phases
             if phase == "implement" and progress:
                 git_commit(config, state, f"telic-loop({config.sprint}): iter {iteration}")
@@ -394,8 +429,10 @@ def _log_iteration_crash(
     from datetime import datetime
     import traceback
     from .agent import _sync_state
+    from .errors import FailureTrail, classify_error, log_crash_jsonl
 
-    print(f"\n  CRASH in {phase}: {type(exc).__name__}: {exc}")
+    error_kind = classify_error(exc)
+    print(f"\n  CRASH in {phase} [{error_kind}]: {type(exc).__name__}: {exc}")
     traceback.print_exc()
 
     # Reload state from disk first — tool CLI may have written progress
@@ -410,14 +447,33 @@ def _log_iteration_crash(
         state.total_input_tokens = saved_input
         state.total_output_tokens = saved_output
 
+    # Extract failure trail if attached by agent.py send()
+    trail: FailureTrail | None = getattr(exc, "_failure_trail", None)
+
+    # Persist full crash record to JSONL
+    crash_file = config.sprint_dir / ".crash_log.jsonl"
+    log_crash_jsonl(
+        crash_file,
+        error=exc,
+        phase=phase,
+        iteration=iteration,
+        error_kind=error_kind,
+        failure_trail=trail,
+    )
+
+    # Condensed record for in-state crash log
     crash_record = {
         "timestamp": datetime.now().isoformat(),
         "crash_type": type(exc).__name__,
+        "error_kind": error_kind,
         "phase": phase,
         "iteration": iteration,
         "error": f"{type(exc).__name__}: {str(exc)[:200]}",
     }
     state.crash_log.append(crash_record)
+
+    # Increment per-phase crash count
+    state.phase_crash_counts[phase] = state.phase_crash_counts.get(phase, 0) + 1
 
     # Reset any in_progress tasks back to pending
     for task in state.tasks.values():
@@ -513,12 +569,26 @@ def _recover_interrupted_rollback(config: LoopConfig, state: LoopState) -> None:
         wal_path.unlink(missing_ok=True)
 
 
+def _guess_sprint_dir() -> Path | None:
+    """Best-effort sprint dir from sys.argv for top-level crash logging."""
+    if len(sys.argv) < 2:
+        return None
+    sprint = sys.argv[1]
+    if "--sprint-dir" in sys.argv:
+        idx = sys.argv.index("--sprint-dir")
+        if idx + 1 < len(sys.argv):
+            return Path(sys.argv[idx + 1])
+    return Path(f"sprints/{sprint}")
+
+
 # ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
 
 def main() -> None:
     """CLI entry point with crash recovery."""
+    from .errors import backoff_seconds, classify_error, log_crash_jsonl
+
     max_restarts = 3
     for attempt in range(1, max_restarts + 1):
         try:
@@ -527,14 +597,28 @@ def main() -> None:
         except SystemExit:
             raise
         except Exception as exc:
+            error_kind = classify_error(exc)
             print(f"\n{'=' * 60}")
-            print(f"  LOOP CRASHED (attempt {attempt}/{max_restarts})")
+            print(f"  LOOP CRASHED (attempt {attempt}/{max_restarts}) [{error_kind}]")
             import traceback
             traceback.print_exc()
             print(f"{'=' * 60}")
+
+            # Persist crash to JSONL if we can determine the sprint dir
+            sprint_dir = _guess_sprint_dir()
+            if sprint_dir:
+                log_crash_jsonl(
+                    sprint_dir / ".crash_log.jsonl",
+                    error=exc,
+                    phase="main",
+                    iteration=0,
+                    error_kind=error_kind,
+                    extra={"restart_attempt": attempt},
+                )
+
             if attempt < max_restarts:
-                wait = 10 * attempt
-                print(f"  Restarting in {wait} seconds...")
+                wait = backoff_seconds(attempt - 1, base=5.0, cap=60.0)
+                print(f"  Restarting in {wait:.0f} seconds...")
                 time.sleep(wait)
             else:
                 print("  Max restarts reached.")

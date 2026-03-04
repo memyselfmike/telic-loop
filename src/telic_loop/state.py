@@ -202,6 +202,9 @@ class LoopState:
     # Crash history (condensed summaries — full tracebacks in .crash_log.jsonl)
     crash_log: list[dict] = field(default_factory=list)
 
+    # Per-phase consecutive crash counts (reset on success)
+    phase_crash_counts: dict[str, int] = field(default_factory=dict)
+
     # Builder exit request flag
     exit_requested: bool = False
 

@@ -20,6 +20,9 @@ class LoopConfig:
     token_budget: int = 0  # 0 = unlimited
     max_exit_gate_attempts: int = 3
     max_crash_restarts: int = 3
+    max_phase_crashes: int = 3        # Consecutive crashes before phase skip/halt
+    retry_backoff_base: float = 1.0   # Exponential backoff base (seconds)
+    retry_backoff_cap: float = 30.0   # Max backoff per retry (seconds)
 
     # Plan review
     max_plan_review_attempts: int = 2
