@@ -115,7 +115,6 @@ def _run_review_phase(config: LoopConfig, state: LoopState, agent: Agent) -> boo
 
     # Remove plan_generated to trigger re-planning
     state.gates_passed.discard("plan_generated")
-    state.exit_gate_attempts = 0  # Reset for exit gate use later
     return False
 
 
