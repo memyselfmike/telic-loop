@@ -60,12 +60,30 @@ def _resolve_script_path(script_path: str) -> Path:
     return resolved
 
 
-def _build_script_command(script_path: str) -> list[str] | str:
-    """Build the correct command to run a verification script cross-platform.
+def _is_playwright_test(path: Path) -> bool:
+    """Check if a script is a Playwright test (*.spec.* or *.test.*)."""
+    return (".spec." in path.name or ".test." in path.name) and path.suffix.lower() == ".js"
 
-    On Windows, .sh scripts can't be executed directly (WinError 193).
-    Route them through bash (Git Bash / WSL) or convert to equivalent commands.
-    """
+
+def _find_playwright_root(script_path: Path) -> Path:
+    """Find Playwright project root by searching for config file in parents."""
+    for parent in [script_path.parent, *script_path.parent.parents]:
+        if (parent / "playwright.config.js").exists() or (parent / "playwright.config.ts").exists():
+            return parent
+    return script_path.parent
+
+
+def _to_bash_path(path: Path) -> str:
+    """Convert a path to Git Bash-compatible POSIX format on Windows."""
+    posix = path.as_posix()
+    if sys.platform == "win32" and len(posix) >= 3 and posix[1] == ':' and posix[2] == '/':
+        drive = posix[0].lower()
+        posix = f"/{drive}{posix[2:]}"
+    return posix
+
+
+def _build_script_command(script_path: str) -> list[str] | str:
+    """Build the correct command to run a verification script cross-platform."""
     p = _resolve_script_path(script_path)
     suffix = p.suffix.lower()
 
@@ -73,35 +91,89 @@ def _build_script_command(script_path: str) -> list[str] | str:
         return [sys.executable, str(p)]
 
     if suffix == ".js":
-        if ".spec." in p.name or ".test." in p.name:
-            posix_path = p.as_posix()
-            npx = shutil.which("npx")
-            if npx:
-                return [npx, "playwright", "test", posix_path]
-            return ["npx", "playwright", "test", posix_path]
-        node = shutil.which("node")
-        if node:
-            return [node, str(p)]
-        return ["node", str(p)]
+        if _is_playwright_test(p):
+            npx = shutil.which("npx") or "npx"
+            return [npx, "playwright", "test", p.as_posix()]
+        node = shutil.which("node") or "node"
+        return [node, str(p)]
 
     if suffix == ".sh":
-        posix_path = p.as_posix()
+        posix_path = _to_bash_path(p)
         if sys.platform == "win32":
-            # Convert Windows path to Git Bash format
-            if len(posix_path) >= 3 and posix_path[1] == ':' and posix_path[2] == '/':
-                drive = posix_path[0].lower()
-                posix_path = f"/{drive}{posix_path[2:]}"
-
-            git_bash = shutil.which("bash")
-            if git_bash:
-                return [git_bash, posix_path]
-            sh = shutil.which("sh")
-            if sh:
-                return [sh, posix_path]
+            bash = shutil.which("bash") or shutil.which("sh")
+            if bash:
+                return [bash, posix_path]
             return f'bash "{posix_path}"'
         return ["bash", posix_path]
 
     return [str(p)]
+
+
+_MAX_TEST_WORKERS = 10
+_BASE_TEST_PORT = 3100
+
+
+def _execute_single_test(
+    test: VerificationState, port_offset: int,
+    timeout: int,
+) -> tuple[str, tuple[int, str, str]]:
+    """Run a single verification script. Returns (test_id, (exit_code, stdout, stderr))."""
+    tmp_dir: str | None = None
+    try:
+        cmd = _build_script_command(test.script_path)
+        use_shell = isinstance(cmd, str)
+        script_path_resolved = _resolve_script_path(test.script_path)
+        script_dir = script_path_resolved.parent
+
+        if not script_dir.exists() and script_path_resolved.exists():
+            script_dir = script_path_resolved.resolve().parent
+        if not script_dir.exists():
+            script_dir = Path.cwd()
+
+        # Playwright tests must run from project root (where config lives)
+        if _is_playwright_test(script_path_resolved):
+            project_root = _find_playwright_root(script_path_resolved)
+            script_dir = project_root
+            try:
+                relative_posix = script_path_resolved.relative_to(project_root).as_posix()
+                npx = shutil.which("npx") or "npx"
+                cmd = [npx, "playwright", "test", relative_posix]
+                use_shell = False
+            except ValueError:
+                pass
+
+        # Isolated environment: unique port + temp data dir per test
+        env = os.environ.copy()
+        env["PORT"] = str(_BASE_TEST_PORT + port_offset)
+        tmp_dir = tempfile.mkdtemp(prefix=f"tl-test-{port_offset}-")
+        env["TEST_DATA_DIR"] = tmp_dir
+
+        proc = subprocess.run(
+            cmd,
+            capture_output=True, text=True,
+            timeout=timeout,
+            shell=use_shell,
+            cwd=str(script_dir),
+            env=env,
+        )
+        return test.verification_id, (
+            proc.returncode, proc.stdout or "", proc.stderr or "",
+        )
+    except FileNotFoundError:
+        return test.verification_id, (
+            1, "", "No bash interpreter found — cannot run .sh scripts on this platform",
+        )
+    except OSError as e:
+        return test.verification_id, (1, "", f"OS error running script: {e}")
+    except subprocess.TimeoutExpired:
+        return test.verification_id, (1, "", "TIMEOUT")
+    except Exception as e:
+        return test.verification_id, (
+            1, "", f"Unexpected error: {type(e).__name__}: {e}",
+        )
+    finally:
+        if tmp_dir:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 def run_tests_parallel(
@@ -110,85 +182,13 @@ def run_tests_parallel(
     max_workers: int | None = None,
 ) -> dict[str, tuple[int, str, str]]:
     """Run test scripts in parallel. Returns {test_id: (exit_code, stdout, stderr)}."""
-    max_workers = max_workers or min(os.cpu_count() or 4, 10)
+    max_workers = max_workers or min(os.cpu_count() or 4, _MAX_TEST_WORKERS)
     results: dict[str, tuple[int, str, str]] = {}
-    base_port = 3100
-
-    def run_one(
-        test: VerificationState, port_offset: int,
-    ) -> tuple[str, tuple[int, str, str]]:
-        tmp_dir: str | None = None
-        try:
-            cmd = _build_script_command(test.script_path)
-            use_shell = isinstance(cmd, str)
-            script_path_resolved = _resolve_script_path(test.script_path)
-            script_dir = script_path_resolved.parent
-
-            if not script_dir.exists() and script_path_resolved.exists():
-                script_dir = script_path_resolved.resolve().parent
-            if not script_dir.exists():
-                script_dir = Path.cwd()
-
-            # Playwright tests MUST run from project root
-            if ".spec." in script_path_resolved.name or ".test." in script_path_resolved.name:
-                if script_path_resolved.suffix.lower() == ".js":
-                    project_root = script_dir
-                    for parent in [script_dir] + list(script_dir.parents):
-                        if (parent / "playwright.config.js").exists() or (parent / "playwright.config.ts").exists():
-                            project_root = parent
-                            break
-                    script_dir = project_root
-
-                    try:
-                        relative_path = script_path_resolved.relative_to(project_root)
-                        relative_posix = relative_path.as_posix()
-                        npx = shutil.which("npx")
-                        if npx:
-                            cmd = [npx, "playwright", "test", relative_posix]
-                        else:
-                            cmd = ["npx", "playwright", "test", relative_posix]
-                        use_shell = False
-                    except ValueError:
-                        pass
-
-            # Isolated environment: unique port + temp data dir per test
-            env = os.environ.copy()
-            env["PORT"] = str(base_port + port_offset)
-            tmp_dir = tempfile.mkdtemp(prefix=f"tl-test-{port_offset}-")
-            env["TEST_DATA_DIR"] = tmp_dir
-
-            proc = subprocess.run(
-                cmd,
-                capture_output=True, text=True,
-                timeout=timeout,
-                shell=use_shell,
-                cwd=str(script_dir),
-                env=env,
-            )
-            return test.verification_id, (
-                proc.returncode, proc.stdout or "", proc.stderr or "",
-            )
-        except FileNotFoundError:
-            return test.verification_id, (
-                1, "", "No bash interpreter found — cannot run .sh scripts on this platform",
-            )
-        except OSError as e:
-            return test.verification_id, (
-                1, "", f"OS error running script: {e}",
-            )
-        except subprocess.TimeoutExpired:
-            return test.verification_id, (1, "", "TIMEOUT")
-        except Exception as e:
-            return test.verification_id, (
-                1, "", f"Unexpected error: {type(e).__name__}: {e}",
-            )
-        finally:
-            if tmp_dir:
-                shutil.rmtree(tmp_dir, ignore_errors=True)
 
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
         futures = {
-            pool.submit(run_one, t, i): t for i, t in enumerate(tests)
+            pool.submit(_execute_single_test, t, i, timeout): t
+            for i, t in enumerate(tests)
         }
         for future in as_completed(futures):
             test_id, result = future.result()

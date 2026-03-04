@@ -20,6 +20,9 @@ class LoopConfig:
     token_budget: int = 0  # 0 = unlimited
     max_exit_gate_attempts: int = 3
     max_crash_restarts: int = 3
+    max_phase_crashes: int = 3        # Consecutive crashes before phase skip/halt
+    retry_backoff_base: float = 1.0   # Exponential backoff base (seconds)
+    retry_backoff_cap: float = 30.0   # Max backoff per retry (seconds)
 
     # Plan review
     max_plan_review_attempts: int = 2
@@ -39,6 +42,24 @@ class LoopConfig:
     # Task granularity enforcement
     max_task_description_chars: int = 600
     max_files_per_task: int = 5
+
+    # Post-delivery documentation
+    generate_docs: bool = True
+
+    def __post_init__(self) -> None:
+        if self.max_iterations < 1:
+            raise ValueError(f"max_iterations must be >= 1, got {self.max_iterations}")
+        if self.max_fix_attempts < 1:
+            raise ValueError(f"max_fix_attempts must be >= 1, got {self.max_fix_attempts}")
+        if self.token_budget < 0:
+            raise ValueError(f"token_budget must be >= 0, got {self.token_budget}")
+        if self.max_task_description_chars < 100:
+            raise ValueError(f"max_task_description_chars must be >= 100, got {self.max_task_description_chars}")
+        if self.max_files_per_task < 1:
+            raise ValueError(f"max_files_per_task must be >= 1, got {self.max_files_per_task}")
+        if self.retry_backoff_base < 0:
+            raise ValueError(f"retry_backoff_base must be >= 0, got {self.retry_backoff_base}")
+        self.sprint_dir = Path(self.sprint_dir)
 
     # Derived paths
     @property

@@ -60,6 +60,17 @@ Each task MUST have:
 - **Duplicate tasks**: Tasks with >75% word overlap with existing tasks
 - **Too many files**: Tasks touching more than {MAX_FILES_PER_TASK} files
 
+### Quality Bar — Visual & UX Polish
+
+For UI deliverables, plan with PRODUCTION QUALITY in mind, not a functional prototype. This means:
+
+- **Design system foundation**: One of the first tasks should establish a CSS design token system (color palette with semantic names, spacing scale, shadow depths, border-radius scale, transition timing variables). This is the foundation ALL other UI tasks build on.
+- **Acceptance criteria must include visual quality**: Don't just say "recipe list displays recipes." Say "recipe list displays recipes with category color badges, hover elevation effects, and smooth transitions."
+- **Dedicated polish task**: Include a late-stage task specifically for visual refinement — animations, micro-interactions, backdrop effects, custom form controls, loading states.
+- **Icon & color requirements**: If the PRD involves categories, statuses, or types, specify that each needs a distinct color and/or icon in the acceptance criteria.
+
+A deliverable that "works but looks like a prototype" has NOT delivered the Vision's value.
+
 ### Task Sizing Guidelines
 
 - Each task should be completable in ONE focused session (15-30 min of agent work)

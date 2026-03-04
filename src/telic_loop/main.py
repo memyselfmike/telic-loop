@@ -61,12 +61,19 @@ def _value_gate_passes(state: LoopState) -> bool:
 # Phase dispatchers
 # ---------------------------------------------------------------------------
 
+def _base_prompt_params(config: LoopConfig) -> dict[str, str]:
+    """Common prompt template parameters shared across all phases."""
+    return {
+        "SPRINT": config.sprint,
+        "SPRINT_DIR": str(config.sprint_dir),
+        "PROJECT_DIR": str(config.effective_project_dir),
+    }
+
+
 def _run_plan_phase(config: LoopConfig, state: LoopState, agent: Agent) -> bool:
     """Planner discovers context and creates implementation tasks."""
     prompt = load_prompt("planner",
-        SPRINT=config.sprint,
-        SPRINT_DIR=str(config.sprint_dir),
-        PROJECT_DIR=str(config.effective_project_dir),
+        **_base_prompt_params(config),
         MAX_TASK_DESC_CHARS=str(config.max_task_description_chars),
         MAX_FILES_PER_TASK=str(config.max_files_per_task),
     )
@@ -85,12 +92,9 @@ def _run_plan_phase(config: LoopConfig, state: LoopState, agent: Agent) -> bool:
 
 def _run_review_phase(config: LoopConfig, state: LoopState, agent: Agent) -> bool:
     """Reviewer evaluates plan quality in a separate context."""
-    plan_state = _format_plan_state(state)
     prompt = load_prompt("reviewer",
-        SPRINT=config.sprint,
-        SPRINT_DIR=str(config.sprint_dir),
-        PROJECT_DIR=str(config.effective_project_dir),
-        PLAN_STATE=plan_state,
+        **_base_prompt_params(config),
+        PLAN_STATE=_format_plan_state(state),
     )
     session = agent.session(AgentRole.REVIEWER, system_extra=prompt)
     session.send(
@@ -120,18 +124,13 @@ def _run_review_phase(config: LoopConfig, state: LoopState, agent: Agent) -> boo
 
 def _run_implement_phase(config: LoopConfig, state: LoopState, agent: Agent) -> bool:
     """Builder implements, verifies, and fixes."""
-    state_summary = _format_state_summary(state)
-    budget_warning = _format_budget_warning(config, state)
-
     prompt = load_prompt("builder",
-        SPRINT=config.sprint,
-        SPRINT_DIR=str(config.sprint_dir),
-        PROJECT_DIR=str(config.effective_project_dir),
+        **_base_prompt_params(config),
         ITERATION=str(state.iteration),
         MAX_ITERATIONS=str(config.max_iterations),
-        STATE_SUMMARY=state_summary,
+        STATE_SUMMARY=_format_state_summary(state),
         MAX_FIX_ATTEMPTS=str(config.max_fix_attempts),
-        BUDGET_WARNING=budget_warning,
+        BUDGET_WARNING=_format_budget_warning(config, state),
     )
     session = agent.session(AgentRole.BUILDER, system_extra=prompt)
 
@@ -152,13 +151,9 @@ def _run_implement_phase(config: LoopConfig, state: LoopState, agent: Agent) -> 
 
 def _run_evaluate_phase(config: LoopConfig, state: LoopState, agent: Agent) -> bool:
     """Evaluator judges quality adversarially."""
-    state_summary = _format_state_summary(state)
-
     prompt = load_prompt("evaluator",
-        SPRINT=config.sprint,
-        SPRINT_DIR=str(config.sprint_dir),
-        PROJECT_DIR=str(config.effective_project_dir),
-        STATE_SUMMARY=state_summary,
+        **_base_prompt_params(config),
+        STATE_SUMMARY=_format_state_summary(state),
     )
 
     # Add Playwright MCP for UI evaluation
@@ -293,8 +288,201 @@ def _format_budget_warning(config: LoopConfig, state: LoopState) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Post-delivery documentation
+# ---------------------------------------------------------------------------
+
+def _precompute_doc_context(config: LoopConfig) -> str:
+    """Scan project dir for existing docs, package metadata, and source tree."""
+    proj = config.effective_project_dir
+    lines: list[str] = []
+
+    # Existing documentation files
+    doc_files = []
+    for name in ("README.md", "README.rst", "README.txt"):
+        p = proj / name
+        if p.exists():
+            doc_files.append(str(p))
+    docs_dir = proj / "docs"
+    if docs_dir.is_dir():
+        for f in sorted(docs_dir.rglob("*.md")):
+            doc_files.append(str(f))
+
+    if doc_files:
+        lines.append("### Existing doc files (read these before writing):")
+        for f in doc_files:
+            lines.append(f"- `{f}`")
+    else:
+        lines.append("No existing documentation found.")
+    lines.append("")
+
+    # Package metadata
+    for meta in ("package.json", "pyproject.toml", "setup.py", "Cargo.toml"):
+        p = proj / meta
+        if p.exists():
+            lines.append(f"### Package metadata: `{meta}`")
+            lines.append("```")
+            lines.append(p.read_text(encoding="utf-8")[:2000])
+            lines.append("```")
+            lines.append("")
+            break
+
+    # Source file tree (max 100 entries)
+    lines.append("### Source file tree:")
+    lines.append("```")
+    count = 0
+    for f in sorted(proj.rglob("*")):
+        if f.is_file() and ".loop" not in f.parts and "node_modules" not in f.parts:
+            rel = f.relative_to(proj)
+            lines.append(str(rel))
+            count += 1
+            if count >= 100:
+                lines.append("... (truncated)")
+                break
+    lines.append("```")
+
+    return "\n".join(lines)
+
+
+def _generate_project_docs(
+    config: LoopConfig, state: LoopState, agent: Agent,
+) -> None:
+    """Generate README, ARCHITECTURE, and ADRs after delivery. Non-blocking."""
+    if not config.generate_docs:
+        return
+    if "docs_generated" in state.gates_passed:
+        return
+
+    print("\n  Generating project documentation...")
+    try:
+        doc_context = _precompute_doc_context(config)
+        prompt = load_prompt("generate_docs",
+            SPRINT_DIR=str(config.sprint_dir),
+            PROJECT_DIR=str(config.effective_project_dir),
+            DOC_CONTEXT=doc_context,
+        )
+        session = agent.session(AgentRole.BUILDER, system_extra=prompt)
+        session.send(
+            "Read the project source code and generate documentation: "
+            "README.md, docs/ARCHITECTURE.md, and docs/adr/ decision records.",
+        )
+
+        state.pass_gate("docs_generated")
+        state.save(config.state_file)
+
+        from .git import git_commit
+        git_commit(config, state, f"telic-loop({config.sprint}): docs generated")
+
+        print("  Project documentation generated successfully.")
+
+    except Exception as exc:
+        print(f"  WARNING: Doc generation failed (non-blocking): {exc}")
+
+
+# ---------------------------------------------------------------------------
 # Core loop
 # ---------------------------------------------------------------------------
+
+_PHASE_HANDLERS = {
+    "plan": _run_plan_phase,
+    "review": _run_review_phase,
+    "implement": _run_implement_phase,
+    "evaluate": _run_evaluate_phase,
+}
+
+
+def _handle_phase_crash_budget(
+    config: LoopConfig, state: LoopState, phase: str, crash_record: dict,
+) -> bool:
+    """Handle per-phase crash budget exhaustion. Returns True if loop should halt."""
+    phase_crashes = state.phase_crash_counts.get(phase, 0)
+    if phase_crashes < config.max_phase_crashes:
+        return False
+
+    error_kind = crash_record.get("error_kind", "retryable")
+    print(f"\n  PHASE CRASH BUDGET EXHAUSTED: {phase} crashed "
+          f"{phase_crashes}x consecutively ({error_kind})")
+
+    if error_kind == "non_retryable":
+        print("  Non-retryable error — halting loop")
+        return True
+
+    if phase == "review":
+        print("  Forcing plan_reviewed gate (accepting plan as-is)")
+        state.pass_gate("plan_reviewed")
+    elif phase == "evaluate":
+        print("  Forcing critical_eval_passed gate (accepting deliverable)")
+        state.pass_gate("critical_eval_passed")
+    elif phase == "plan" and not state.tasks:
+        print("  Cannot skip empty plan — halting loop")
+        return True
+
+    state.phase_crash_counts[phase] = 0
+    return False
+
+
+def _run_iteration(
+    config: LoopConfig, state: LoopState, agent: Agent,
+    phase: str, iteration: int,
+) -> bool:
+    """Execute one loop iteration. Returns True if loop should halt (deliver + exit)."""
+    from .git import git_commit
+
+    print(f"\n── Iteration {iteration} ── Phase: {phase}")
+
+    # Timing + token tracking
+    inp_before = state.total_input_tokens
+    out_before = state.total_output_tokens
+    t0 = time.perf_counter()
+
+    crash_record = None
+    progress = False
+    try:
+        handler = _PHASE_HANDLERS[phase]
+        progress = handler(config, state, agent)
+
+    except RateLimitError as rle:
+        wait_secs = parse_rate_limit_wait_seconds(rle)
+        print(f"\n  RATE LIMIT HIT — sleeping {wait_secs // 60}m...")
+        state.save(config.state_file)
+        time.sleep(wait_secs)
+        return False  # continue loop
+
+    except Exception as exc:
+        crash_record = _log_iteration_crash(config, state, phase, exc, iteration)
+
+    # Record progress metrics
+    elapsed = round(time.perf_counter() - t0, 1)
+    state.record_progress(
+        phase,
+        "crash" if crash_record else ("progress" if progress else "no_progress"),
+        progress,
+        input_tokens=state.total_input_tokens - inp_before,
+        output_tokens=state.total_output_tokens - out_before,
+        duration_sec=elapsed,
+        crash_type=crash_record.get("crash_type", "") if crash_record else "",
+    )
+
+    if progress and not crash_record:
+        state.phase_crash_counts[phase] = 0
+
+    # Check crash budget
+    if crash_record and _handle_phase_crash_budget(config, state, phase, crash_record):
+        generate_delivery_report(config, state)
+        state.save(config.state_file)
+        return True  # halt
+
+    # Git commit after implement phases
+    if phase == "implement" and progress:
+        git_commit(config, state, f"telic-loop({config.sprint}): iter {iteration}")
+
+    # Render artifacts
+    render_value_checklist(config, state)
+    if state.tasks:
+        render_plan_snapshot(config, state)
+
+    state.save(config.state_file)
+    return False
+
 
 def run_loop(config: LoopConfig, state: LoopState, agent: Agent) -> None:
     """The main loop: iterate phases until value is delivered or budget exhausted."""
@@ -307,13 +495,10 @@ def run_loop(config: LoopConfig, state: LoopState, agent: Agent) -> None:
         print("  TELIC LOOP V4")
         print("=" * 60)
 
-        from .git import git_commit
-
         start_iter = max(state.iteration + 1, 1)
         for iteration in range(start_iter, start_iter + config.max_iterations):
             state.iteration = iteration
 
-            # Hard limits
             if config.token_budget and state.total_tokens_used > config.token_budget:
                 print(f"  TOKEN BUDGET EXHAUSTED ({state.total_tokens_used:,} tokens)")
                 break
@@ -323,64 +508,17 @@ def run_loop(config: LoopConfig, state: LoopState, agent: Agent) -> None:
                 print("\n  VALUE DELIVERED — all gates passed")
                 state.pass_gate("exit_gate")
                 generate_delivery_report(config, state)
+                _generate_project_docs(config, state, agent)
                 state.save(config.state_file)
                 return
 
-            print(f"\n── Iteration {iteration} ── Phase: {phase}")
-
-            # Timing + token tracking
-            inp_before = state.total_input_tokens
-            out_before = state.total_output_tokens
-            t0 = time.perf_counter()
-
-            crash_record = None
-            progress = False
-            try:
-                if phase == "plan":
-                    progress = _run_plan_phase(config, state, agent)
-                elif phase == "review":
-                    progress = _run_review_phase(config, state, agent)
-                elif phase == "implement":
-                    progress = _run_implement_phase(config, state, agent)
-                elif phase == "evaluate":
-                    progress = _run_evaluate_phase(config, state, agent)
-
-            except RateLimitError as rle:
-                wait_secs = parse_rate_limit_wait_seconds(rle)
-                print(f"\n  RATE LIMIT HIT — sleeping {wait_secs // 60}m...")
-                state.save(config.state_file)
-                time.sleep(wait_secs)
-                continue
-
-            except Exception as exc:
-                crash_record = _log_iteration_crash(config, state, phase, exc, iteration)
-
-            elapsed = round(time.perf_counter() - t0, 1)
-            phase_inp = state.total_input_tokens - inp_before
-            phase_out = state.total_output_tokens - out_before
-            result_str = "crash" if crash_record else ("progress" if progress else "no_progress")
-            state.record_progress(
-                phase, result_str, progress,
-                input_tokens=phase_inp,
-                output_tokens=phase_out,
-                duration_sec=elapsed,
-                crash_type=crash_record.get("crash_type", "") if crash_record else "",
-            )
-
-            # Git commit after implement phases
-            if phase == "implement" and progress:
-                git_commit(config, state, f"telic-loop({config.sprint}): iter {iteration}")
-
-            # Render artifacts
-            render_value_checklist(config, state)
-            if state.tasks:
-                render_plan_snapshot(config, state)
-
-            state.save(config.state_file)
+            if _run_iteration(config, state, agent, phase, iteration):
+                return  # halt requested by crash budget
 
         # Max iterations reached
         print("\n  MAX ITERATIONS REACHED — generating partial delivery report")
         generate_delivery_report(config, state)
+        _generate_project_docs(config, state, agent)
 
     finally:
         _release_lock(lock_path)
@@ -394,8 +532,10 @@ def _log_iteration_crash(
     from datetime import datetime
     import traceback
     from .agent import _sync_state
+    from .errors import FailureTrail, classify_error, log_crash_jsonl
 
-    print(f"\n  CRASH in {phase}: {type(exc).__name__}: {exc}")
+    error_kind = classify_error(exc)
+    print(f"\n  CRASH in {phase} [{error_kind}]: {type(exc).__name__}: {exc}")
     traceback.print_exc()
 
     # Reload state from disk first — tool CLI may have written progress
@@ -410,14 +550,33 @@ def _log_iteration_crash(
         state.total_input_tokens = saved_input
         state.total_output_tokens = saved_output
 
+    # Extract failure trail if attached by agent.py send()
+    trail: FailureTrail | None = getattr(exc, "_failure_trail", None)
+
+    # Persist full crash record to JSONL
+    crash_file = config.sprint_dir / ".crash_log.jsonl"
+    log_crash_jsonl(
+        crash_file,
+        error=exc,
+        phase=phase,
+        iteration=iteration,
+        error_kind=error_kind,
+        failure_trail=trail,
+    )
+
+    # Condensed record for in-state crash log
     crash_record = {
         "timestamp": datetime.now().isoformat(),
         "crash_type": type(exc).__name__,
+        "error_kind": error_kind,
         "phase": phase,
         "iteration": iteration,
         "error": f"{type(exc).__name__}: {str(exc)[:200]}",
     }
     state.crash_log.append(crash_record)
+
+    # Increment per-phase crash count
+    state.phase_crash_counts[phase] = state.phase_crash_counts.get(phase, 0) + 1
 
     # Reset any in_progress tasks back to pending
     for task in state.tasks.values():
@@ -513,12 +672,26 @@ def _recover_interrupted_rollback(config: LoopConfig, state: LoopState) -> None:
         wal_path.unlink(missing_ok=True)
 
 
+def _guess_sprint_dir() -> Path | None:
+    """Best-effort sprint dir from sys.argv for top-level crash logging."""
+    if len(sys.argv) < 2:
+        return None
+    sprint = sys.argv[1]
+    if "--sprint-dir" in sys.argv:
+        idx = sys.argv.index("--sprint-dir")
+        if idx + 1 < len(sys.argv):
+            return Path(sys.argv[idx + 1])
+    return Path(f"sprints/{sprint}")
+
+
 # ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
 
 def main() -> None:
     """CLI entry point with crash recovery."""
+    from .errors import backoff_seconds, classify_error, log_crash_jsonl
+
     max_restarts = 3
     for attempt in range(1, max_restarts + 1):
         try:
@@ -527,14 +700,28 @@ def main() -> None:
         except SystemExit:
             raise
         except Exception as exc:
+            error_kind = classify_error(exc)
             print(f"\n{'=' * 60}")
-            print(f"  LOOP CRASHED (attempt {attempt}/{max_restarts})")
+            print(f"  LOOP CRASHED (attempt {attempt}/{max_restarts}) [{error_kind}]")
             import traceback
             traceback.print_exc()
             print(f"{'=' * 60}")
+
+            # Persist crash to JSONL if we can determine the sprint dir
+            sprint_dir = _guess_sprint_dir()
+            if sprint_dir:
+                log_crash_jsonl(
+                    sprint_dir / ".crash_log.jsonl",
+                    error=exc,
+                    phase="main",
+                    iteration=0,
+                    error_kind=error_kind,
+                    extra={"restart_attempt": attempt},
+                )
+
             if attempt < max_restarts:
-                wait = 10 * attempt
-                print(f"  Restarting in {wait} seconds...")
+                wait = backoff_seconds(attempt - 1, base=5.0, cap=60.0)
+                print(f"  Restarting in {wait:.0f} seconds...")
                 time.sleep(wait)
             else:
                 print("  Max restarts reached.")

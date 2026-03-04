@@ -164,6 +164,17 @@ ALL_STRUCTURED_SCHEMAS: list[dict] = [
 
 DUPLICATE_SIMILARITY_THRESHOLD = 0.75
 MID_LOOP_TASK_CEILING = 15
+VALID_RECOMMENDATIONS = ("CONTINUE", "COURSE_CORRECT", "DESCOPE", "SHIP_READY")
+COMPLETE_STATUSES = ("done", "descoped")
+
+# Fields that can be set directly on TaskState without special handling
+_SIMPLE_TASK_FIELDS = {"description", "value", "acceptance", "phase"}
+
+# Recommendation aliases from non-standard agent outputs
+_RECOMMENDATION_MAP = {
+    "proceed": "CONTINUE",
+    "conditional_pass": "SHIP_READY",
+}
 
 
 # Meta-instruction and oversized-scope detection
@@ -199,85 +210,107 @@ def _is_oversized_scope(description: str) -> bool:
     return any(p.search(description) for p in _OVERSIZED_PATTERNS)
 
 
+def _validate_add(task_id: str, input_data: dict, state: LoopState) -> str | None:
+    """Validate a new task addition."""
+    missing = [f for f in ["description", "value", "acceptance"] if not input_data.get(f)]
+    if missing:
+        return f"Task {task_id} missing: {', '.join(missing)}"
+
+    desc = input_data["description"]
+    new_desc_lower = desc.lower()
+    for existing in state.tasks.values():
+        if existing.status in COMPLETE_STATUSES:
+            continue
+        sim = _jaccard_similarity(new_desc_lower, existing.description.lower())
+        if sim >= DUPLICATE_SIMILARITY_THRESHOLD:
+            return f"Task {task_id} duplicates {existing.task_id} ({sim:.0%} similar)"
+
+    mid_loop = [
+        t for t in state.tasks.values()
+        if t.source != "plan" and t.status not in COMPLETE_STATUSES
+    ]
+    if len(mid_loop) >= MID_LOOP_TASK_CEILING:
+        return f"Mid-loop task ceiling ({MID_LOOP_TASK_CEILING}) reached"
+
+    for dep_id in input_data.get("dependencies", []):
+        if dep_id not in state.tasks:
+            return f"Dependency '{dep_id}' doesn't exist"
+
+    return _validate_granularity(task_id, input_data, state)
+
+
+def _validate_granularity(task_id: str, input_data: dict, state: LoopState) -> str | None:
+    """Validate task size constraints and content quality."""
+    desc = input_data.get("description", "")
+    max_desc = state.max_task_description_chars
+    if len(desc) > max_desc:
+        return (
+            f"Description too long ({len(desc)} chars, max {max_desc}). "
+            "Split this task into smaller, focused units."
+        )
+
+    files = input_data.get("files_expected", [])
+    max_files = state.max_files_per_task
+    if len(files) > max_files:
+        return (
+            f"Too many files_expected ({len(files)}, max {max_files}). "
+            "Split into separate tasks, each touching fewer files."
+        )
+
+    if _is_meta_instruction(desc):
+        return (
+            "Task describes execution instructions, not implementation work. "
+            "Each task must specify concrete code changes."
+        )
+
+    if _is_oversized_scope(desc):
+        return (
+            "Task scope too broad — describes multiple deliverables. "
+            "Split into focused tasks, each addressing one concern."
+        )
+
+    return None
+
+
+def _validate_modify(task_id: str, input_data: dict, state: LoopState) -> str | None:
+    """Validate a task modification."""
+    if task_id not in state.tasks:
+        return f"Task {task_id} doesn't exist"
+    if input_data.get("field") == "dependencies":
+        raw = input_data.get("new_value", [])
+        new_deps = json.loads(raw) if isinstance(raw, str) else raw
+        for dep_id in (new_deps or []):
+            if _creates_cycle(task_id, dep_id, state):
+                return f"Circular dependency: {task_id} -> {dep_id}"
+    return None
+
+
+def _validate_remove(task_id: str, input_data: dict, state: LoopState) -> str | None:
+    """Validate a task removal."""
+    if task_id not in state.tasks:
+        return f"Task {task_id} doesn't exist"
+    dependents = [
+        t.task_id for t in state.tasks.values()
+        if task_id in (t.dependencies or [])
+    ]
+    if dependents:
+        return f"Cannot remove {task_id} -- depended on by {', '.join(dependents)}"
+    return None
+
+
+_VALIDATORS = {
+    "add": _validate_add,
+    "modify": _validate_modify,
+    "remove": _validate_remove,
+}
+
+
 def validate_task_mutation(action: str, input_data: dict, state: LoopState) -> str | None:
     """Deterministic validation. Returns error message or None."""
     task_id = input_data.get("task_id", "")
-
-    if action == "add":
-        missing = [f for f in ["description", "value", "acceptance"] if not input_data.get(f)]
-        if missing:
-            return f"Task {task_id} missing: {', '.join(missing)}"
-
-        new_desc = input_data["description"].lower()
-        for existing in state.tasks.values():
-            if existing.status in ("done", "descoped"):
-                continue
-            sim = _jaccard_similarity(new_desc, existing.description.lower())
-            if sim >= DUPLICATE_SIMILARITY_THRESHOLD:
-                return f"Task {task_id} duplicates {existing.task_id} ({sim:.0%} similar)"
-
-        mid_loop = [
-            t for t in state.tasks.values()
-            if t.source != "plan" and t.status not in ("done", "descoped")
-        ]
-        if len(mid_loop) >= MID_LOOP_TASK_CEILING:
-            return f"Mid-loop task ceiling ({MID_LOOP_TASK_CEILING}) reached"
-
-        for dep_id in input_data.get("dependencies", []):
-            if dep_id not in state.tasks:
-                return f"Dependency '{dep_id}' doesn't exist"
-
-        # Task granularity enforcement
-        desc = input_data.get("description", "")
-        max_desc = getattr(state, "max_task_description_chars", 600)
-        if len(desc) > max_desc:
-            return (
-                f"Description too long ({len(desc)} chars, max {max_desc}). "
-                "Split this task into smaller, focused units."
-            )
-
-        files = input_data.get("files_expected", [])
-        max_files = getattr(state, "max_files_per_task", 5)
-        if len(files) > max_files:
-            return (
-                f"Too many files_expected ({len(files)}, max {max_files}). "
-                "Split into separate tasks, each touching fewer files."
-            )
-
-        # Meta-instruction detection
-        if _is_meta_instruction(desc):
-            return (
-                "Task describes execution instructions, not implementation work. "
-                "Each task must specify concrete code changes."
-            )
-
-        # Oversized scope detection
-        if _is_oversized_scope(desc):
-            return (
-                "Task scope too broad — describes multiple deliverables. "
-                "Split into focused tasks, each addressing one concern."
-            )
-
-    elif action == "modify":
-        if task_id not in state.tasks:
-            return f"Task {task_id} doesn't exist"
-        if input_data.get("field") == "dependencies":
-            raw = input_data.get("new_value", [])
-            new_deps = json.loads(raw) if isinstance(raw, str) else raw
-            for dep_id in (new_deps or []):
-                if _creates_cycle(task_id, dep_id, state):
-                    return f"Circular dependency: {task_id} -> {dep_id}"
-
-    elif action == "remove":
-        if task_id not in state.tasks:
-            return f"Task {task_id} doesn't exist"
-        dependents = [
-            t.task_id for t in state.tasks.values()
-            if task_id in (t.dependencies or [])
-        ]
-        if dependents:
-            return f"Cannot remove {task_id} -- depended on by {', '.join(dependents)}"
-
+    validator = _VALIDATORS.get(action)
+    if validator:
+        return validator(task_id, input_data, state)
     return None
 
 
@@ -327,6 +360,10 @@ def execute_tool(name: str, input_data: dict, state: LoopState,
     snapshot = {
         "tasks": copy.deepcopy(state.tasks),
         "verifications": copy.deepcopy(state.verifications),
+        "context": copy.deepcopy(state.context),
+        "vrc_history": copy.deepcopy(state.vrc_history),
+        "gates_passed": copy.deepcopy(state.gates_passed),
+        "exit_requested": state.exit_requested,
     }
     try:
         result = handler(input_data, state, task_source=task_source)
@@ -334,12 +371,38 @@ def execute_tool(name: str, input_data: dict, state: LoopState,
     except Exception as e:
         state.tasks = snapshot["tasks"]
         state.verifications = snapshot["verifications"]
+        state.context = snapshot["context"]
+        state.vrc_history = snapshot["vrc_history"]
+        state.gates_passed = snapshot["gates_passed"]
+        state.exit_requested = snapshot["exit_requested"]
         return json.dumps({"error": f"Handler failed: {e}", "rolled_back": True})
 
 
 # ---------------------------------------------------------------------------
 # Structured output handlers
 # ---------------------------------------------------------------------------
+
+def _apply_status_change(
+    task: Any, task_id: str, new_value: str,
+    task_source: str, input_data: dict,
+) -> str | None:
+    """Apply a status change to a task. Returns error message or None."""
+    if task.status == "descoped" and new_value != "descoped":
+        return (
+            f"Cannot change {task_id} from descoped to {new_value}. "
+            f"Descoped tasks were intentionally removed from scope."
+        )
+    if new_value == "descoped":
+        if task.source in ("plan", "agent"):
+            if task_source not in ("course_correction", "exit_gate"):
+                return (
+                    f"Cannot descope {task_id}: planned deliverable. "
+                    f"Only course correction can descope planned tasks."
+                )
+        task.blocked_reason = input_data.get("reason", "Descoped")
+    task.status = new_value
+    return None
+
 
 def handle_manage_task(input_data: dict, state: LoopState, task_source: str = "agent") -> str:
     from .state import TaskState
@@ -373,36 +436,17 @@ def handle_manage_task(input_data: dict, state: LoopState, task_source: str = "a
         new_value = input_data.get("new_value", "")
 
         if field_name == "status":
-            if task.status == "descoped" and new_value != "descoped":
-                return (
-                    f"Cannot change {task_id} from descoped to {new_value}. "
-                    f"Descoped tasks were intentionally removed from scope."
-                )
-            if new_value == "descoped":
-                if task.source in ("plan", "agent"):
-                    if task_source not in ("course_correction", "exit_gate"):
-                        return (
-                            f"Cannot descope {task_id}: planned deliverable. "
-                            f"Only course correction can descope planned tasks."
-                        )
-                task.blocked_reason = input_data.get("reason", "Descoped")
-            task.status = new_value
+            error = _apply_status_change(task, task_id, new_value, task_source, input_data)
+            if error:
+                return error
         elif field_name == "blocked_reason":
             task.blocked_reason = new_value
             if new_value and task.status != "blocked":
                 task.status = "blocked"
-        elif field_name == "dependencies":
-            task.dependencies = json.loads(new_value) if isinstance(new_value, str) else new_value
-        elif field_name == "description":
-            task.description = new_value
-        elif field_name == "value":
-            task.value = new_value
-        elif field_name == "acceptance":
-            task.acceptance = new_value
-        elif field_name == "phase":
-            task.phase = new_value
-        elif field_name == "files_expected":
-            task.files_expected = json.loads(new_value) if isinstance(new_value, str) else new_value
+        elif field_name in ("dependencies", "files_expected"):
+            setattr(task, field_name, json.loads(new_value) if isinstance(new_value, str) else new_value)
+        elif field_name in _SIMPLE_TASK_FIELDS:
+            setattr(task, field_name, new_value)
         else:
             return f"Unknown field: {field_name}"
 
@@ -444,7 +488,7 @@ def handle_task_complete(input_data: dict, state: LoopState, **_: Any) -> str:
     return f"Task {task_id} marked complete"
 
 
-def _normalise_services(raw: Any) -> dict:
+def normalize_services(raw: Any) -> dict:
     """Convert list-of-dicts services format to the expected dict-of-dicts."""
     if isinstance(raw, dict):
         return raw
@@ -458,6 +502,31 @@ def _normalise_services(raw: Any) -> dict:
     return {}
 
 
+def normalize_gaps(gaps: Any) -> list[dict]:
+    """Ensure each gap entry is a dict, not a bare string."""
+    if not gaps:
+        return []
+    if isinstance(gaps[0], str):
+        return [{"description": g, "severity": "degraded"} for g in gaps]
+    return gaps
+
+
+def normalize_recommendation(raw: Any) -> str:
+    """Normalize recommendation to a valid enum value."""
+    if not isinstance(raw, str):
+        return "CONTINUE"
+    mapped = _RECOMMENDATION_MAP.get(raw.lower(), raw.upper())
+    return mapped if mapped in VALID_RECOMMENDATIONS else "CONTINUE"
+
+
+def normalize_value_score(raw: Any) -> float:
+    """Normalize value_score to 0.0-1.0 (agents sometimes use 0-10 or 0-100)."""
+    score = float(raw or 0.0)
+    if score > 1.0:
+        score = score / 100.0 if score > 10.0 else score / 10.0
+    return score
+
+
 def handle_discovery(input_data: dict, state: LoopState, **_: Any) -> str:
     from .state import SprintContext
     state.context = SprintContext(
@@ -465,7 +534,7 @@ def handle_discovery(input_data: dict, state: LoopState, **_: Any) -> str:
         project_type=input_data.get("project_type", "unknown"),
         codebase_state=input_data.get("codebase_state", "greenfield"),
         environment=input_data.get("environment", {}),
-        services=_normalise_services(input_data.get("services", {})),
+        services=normalize_services(input_data.get("services", {})),
         verification_strategy=input_data.get("verification_strategy", {}),
         value_proofs=input_data.get("value_proofs", []),
         unresolved_questions=input_data.get("unresolved_questions", []),
@@ -473,60 +542,25 @@ def handle_discovery(input_data: dict, state: LoopState, **_: Any) -> str:
     return "Discovery reported"
 
 
-def handle_vrc(input_data: dict, state: LoopState, **_: Any) -> str:
-    from .state import VRCSnapshot, TaskState
-
-    # Normalize value_score to 0.0-1.0 (agents sometimes use 0-10 or 0-100)
-    score = float(input_data.get("value_score", 0.0))
-    if score > 1.0:
-        score = score / 100.0 if score > 10.0 else score / 10.0
-
-    # Normalize recommendation to valid enum values
-    _RECOMMENDATION_MAP = {
-        "proceed": "CONTINUE",
-        "conditional_pass": "SHIP_READY",
-    }
-    rec = input_data.get("recommendation", "CONTINUE")
-    rec = _RECOMMENDATION_MAP.get(rec.lower(), rec.upper()) if isinstance(rec, str) else "CONTINUE"
-    if rec not in ("CONTINUE", "COURSE_CORRECT", "DESCOPE", "SHIP_READY"):
-        rec = "CONTINUE"
-
-    # Normalize gaps: ensure each entry is a dict, not a bare string
-    gaps = input_data.get("gaps", [])
-    if gaps and isinstance(gaps[0], str):
-        gaps = [{"description": g, "severity": "degraded"} for g in gaps]
-
-    snapshot = VRCSnapshot(
-        iteration=state.iteration,
-        timestamp=datetime.now().isoformat(),
-        deliverables_total=input_data.get("deliverables_total", 0),
-        deliverables_verified=input_data.get("deliverables_verified", 0),
-        deliverables_blocked=input_data.get("deliverables_blocked", 0),
-        value_score=score,
-        gaps=gaps,
-        recommendation=rec,
-        summary=input_data.get("summary", ""),
-    )
-    state.vrc_history.append(snapshot)
-
-    # Auto-create tasks from gap suggestions
+def _create_tasks_from_gaps(
+    gaps: list[dict], rec: str, state: LoopState,
+) -> int:
+    """Auto-create tasks from VRC gap suggestions. Returns count created."""
+    from .state import TaskState
     created = 0
     existing_descs = {
-        t.description for t in state.tasks.values() if t.status != "descoped"
+        t.description for t in state.tasks.values()
+        if t.status not in COMPLETE_STATUSES
     }
     for gap in gaps:
         suggested = gap.get("suggested_task", "")
-        if not suggested:
+        if not suggested or suggested in existing_descs:
             continue
-        if suggested in existing_descs:
-            continue
-        severity = gap.get("severity", "degraded")
-        if severity == "polish" and rec == "SHIP_READY":
+        if gap.get("severity", "degraded") == "polish" and rec == "SHIP_READY":
             continue
 
         gap_id = gap.get("id", f"gap-{created}")
         task_id = f"VRC-{state.iteration}-{gap_id}"
-
         candidate = {
             "task_id": task_id,
             "description": suggested,
@@ -543,12 +577,35 @@ def handle_vrc(input_data: dict, state: LoopState, **_: Any) -> str:
             source="vrc",
             description=suggested,
             value=gap.get("description", ""),
-            acceptance=f"Gap '{gap_id}' resolved: {gap.get('description', '')}",
+            acceptance=candidate["acceptance"],
             created_at=datetime.now().isoformat(),
         )
         existing_descs.add(suggested)
         created += 1
+    return created
 
+
+def handle_vrc(input_data: dict, state: LoopState, **_: Any) -> str:
+    from .state import VRCSnapshot
+
+    score = normalize_value_score(input_data.get("value_score", 0.0))
+    rec = normalize_recommendation(input_data.get("recommendation", "CONTINUE"))
+    gaps = normalize_gaps(input_data.get("gaps", []))
+
+    snapshot = VRCSnapshot(
+        iteration=state.iteration,
+        timestamp=datetime.now().isoformat(),
+        deliverables_total=input_data.get("deliverables_total", 0),
+        deliverables_verified=input_data.get("deliverables_verified", 0),
+        deliverables_blocked=input_data.get("deliverables_blocked", 0),
+        value_score=score,
+        gaps=gaps,
+        recommendation=rec,
+        summary=input_data.get("summary", ""),
+    )
+    state.vrc_history.append(snapshot)
+
+    created = _create_tasks_from_gaps(gaps, rec, state)
     task_msg = f", {created} task(s) created" if created else ""
     return f"VRC recorded: {score:.0%} value ({rec}){task_msg}"
 

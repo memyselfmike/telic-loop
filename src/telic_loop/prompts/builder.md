@@ -73,6 +73,40 @@ When ALL of these are true:
 
 Call `request_exit` to signal readiness for evaluation.
 
+## Craft Standard — Visual & UX Quality
+
+You are building PRODUCTION-QUALITY deliverables, not functional prototypes. Apply these standards to every UI task:
+
+### Design System
+- **CSS custom properties**: Define a token system early (colors, spacing, shadows, radii, transition speeds). Reference tokens everywhere — never use raw hex/px in component styles.
+- **Color palette**: Use semantic color names (--color-primary, --color-accent, --color-danger). Categories/statuses each get a distinct color. Use transparent tints (rgba) for subtle backgrounds behind badges and highlights.
+- **Shadow depth**: Define at least 3 shadow levels (sm/md/lg). Cards use sm at rest, md on hover. Modals use lg.
+- **Spacing scale**: Use consistent increments (0.25rem steps or similar). Never eyeball padding.
+
+### Interactions & Motion
+- **Hover states on EVERY interactive element**: buttons, cards, links, list items. Minimum: background-color shift or opacity change.
+- **Transitions**: All state changes should animate (120-250ms). Use CSS `transition` on color, background, transform, box-shadow, border-color.
+- **Card hover elevation**: Cards should lift (translateY(-2px)) and deepen shadow on hover.
+- **Button feedback**: Buttons need hover (lighten/glow), active (translateY(1px)), and focus-visible (ring) states. Create variants: primary (filled), secondary (outlined), danger, ghost, icon-only.
+- **Modal/overlay entrance**: Use backdrop-filter: blur(4px) on overlays. Animate modal entry with slideUp or fadeIn keyframes.
+
+### Form Controls
+- **Custom styling**: Style checkboxes, selects, and radio buttons beyond browser defaults. Use `appearance: none` + custom backgrounds/borders.
+- **Focus glow**: Inputs should show a colored box-shadow ring on focus, not just an outline.
+- **Placeholder text**: Use a muted color (--color-text-disabled).
+- **Validation states**: Show red border + message on invalid inputs.
+
+### Typography & Content
+- **Text hierarchy**: Use letter-spacing and text-transform for labels/headers. Tighter line-height for headings vs body.
+- **Icons/emoji**: Use emoji or SVG icons for navigation tabs, category badges, status indicators, and action buttons.
+- **Empty states**: Show helpful messages with icons when lists are empty — never leave blank white space.
+- **Loading states**: Show spinners or skeleton placeholders while data loads.
+
+### Responsive
+- **Mobile breakpoints**: At minimum handle 768px and 480px. Adjust grid layouts, hide non-essential text, use bottom-sheet modals on mobile.
+
+This is NOT optional polish — it is the baseline quality standard. A bare-bones functional UI will be rejected by the evaluator.
+
 ## Working Rules
 
 - **One task at a time.** Complete and report each task before starting the next.

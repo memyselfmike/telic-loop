@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe Manager with Meal Planner</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <h1>🍳 Recipe Manager</h1>
+            </div>
+            <div class="nav-tabs">
+                <a href="#recipes" class="nav-tab active" data-view="recipes">
+                    📚 Recipes
+                </a>
+                <a href="#planner" class="nav-tab" data-view="planner">
+                    📅 Meal Plan
+                </a>
+                <a href="#shopping" class="nav-tab" data-view="shopping">
+                    🛒 Shopping List
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main id="app-content" class="app-content">
+        <!-- Views will be dynamically loaded here -->
+    </main>
+
+    <!-- Modal Container (for forms and dialogs) -->
+    <div id="modal-root"></div>
+
+    <!-- Toast Container (for notifications) -->
+    <div id="toast-root"></div>
+
+    <!-- Load scripts -->
+    <script src="/js/app.js" type="module"></script>
+</body>
+</html>
