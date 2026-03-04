@@ -43,6 +43,9 @@ class LoopConfig:
     max_task_description_chars: int = 600
     max_files_per_task: int = 5
 
+    # Post-delivery documentation
+    generate_docs: bool = True
+
     # Derived paths
     @property
     def effective_project_dir(self) -> Path:

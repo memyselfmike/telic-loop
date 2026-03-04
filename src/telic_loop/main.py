@@ -293,6 +293,97 @@ def _format_budget_warning(config: LoopConfig, state: LoopState) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Post-delivery documentation
+# ---------------------------------------------------------------------------
+
+def _precompute_doc_context(config: LoopConfig) -> str:
+    """Scan project dir for existing docs, package metadata, and source tree."""
+    proj = config.effective_project_dir
+    lines: list[str] = []
+
+    # Existing documentation files
+    doc_files = []
+    for name in ("README.md", "README.rst", "README.txt"):
+        p = proj / name
+        if p.exists():
+            doc_files.append(str(p))
+    docs_dir = proj / "docs"
+    if docs_dir.is_dir():
+        for f in sorted(docs_dir.rglob("*.md")):
+            doc_files.append(str(f))
+
+    if doc_files:
+        lines.append("### Existing doc files (read these before writing):")
+        for f in doc_files:
+            lines.append(f"- `{f}`")
+    else:
+        lines.append("No existing documentation found.")
+    lines.append("")
+
+    # Package metadata
+    for meta in ("package.json", "pyproject.toml", "setup.py", "Cargo.toml"):
+        p = proj / meta
+        if p.exists():
+            lines.append(f"### Package metadata: `{meta}`")
+            lines.append("```")
+            lines.append(p.read_text(encoding="utf-8")[:2000])
+            lines.append("```")
+            lines.append("")
+            break
+
+    # Source file tree (max 100 entries)
+    lines.append("### Source file tree:")
+    lines.append("```")
+    count = 0
+    for f in sorted(proj.rglob("*")):
+        if f.is_file() and ".loop" not in f.parts and "node_modules" not in f.parts:
+            rel = f.relative_to(proj)
+            lines.append(str(rel))
+            count += 1
+            if count >= 100:
+                lines.append("... (truncated)")
+                break
+    lines.append("```")
+
+    return "\n".join(lines)
+
+
+def _generate_project_docs(
+    config: LoopConfig, state: LoopState, agent: Agent,
+) -> None:
+    """Generate README, ARCHITECTURE, and ADRs after delivery. Non-blocking."""
+    if not config.generate_docs:
+        return
+    if "docs_generated" in state.gates_passed:
+        return
+
+    print("\n  Generating project documentation...")
+    try:
+        doc_context = _precompute_doc_context(config)
+        prompt = load_prompt("generate_docs",
+            SPRINT_DIR=str(config.sprint_dir),
+            PROJECT_DIR=str(config.effective_project_dir),
+            DOC_CONTEXT=doc_context,
+        )
+        session = agent.session(AgentRole.BUILDER, system_extra=prompt)
+        session.send(
+            "Read the project source code and generate documentation: "
+            "README.md, docs/ARCHITECTURE.md, and docs/adr/ decision records.",
+        )
+
+        state.pass_gate("docs_generated")
+        state.save(config.state_file)
+
+        from .git import git_commit
+        git_commit(config, state, f"telic-loop({config.sprint}): docs generated")
+
+        print("  Project documentation generated successfully.")
+
+    except Exception as exc:
+        print(f"  WARNING: Doc generation failed (non-blocking): {exc}")
+
+
+# ---------------------------------------------------------------------------
 # Core loop
 # ---------------------------------------------------------------------------
 
@@ -323,6 +414,7 @@ def run_loop(config: LoopConfig, state: LoopState, agent: Agent) -> None:
                 print("\n  VALUE DELIVERED — all gates passed")
                 state.pass_gate("exit_gate")
                 generate_delivery_report(config, state)
+                _generate_project_docs(config, state, agent)
                 state.save(config.state_file)
                 return
 
@@ -416,6 +508,7 @@ def run_loop(config: LoopConfig, state: LoopState, agent: Agent) -> None:
         # Max iterations reached
         print("\n  MAX ITERATIONS REACHED — generating partial delivery report")
         generate_delivery_report(config, state)
+        _generate_project_docs(config, state, agent)
 
     finally:
         _release_lock(lock_path)

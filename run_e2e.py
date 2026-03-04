@@ -25,12 +25,15 @@ def _run():
     sprint = sys.argv[1] if len(sys.argv) > 1 else "temp-calc"
     sprint_dir = Path(f"sprints/{sprint}")
 
+    generate_docs = "--no-docs" not in sys.argv
+
     config = LoopConfig(
         sprint=sprint,
         sprint_dir=sprint_dir,
         max_iterations=80,
         max_fix_attempts=3,
         token_budget=0,
+        generate_docs=generate_docs,
     )
 
     config.sprint_dir.mkdir(parents=True, exist_ok=True)
