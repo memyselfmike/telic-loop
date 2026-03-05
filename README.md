@@ -1,173 +1,272 @@
 # Telic Loop
 
-**A closed-loop value delivery system.** Given a Vision (what outcome a human wants) and a PRD (what must be true for that outcome to exist), Telic Loop plans, executes, verifies, course-corrects, and repeats until the promised value is real — or honestly reports why it can't be delivered.
+**Vision-to-value delivery system.** Give it a Vision (what outcome you want) and a PRD (what must be true), and it plans, builds, verifies, and course-corrects until the promised value is real — or honestly reports why it can't be delivered.
 
-Telic Loop is not a code generator. It is not a software engineering tool. It is a **vision-to-value algorithm**. The human provides the "what." The loop determines the "how."
+## Quick Start
+
+### Install
+
+```bash
+# From PyPI (when published)
+pip install telic-loop
+
+# From GitHub
+pip install git+https://github.com/memyselfmike/telic-loop.git
+
+# Editable install (for development)
+git clone https://github.com/memyselfmike/telic-loop.git
+cd telic-loop
+pip install -e .
+```
+
+### Prerequisites
+
+- **Python** >= 3.11
+- **Claude Code CLI** installed and authenticated (`claude` must be on PATH)
+- **Claude Max subscription** or Anthropic API key configured in Claude Code
+- **Node.js** (for browser-based evaluation via Playwright MCP)
+- **Git** (the loop creates branches and commits automatically)
+
+### Run a Sprint
+
+```bash
+# 1. Create a sprint directory with your Vision and PRD
+mkdir -p sprints/my-sprint
+# Write sprints/my-sprint/VISION.md  — the outcome you want
+# Write sprints/my-sprint/PRD.md     — the specific requirements
+
+# 2. Run the loop
+telic-loop my-sprint
+```
+
+That's it. The loop handles planning, implementation, verification, and evaluation autonomously.
 
 ## How It Works
 
 ```
-1. Human writes VISION.md    ("What outcome do we want?")
-2. Human writes PRD.md       ("What specifically must be true?")
-3. Human runs the loop        (one command)
-4. Loop discovers context     (examines codebase, environment, tools)
-5. Loop qualifies the work    (PRD critique, feasibility, blocker resolution)
-6. Loop executes iteratively  (task -> verify -> regress -> fix -> VRC -> repeat)
-7. Loop delivers report       (what was delivered, what was descoped, final score)
-8. Human has the outcome
+Human writes VISION.md  →  "What outcome do I want?"
+Human writes PRD.md     →  "What must be true for that outcome?"
+Human runs one command   →  telic-loop my-sprint
+Loop delivers the outcome (or reports why it can't)
 ```
 
-No manual configuration. No babysitting. No post-loop debugging.
-
-## Core Concepts
-
-| Concept | What It Means |
-|---|---|
-| **Vision** | The outcome a human was promised |
-| **PRD** | The specific requirements that make the outcome real |
-| **Task** | A unit of work that moves toward the outcome |
-| **Quality Control** | Automated checks that the deliverable works correctly |
-| **Critical Evaluation** | A separate agent that *uses* the deliverable as a real user would — opens a browser for web apps |
-| **VRC** | Vision Reality Check — continuous pulse on value delivery |
-
-## Architecture
-
-Telic Loop uses a **two-phase architecture**:
-
-### Pre-Loop
-Qualify the work before executing. Validate inputs, discover context, critique the PRD, generate a plan, run quality gates (CRAAP, CLARITY, VALIDATE, CONNECT, BREAK, PRUNE, TIDY), resolve blockers, and verify the environment.
-
-### The Value Loop
-Decision-driven delivery — each iteration asks "what should I do next?" based on current state, not "what phase am I in?"
+### Phase Flow
 
 ```
-while not value_delivered:
-    decision = decide_next_action(state)
-
-    match decision:
-        EXECUTE         -> execute task (Builder agent)
-        QC              -> run quality checks (QC agent)
-        FIX             -> fix failing checks
-        CRITICAL_EVAL   -> evaluate experience (Evaluator agent)
-        COURSE_CORRECT  -> re-plan, restructure, descope
-        RESEARCH        -> search web/docs for external knowledge
-        INTERACTIVE_PAUSE -> human action needed
-        EXIT_GATE       -> fresh-context final verification
+plan → review → implement → evaluate → complete
+  ↑        ↑         ↑           |
+  |        |         └───────────┘  (eval finds gaps → back to implement)
+  |        └── review rejects → re-plan
+  └── no tasks created → retry
 ```
 
-The exit gate is **inside** the loop. If it finds gaps, those become tasks and the loop continues. There is no post-loop dead end.
+Phase is always **computed** from gate state, never stored:
 
-## Multi-Agent System
+| Gate | Phase if missing |
+|------|-----------------|
+| `plan_generated` | plan |
+| `plan_reviewed` | review |
+| (has pending work) | implement |
+| `critical_eval_passed` | evaluate |
+| (all gates passed) | complete |
 
-Different concerns require different agents with different models:
+### Multi-Agent System (4 roles)
 
-| Agent | Model | Purpose |
-|---|---|---|
-| **Planner** | Opus | Plans tasks, critiques PRD, runs quality gates |
-| **Builder** | Sonnet | Executes tasks, writes code/content |
-| **QC Agent** | Sonnet/Haiku | Tests, linting, type checks, regression |
-| **Critical Evaluator** | Opus | Uses the deliverable as a real user, judges experience |
-| **VRC Agent** | Haiku/Opus | Tracks progress, assesses value delivery |
-| **Course Corrector** | Opus | Diagnoses why the loop is stuck, changes strategy |
-| **Research Agent** | Opus | Searches web, reads current docs, synthesizes findings |
+| Role | Model | Purpose |
+|------|-------|---------|
+| **Planner** | Opus | Context discovery, plan creation, version pinning |
+| **Reviewer** | Opus | Adversarial plan quality review (separate context) |
+| **Builder** | Sonnet | Implementation, verification, fixing, version troubleshooting |
+| **Evaluator** | Opus | Uses the deliverable as a real user (browser via Playwright) |
 
-The builder never grades its own work. QC checks correctness. Critical evaluation checks value. Both are required.
+The builder never grades its own work. The evaluator judges quality adversarially.
 
-## Key Capabilities
+## Usage
 
-1. **Self-Configuration** — Loop derives what it needs from Vision + PRD + codebase
-2. **Aggressive Pre-Qualification** — Validates work is achievable before executing
-3. **Decision-Driven Delivery** — State-based decisions, not rigid phases
-4. **Separate QC** — Builder never grades own work
-5. **Critical Evaluation** — Uses deliverable as real user (opens browser for web apps via Playwright MCP), pursues excellence not just correctness
-6. **VRC Heartbeat** — Continuous value tracking every iteration
-7. **Interactive Pause** — Pauses for genuine human-only actions, resumes autonomously
-8. **Course Correction** — Self-diagnoses stuck states, changes strategy or rolls back
-9. **Git Safety Net** — Feature branches, per-task commits, checkpoints at QC pass, rollback to known-good state
-10. **External Research** — Searches web when built-in knowledge is stale
-11. **Structured State** — JSON single source of truth, no markdown editing
-12. **Docker Integration** — Auto-detects when containerization benefits the project (native deps, CMS frameworks), generates standardized management scripts, all agents use consistent container access
-13. **Documentation Generation** — After delivery, auto-generates/updates production-quality README.md, architecture docs, and ADRs in the project root
+### CLI
 
-## Implementation Phases
+```bash
+# Basic — sprint dir is sprints/<name>/, project code goes there too
+telic-loop my-sprint
 
-The system is built incrementally. Each phase is independently usable:
+# Separate project directory (for adding features to existing repos)
+telic-loop my-sprint --project-dir /path/to/existing/project
 
-| Phase | Agents | What It Adds |
-|---|---|---|
-| **Phase 1** (MVP) | Builder + QC + Decision Engine | Pre-loop, execute, QC, fix, interactive pause |
-| **Phase 2** | + VRC + Course Corrector | Value tracking, exit gate, course correction, budget |
-| **Phase 3** | + Critical Eval + Research | Experience evaluation, external research, process monitor, vision validation, epic decomposition |
+# Custom sprint directory location
+telic-loop my-sprint --sprint-dir /path/to/sprint
+
+# Skip post-delivery documentation generation
+telic-loop my-sprint --no-docs
+```
+
+### Using with an Existing Repository
+
+To run a telic-loop sprint against an existing codebase:
+
+```bash
+# From inside your project repo:
+mkdir -p sprints/add-auth
+# Write sprints/add-auth/VISION.md and sprints/add-auth/PRD.md
+
+telic-loop add-auth --project-dir .
+```
+
+The `--project-dir` flag tells the loop where the application source code lives. The sprint artifacts (state, plan, verifications) stay in the sprint directory.
+
+### As a Python Module
+
+```bash
+python -m telic_loop.main my-sprint [--project-dir /path] [--sprint-dir /path]
+```
+
+### Programmatic Use
+
+```python
+from pathlib import Path
+from telic_loop.config import LoopConfig
+from telic_loop.state import LoopState
+from telic_loop.agent import Agent
+from telic_loop.main import run_loop
+from telic_loop.git import ensure_gitignore, setup_sprint_branch
+
+config = LoopConfig(
+    sprint="my-sprint",
+    sprint_dir=Path("sprints/my-sprint"),
+    project_dir=Path("."),       # optional: existing repo
+    max_iterations=80,           # safety valve
+)
+
+config.sprint_dir.mkdir(parents=True, exist_ok=True)
+state = LoopState(sprint="my-sprint")
+agent = Agent(config, state)
+
+ensure_gitignore(config.sprint_dir)
+setup_sprint_branch(config, state)
+state.save(config.state_file)
+
+run_loop(config, state, agent)
+```
+
+## Writing a Good Vision and PRD
+
+### VISION.md
+
+The Vision describes the **outcome** — what the user gets when the sprint is done. Keep it short and concrete.
+
+```markdown
+# Vision: Recipe Manager
+
+A web app where home cooks can save, search, and organize recipes.
+The cook opens the app, sees their recipe collection, and can find
+any recipe in seconds by ingredient, cuisine, or meal type.
+```
+
+### PRD.md
+
+The PRD specifies **what must be true** for the Vision to be real. Be specific about behaviors, not implementations.
+
+```markdown
+# PRD: Recipe Manager
+
+## Requirements
+
+1. **Recipe CRUD**: Create, read, update, delete recipes with title,
+   ingredients, instructions, prep time, cuisine, and meal type
+2. **Search**: Full-text search across title and ingredients
+3. **Filter**: Filter by cuisine and meal type
+4. **Responsive UI**: Works on mobile (320px) through desktop (1920px)
+5. **Persistent storage**: Recipes survive page refresh (SQLite or JSON file)
+
+## Tech Stack
+- Backend: Node.js with Express
+- Frontend: Single HTML page with vanilla JS
+- Database: SQLite via better-sqlite3
+```
+
+### ARCHITECTURE.md (optional)
+
+For brownfield projects or complex stacks, add `ARCHITECTURE.md` to the sprint directory to give the planner existing context.
+
+## Sprint Directory Structure
+
+After a sprint completes:
+
+```
+sprints/my-sprint/
+├── VISION.md                    # Input: what you want
+├── PRD.md                       # Input: what must be true
+├── ARCHITECTURE.md              # Optional input: existing architecture
+├── IMPLEMENTATION_PLAN.md       # Generated: task breakdown
+├── VALUE_CHECKLIST.md           # Generated: value delivery tracking
+├── DELIVERY_REPORT.md           # Generated: final delivery report
+├── .loop_state.json             # State: full loop state (JSON)
+├── .loop/                       # Internal: loop artifacts
+│   └── verifications/           # Auto-generated test scripts
+└── <project files>              # The actual deliverable
+```
+
+## Configuration
+
+All configuration is via `LoopConfig` dataclass fields. Key options:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `max_iterations` | 200 | Safety valve — max loop iterations |
+| `max_fix_attempts` | 3 | Times to retry a failing verification |
+| `token_budget` | 0 (unlimited) | Token spending limit |
+| `model_reasoning` | `claude-opus-4-6` | Model for planning, review, evaluation |
+| `model_execution` | `claude-sonnet-4-5-20250929` | Model for building |
+| `generate_docs` | `true` | Auto-generate README/ARCHITECTURE post-delivery |
+| `browser_eval_headless` | `false` | Run Playwright evaluation headless |
+
+## Resuming a Sprint
+
+The loop persists all state to `.loop_state.json`. If interrupted, just run the same command again — it picks up where it left off.
+
+```bash
+# Resumes automatically from saved state
+telic-loop my-sprint
+```
+
+### Surgical Reset
+
+To re-run a specific phase, edit `.loop_state.json` directly:
+
+| Phase to re-test | What to reset |
+|------------------|---------------|
+| Planning | Remove `plan_generated` from `gates_passed`, clear `tasks` |
+| Review | Remove `plan_reviewed` from `gates_passed` |
+| Implementation | Reset target tasks' `status` to `"pending"` |
+| Verification | Clear `verifications`, delete `.loop/verifications/` |
+| Evaluation | Remove `critical_eval_passed` from `gates_passed` |
+
+### Full Reset
+
+```bash
+rm -rf sprints/my-sprint/.loop_state.json sprints/my-sprint/.loop
+git branch -D $(git branch | grep my-sprint)
+```
 
 ## Project Structure
 
 ```
 telic-loop/
 ├── src/telic_loop/
-│   ├── main.py              # Entry point
-│   ├── config.py            # LoopConfig
-│   ├── state.py             # LoopState + dataclasses
-│   ├── discovery.py         # Context Discovery
-│   ├── decision.py          # Decision engine
-│   ├── claude.py            # Claude Agent SDK wrapper (MCP + browser eval)
-│   ├── git.py               # Git ops: branching, commits, safety, rollback
-│   ├── tools.py             # Tool implementations
-│   ├── render.py            # Markdown generation from state
-│   ├── phases/              # Action handlers
-│   │   ├── preloop.py
-│   │   ├── execute.py
-│   │   ├── qc.py
-│   │   ├── critical_eval.py
-│   │   ├── vrc.py
-│   │   ├── course_correct.py
-│   │   ├── exit_gate.py
-│   │   └── ...
-│   └── prompts/             # Reasoning templates (32 prompts)
-├── docs/                    # V3 planning & architecture docs
-├── reference/v2/            # V2 implementation (reference)
+│   ├── main.py          # Core loop + phase logic + CLI
+│   ├── agent.py         # Claude SDK wrapper + role factory
+│   ├── tools.py         # Tool schemas + validation + handlers
+│   ├── state.py         # State dataclasses + persistence
+│   ├── config.py        # Configuration with defaults
+│   ├── git.py           # Git operations (branch, commit, rollback)
+│   ├── render.py        # Markdown artifact generation
+│   ├── testing.py       # Cross-platform test execution
+│   ├── tool_cli.py      # Tool CLI bridge
+│   ├── errors.py        # Error classification + crash logging
+│   └── prompts/         # 5 prompt templates (system, planner, reviewer, builder, evaluator)
+├── run_e2e.py           # E2E test runner
 ├── pyproject.toml
-└── README.md
+└── CLAUDE.md            # Development guide
 ```
-
-## Usage
-
-```bash
-# Basic sprint
-telic-loop my-sprint
-
-# With separate project directory
-telic-loop my-sprint --project-dir /path/to/project
-
-# With Docker mode control
-telic-loop my-sprint --docker-mode always    # Force Docker containers
-telic-loop my-sprint --docker-mode never     # Skip Docker entirely
-telic-loop my-sprint --docker-mode auto      # Auto-detect (default)
-
-# Skip documentation generation
-telic-loop my-sprint --no-docs
-```
-
-## Requirements
-
-- Python >= 3.11
-- `claude-agent-sdk` >= 0.1.37 (wraps `claude` CLI subprocess)
-- Claude Code CLI installed and authenticated (Max subscription or API key)
-- Node.js (for browser-based critical evaluation via `@playwright/mcp`)
-- Docker (optional — auto-detected for projects with native deps or multi-service architectures)
-
-## Status
-
-**Phase 3 complete + hardening.** All three implementation phases are live and tested end-to-end across 7 sprints (temp-calc, smart-dash, kanban, time-tracker, recipe-manager, beep2b, beep2b-v2, beep2b-v3). The system autonomously delivers value from Vision + PRD through interactive pre-loop refinement, multi-agent execution, browser-based critical evaluation, and verified exit gate. Post-sprint hardening includes rate-limit resilience, Docker containerization, Windows compatibility fixes, and deterministic code quality enforcement.
-
-## Documentation
-
-- [Loop Flow](docs/LOOP_FLOW.md) — Visual flow diagram (Mermaid) with git operations
-- [Vision](docs/V3_VISION.md) — The full vision document
-- [Architecture](docs/V3_ARCHITECTURE.md) — Structural specification
-- [PRD](docs/V3_PRD.md) — Product requirements with acceptance criteria
-- [Phase 1 Plan](docs/V3_PHASE1_PLAN.md) — MVP implementation details
-- [Phase 2 Plan](docs/V3_PHASE2_PLAN.md) — VRC + Course Correction
-- [Phase 3 Plan](docs/V3_PHASE3_PLAN.md) — Critical Eval + Research + Process Monitor
 
 ## License
 
