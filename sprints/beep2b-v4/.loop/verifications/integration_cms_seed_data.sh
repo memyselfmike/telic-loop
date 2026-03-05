@@ -12,8 +12,8 @@ echo "=== Verifying CMS Seed Data ==="
 
 # Check categories (expect 9)
 echo "Checking categories..."
-CATEGORIES_RESPONSE=$(curl -s http://localhost:3001/api/categories)
-CATEGORIES_COUNT=$(echo "$CATEGORIES_RESPONSE" | jq -r '.totalDocs' || echo "0")
+CATEGORIES_RESPONSE=$(curl -s http://localhost:3000/api/categories)
+CATEGORIES_COUNT=$(echo "$CATEGORIES_RESPONSE" | grep -o '"totalDocs":[0-9]*' | grep -o '[0-9]*' || echo "0")
 
 if [ "$CATEGORIES_COUNT" -lt 9 ]; then
   echo "FAIL: Expected at least 9 categories, found $CATEGORIES_COUNT"
@@ -24,8 +24,8 @@ echo "✓ Categories seeded ($CATEGORIES_COUNT categories)"
 
 # Check posts (expect 3)
 echo "Checking posts..."
-POSTS_RESPONSE=$(curl -s http://localhost:3001/api/posts)
-POSTS_COUNT=$(echo "$POSTS_RESPONSE" | jq -r '.totalDocs' || echo "0")
+POSTS_RESPONSE=$(curl -s http://localhost:3000/api/posts)
+POSTS_COUNT=$(echo "$POSTS_RESPONSE" | grep -o '"totalDocs":[0-9]*' | grep -o '[0-9]*' || echo "0")
 
 if [ "$POSTS_COUNT" -lt 3 ]; then
   echo "FAIL: Expected at least 3 posts, found $POSTS_COUNT"
@@ -36,8 +36,8 @@ echo "✓ Posts seeded ($POSTS_COUNT posts)"
 
 # Check testimonials (expect 3)
 echo "Checking testimonials..."
-TESTIMONIALS_RESPONSE=$(curl -s http://localhost:3001/api/testimonials)
-TESTIMONIALS_COUNT=$(echo "$TESTIMONIALS_RESPONSE" | jq -r '.totalDocs' || echo "0")
+TESTIMONIALS_RESPONSE=$(curl -s http://localhost:3000/api/testimonials)
+TESTIMONIALS_COUNT=$(echo "$TESTIMONIALS_RESPONSE" | grep -o '"totalDocs":[0-9]*' | grep -o '[0-9]*' || echo "0")
 
 if [ "$TESTIMONIALS_COUNT" -lt 3 ]; then
   echo "FAIL: Expected at least 3 testimonials, found $TESTIMONIALS_COUNT"
@@ -48,9 +48,7 @@ echo "✓ Testimonials seeded ($TESTIMONIALS_COUNT testimonials)"
 
 # Verify specific testimonial content
 echo "Checking testimonial content..."
-TESTIMONIAL_NAMES=$(echo "$TESTIMONIALS_RESPONSE" | jq -r '.docs[].name' || echo "")
-
-if ! echo "$TESTIMONIAL_NAMES" | grep -q "Sarah M."; then
+if ! echo "$TESTIMONIALS_RESPONSE" | grep -q "Sarah M."; then
   echo "FAIL: Missing Sarah M. testimonial"
   exit 1
 fi

@@ -1,0 +1,2678 @@
+{
+  "tablet": {
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "pages": {
+      "home": {
+        "page": "home",
+        "viewport": "768x1024",
+        "overflow": {
+          "overflow": true,
+          "docWidth": 1088,
+          "viewWidth": 768,
+          "overflowPx": 320
+        },
+        "smallTapTargets": [
+          {
+            "tag": "a",
+            "text": "Beep2B",
+            "width": 79,
+            "height": 34,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "button",
+            "text": "",
+            "width": 38,
+            "height": 28,
+            "href": ""
+          },
+          {
+            "tag": "a",
+            "text": "Book a Discovery Call",
+            "width": 137,
+            "height": 27,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "See How It Works",
+            "width": 117,
+            "height": 27,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "Learn the Complete System",
+            "width": 174,
+            "height": 23,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "Book Your Call Now",
+            "width": 130,
+            "height": 27,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "Home",
+            "width": 38,
+            "height": 19,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "a",
+            "text": "How It Works",
+            "width": 83,
+            "height": 19,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "About",
+            "width": 38,
+            "height": 19,
+            "href": "http://localhost:4321/about"
+          },
+          {
+            "tag": "a",
+            "text": "Contact",
+            "width": 48,
+            "height": 19,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Marketing",
+            "width": 119,
+            "height": 19,
+            "href": "http://localhost:4321/services#linkedin-marketing"
+          },
+          {
+            "tag": "a",
+            "text": "Thought Leadership",
+            "width": 123,
+            "height": 19,
+            "href": "http://localhost:4321/services#thought-leadership"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Training",
+            "width": 105,
+            "height": 19,
+            "href": "http://localhost:4321/services#training"
+          },
+          {
+            "tag": "a",
+            "text": "Blog",
+            "width": 28,
+            "height": 19,
+            "href": "http://localhost:4321/blog"
+          },
+          {
+            "tag": "input",
+            "text": "",
+            "width": 740,
+            "height": 39,
+            "href": ""
+          },
+          {
+            "tag": "button",
+            "text": "Subscribe",
+            "width": 740,
+            "height": 19,
+            "href": ""
+          },
+          {
+            "tag": "a",
+            "text": "",
+            "width": 24,
+            "height": 31,
+            "href": "https://linkedin.com/company/beep2b"
+          },
+          {
+            "tag": "a",
+            "text": "",
+            "width": 24,
+            "height": 31,
+            "href": "mailto:hello@beep2b.com"
+          }
+        ],
+        "overlaps": [
+          {
+            "el1": "div.card: \"01   Precision Targeting Conne\"",
+            "el2": "h3.feature-title: \"Precision Targeting\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"01   Precision Targeting Conne\"",
+            "el2": "p.feature-description: \"Connect with decision-makers i\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"02   Relationship-First Genuin\"",
+            "el2": "h3.feature-title: \"Relationship-First\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"02   Relationship-First Genuin\"",
+            "el2": "p.feature-description: \"Genuine conversations, not col\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"03   Predictable Pipeline Know\"",
+            "el2": "h3.feature-title: \"Predictable Pipeline\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"03   Predictable Pipeline Know\"",
+            "el2": "p.feature-description: \"Know exactly how many leads to\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"04   Thought Leadership Positi\"",
+            "el2": "h3.feature-title: \"Thought Leadership\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"04   Thought Leadership Positi\"",
+            "el2": "p.feature-description: \"Position yourself as the go-to\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"05   Transparent Reporting See\"",
+            "el2": "h3.feature-title: \"Transparent Reporting\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"05   Transparent Reporting See\"",
+            "el2": "p.feature-description: \"See every metric, every conver\"",
+            "overlapRatio": "100%"
+          }
+        ],
+        "heroHeadline": {
+          "width": 413.984375,
+          "height": 113.75,
+          "top": 467.578125,
+          "left": 177.015625,
+          "right": 591,
+          "bottom": 581.328125,
+          "fontSize": "35px",
+          "display": "block",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "featuresGrid": {
+          "width": 740,
+          "height": 714.75,
+          "top": 1600.9375,
+          "left": 14,
+          "right": 754,
+          "bottom": 2315.6875,
+          "fontSize": "14px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "beepSteps": {
+          "width": 740,
+          "height": 404.75,
+          "top": 2668.5,
+          "left": 14,
+          "right": 754,
+          "bottom": 3073.25,
+          "fontSize": "14px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "trustBar": {
+          "width": 740,
+          "height": 192.5,
+          "top": 1143.125,
+          "left": 14,
+          "right": 754,
+          "bottom": 1335.625,
+          "fontSize": "14px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "42px 0px"
+        },
+        "featuresGridCols": "359.5px 359.5px",
+        "beepStepsCols": "356px 356px",
+        "trustBarCols": "359.5px 359.5px",
+        "footerGrid": {
+          "width": 740,
+          "height": 806.625,
+          "top": 4587.8125,
+          "left": 14,
+          "right": 754,
+          "bottom": 5394.4375,
+          "fontSize": "14px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "footerGridCols": "740px"
+      },
+      "services": {
+        "page": "services",
+        "viewport": "768x1024",
+        "overflow": {
+          "overflow": true,
+          "docWidth": 1088,
+          "viewWidth": 768,
+          "overflowPx": 320
+        },
+        "smallTapTargets": [
+          {
+            "tag": "a",
+            "text": "Beep2B",
+            "width": 79,
+            "height": 34,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "button",
+            "text": "",
+            "width": 38,
+            "height": 28,
+            "href": ""
+          },
+          {
+            "tag": "a",
+            "text": "Book a Discovery Call",
+            "width": 740,
+            "height": 23,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "Learn Our Methodology",
+            "width": 740,
+            "height": 27,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "Book a Discovery Call",
+            "width": 740,
+            "height": 23,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "Learn Our Methodology",
+            "width": 740,
+            "height": 27,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "Book a Discovery Call",
+            "width": 740,
+            "height": 23,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "Learn Our Methodology",
+            "width": 740,
+            "height": 27,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "Schedule Your Call Now",
+            "width": 151,
+            "height": 23,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "Home",
+            "width": 38,
+            "height": 19,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "a",
+            "text": "How It Works",
+            "width": 83,
+            "height": 19,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "About",
+            "width": 38,
+            "height": 19,
+            "href": "http://localhost:4321/about"
+          },
+          {
+            "tag": "a",
+            "text": "Contact",
+            "width": 48,
+            "height": 19,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Marketing",
+            "width": 119,
+            "height": 19,
+            "href": "http://localhost:4321/services#linkedin-marketing"
+          },
+          {
+            "tag": "a",
+            "text": "Thought Leadership",
+            "width": 123,
+            "height": 19,
+            "href": "http://localhost:4321/services#thought-leadership"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Training",
+            "width": 105,
+            "height": 19,
+            "href": "http://localhost:4321/services#training"
+          },
+          {
+            "tag": "a",
+            "text": "Blog",
+            "width": 28,
+            "height": 19,
+            "href": "http://localhost:4321/blog"
+          },
+          {
+            "tag": "input",
+            "text": "",
+            "width": 740,
+            "height": 39,
+            "href": ""
+          },
+          {
+            "tag": "button",
+            "text": "Subscribe",
+            "width": 740,
+            "height": 19,
+            "href": ""
+          },
+          {
+            "tag": "a",
+            "text": "",
+            "width": 24,
+            "height": 31,
+            "href": "https://linkedin.com/company/beep2b"
+          },
+          {
+            "tag": "a",
+            "text": "",
+            "width": 24,
+            "height": 31,
+            "href": "mailto:hello@beep2b.com"
+          }
+        ],
+        "overlaps": [],
+        "serviceHeader": {
+          "width": 740,
+          "height": 141.5625,
+          "top": 494.4375,
+          "left": 14,
+          "right": 754,
+          "bottom": 636,
+          "fontSize": "14px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "serviceHeaderCols": "740px",
+        "serviceCta": {
+          "width": 740,
+          "height": 84.5,
+          "top": 1219,
+          "left": 14,
+          "right": 754,
+          "bottom": 1303.5,
+          "fontSize": "14px",
+          "display": "flex",
+          "overflow": "visible",
+          "padding": "21px 0px 0px"
+        },
+        "serviceCtaDirection": "column",
+        "footerGrid": {
+          "width": 740,
+          "height": 806.625,
+          "top": 3828.625,
+          "left": 14,
+          "right": 754,
+          "bottom": 4635.25,
+          "fontSize": "14px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "footerGridCols": "740px"
+      },
+      "contact": {
+        "page": "contact",
+        "viewport": "768x1024",
+        "overflow": {
+          "overflow": true,
+          "docWidth": 1088,
+          "viewWidth": 768,
+          "overflowPx": 320
+        },
+        "smallTapTargets": [
+          {
+            "tag": "a",
+            "text": "Beep2B",
+            "width": 79,
+            "height": 34,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "button",
+            "text": "",
+            "width": 38,
+            "height": 28,
+            "href": ""
+          },
+          {
+            "tag": "input",
+            "text": "",
+            "width": 696,
+            "height": 32,
+            "href": ""
+          },
+          {
+            "tag": "input",
+            "text": "",
+            "width": 696,
+            "height": 32,
+            "href": ""
+          },
+          {
+            "tag": "input",
+            "text": "",
+            "width": 696,
+            "height": 32,
+            "href": ""
+          },
+          {
+            "tag": "button",
+            "text": "Book Discovery Call",
+            "width": 696,
+            "height": 40,
+            "href": ""
+          },
+          {
+            "tag": "a",
+            "text": "Home",
+            "width": 38,
+            "height": 19,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "a",
+            "text": "How It Works",
+            "width": 83,
+            "height": 19,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "About",
+            "width": 38,
+            "height": 19,
+            "href": "http://localhost:4321/about"
+          },
+          {
+            "tag": "a",
+            "text": "Contact",
+            "width": 48,
+            "height": 19,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Marketing",
+            "width": 119,
+            "height": 19,
+            "href": "http://localhost:4321/services#linkedin-marketing"
+          },
+          {
+            "tag": "a",
+            "text": "Thought Leadership",
+            "width": 123,
+            "height": 19,
+            "href": "http://localhost:4321/services#thought-leadership"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Training",
+            "width": 105,
+            "height": 19,
+            "href": "http://localhost:4321/services#training"
+          },
+          {
+            "tag": "a",
+            "text": "Blog",
+            "width": 28,
+            "height": 19,
+            "href": "http://localhost:4321/blog"
+          },
+          {
+            "tag": "input",
+            "text": "",
+            "width": 740,
+            "height": 39,
+            "href": ""
+          },
+          {
+            "tag": "button",
+            "text": "Subscribe",
+            "width": 740,
+            "height": 19,
+            "href": ""
+          },
+          {
+            "tag": "a",
+            "text": "",
+            "width": 24,
+            "height": 31,
+            "href": "https://linkedin.com/company/beep2b"
+          },
+          {
+            "tag": "a",
+            "text": "",
+            "width": 24,
+            "height": 31,
+            "href": "mailto:hello@beep2b.com"
+          }
+        ],
+        "overlaps": [
+          {
+            "el1": "div.card: \"Book Your Discovery Call \nFill\"",
+            "el2": "h2.form-heading: \"Book Your Discovery Call\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"Book Your Discovery Call \nFill\"",
+            "el2": "p.form-intro: \"Fill out the form below and we\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"Book Your Discovery Call \nFill\"",
+            "el2": "input.form-input: \"\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"Book Your Discovery Call \nFill\"",
+            "el2": "input.form-input: \"\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"Book Your Discovery Call \nFill\"",
+            "el2": "input.form-input: \"\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"Book Your Discovery Call \nFill\"",
+            "el2": "textarea.form-input: \"\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"Book Your Discovery Call \nFill\"",
+            "el2": "button.submit-button: \"Book Discovery Call\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"How long is the call? \n30 minu\"",
+            "el2": "h3.faq-question: \"How long is the call?\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"How long is the call? \n30 minu\"",
+            "el2": "p.faq-answer: \"30 minutes. We respect your ti\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"Will you try to sell me someth\"",
+            "el2": "h3.faq-question: \"Will you try to sell me someth\"",
+            "overlapRatio": "100%"
+          }
+        ],
+        "contactContainer": {
+          "width": 740,
+          "height": 1159.40625,
+          "top": 613.71875,
+          "left": 14,
+          "right": 754,
+          "bottom": 1773.125,
+          "fontSize": "14px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "contactContainerCols": "740px",
+        "faqGrid": {
+          "width": 740,
+          "height": 429.75,
+          "top": 2027.9375,
+          "left": 14,
+          "right": 754,
+          "bottom": 2457.6875,
+          "fontSize": "14px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "faqGridCols": "740px",
+        "footerGrid": {
+          "width": 740,
+          "height": 806.625,
+          "top": 2640.6875,
+          "left": 14,
+          "right": 754,
+          "bottom": 3447.3125,
+          "fontSize": "14px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "footerGridCols": "740px"
+      },
+      "blog": {
+        "page": "blog",
+        "viewport": "768x1024",
+        "overflow": {
+          "overflow": true,
+          "docWidth": 1088,
+          "viewWidth": 768,
+          "overflowPx": 320
+        },
+        "smallTapTargets": [
+          {
+            "tag": "a",
+            "text": "Beep2B",
+            "width": 79,
+            "height": 34,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "button",
+            "text": "",
+            "width": 38,
+            "height": 28,
+            "href": ""
+          },
+          {
+            "tag": "a",
+            "text": "All Posts",
+            "width": 77,
+            "height": 36,
+            "href": "http://localhost:4321/blog"
+          },
+          {
+            "tag": "a",
+            "text": "Thought Leadership",
+            "width": 141,
+            "height": 36,
+            "href": "http://localhost:4321/blog?category=thought-leadership"
+          },
+          {
+            "tag": "a",
+            "text": "Social Selling",
+            "width": 103,
+            "height": 36,
+            "href": "http://localhost:4321/blog?category=social-selling"
+          },
+          {
+            "tag": "a",
+            "text": "Relationship Selling",
+            "width": 139,
+            "height": 36,
+            "href": "http://localhost:4321/blog?category=relationship-selling"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Training",
+            "width": 125,
+            "height": 36,
+            "href": "http://localhost:4321/blog?category=linkedin-training"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Tips",
+            "width": 103,
+            "height": 36,
+            "href": "http://localhost:4321/blog?category=linkedin-tips"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Profile",
+            "width": 116,
+            "height": 36,
+            "href": "http://localhost:4321/blog?category=linkedin-profile"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Marketing",
+            "width": 138,
+            "height": 36,
+            "href": "http://localhost:4321/blog?category=linkedin-marketing"
+          },
+          {
+            "tag": "a",
+            "text": "B2B",
+            "width": 52,
+            "height": 36,
+            "href": "http://localhost:4321/blog?category=b2b"
+          },
+          {
+            "tag": "a",
+            "text": "Authority Marketing",
+            "width": 143,
+            "height": 36,
+            "href": "http://localhost:4321/blog?category=authority-marketing"
+          },
+          {
+            "tag": "a",
+            "text": "Home",
+            "width": 38,
+            "height": 19,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "a",
+            "text": "How It Works",
+            "width": 83,
+            "height": 19,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "About",
+            "width": 38,
+            "height": 19,
+            "href": "http://localhost:4321/about"
+          },
+          {
+            "tag": "a",
+            "text": "Contact",
+            "width": 48,
+            "height": 19,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Marketing",
+            "width": 119,
+            "height": 19,
+            "href": "http://localhost:4321/services#linkedin-marketing"
+          },
+          {
+            "tag": "a",
+            "text": "Thought Leadership",
+            "width": 123,
+            "height": 19,
+            "href": "http://localhost:4321/services#thought-leadership"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Training",
+            "width": 105,
+            "height": 19,
+            "href": "http://localhost:4321/services#training"
+          },
+          {
+            "tag": "a",
+            "text": "Blog",
+            "width": 28,
+            "height": 19,
+            "href": "http://localhost:4321/blog"
+          },
+          {
+            "tag": "input",
+            "text": "",
+            "width": 740,
+            "height": 39,
+            "href": ""
+          },
+          {
+            "tag": "button",
+            "text": "Subscribe",
+            "width": 740,
+            "height": 19,
+            "href": ""
+          },
+          {
+            "tag": "a",
+            "text": "",
+            "width": 24,
+            "height": 31,
+            "href": "https://linkedin.com/company/beep2b"
+          },
+          {
+            "tag": "a",
+            "text": "",
+            "width": 24,
+            "height": 31,
+            "href": "mailto:hello@beep2b.com"
+          }
+        ],
+        "overlaps": [
+          {
+            "el1": "a.card-link: \"LinkedIn Profile   LinkedIn Ti\"",
+            "el2": "img: \"\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "a.card-link: \"LinkedIn Profile   LinkedIn Ti\"",
+            "el2": "h3.card-title: \"The Anatomy of a High-Converti\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "a.card-link: \"LinkedIn Profile   LinkedIn Ti\"",
+            "el2": "p.card-excerpt: \"Your LinkedIn profile is your \"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "a.card-link: \"Thought Leadership   Authority\"",
+            "el2": "img: \"\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "a.card-link: \"Thought Leadership   Authority\"",
+            "el2": "h3.card-title: \"How to Build Authority on Link\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "a.card-link: \"Thought Leadership   Authority\"",
+            "el2": "p.card-excerpt: \"Thought leadership is not abou\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "a.card-link: \"LinkedIn Marketing   B2B    Wh\"",
+            "el2": "img: \"\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "a.card-link: \"LinkedIn Marketing   B2B    Wh\"",
+            "el2": "h3.card-title: \"Why Most LinkedIn Outreach Fai\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "a.card-link: \"LinkedIn Marketing   B2B    Wh\"",
+            "el2": "p.card-excerpt: \"The average LinkedIn connectio\"",
+            "overlapRatio": "100%"
+          }
+        ],
+        "postsGrid": {
+          "width": 740,
+          "height": 1907.21875,
+          "top": 831.234375,
+          "left": 14,
+          "right": 754,
+          "bottom": 2738.453125,
+          "fontSize": "14px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "postsGridCols": "740px",
+        "filterButtons": {
+          "width": 696,
+          "height": 78.8125,
+          "top": 590.421875,
+          "left": 36,
+          "right": 732,
+          "bottom": 669.234375,
+          "fontSize": "14px",
+          "display": "flex",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "filterDirection": "row",
+        "footerGrid": {
+          "width": 740,
+          "height": 806.625,
+          "top": 3381.703125,
+          "left": 14,
+          "right": 754,
+          "bottom": 4188.328125,
+          "fontSize": "14px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "footerGridCols": "740px"
+      },
+      "about": {
+        "page": "about",
+        "viewport": "768x1024",
+        "overflow": {
+          "overflow": true,
+          "docWidth": 1088,
+          "viewWidth": 768,
+          "overflowPx": 320
+        },
+        "smallTapTargets": [
+          {
+            "tag": "a",
+            "text": "Beep2B",
+            "width": 79,
+            "height": 34,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "button",
+            "text": "",
+            "width": 38,
+            "height": 28,
+            "href": ""
+          },
+          {
+            "tag": "a",
+            "text": "Home",
+            "width": 38,
+            "height": 19,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "a",
+            "text": "How It Works",
+            "width": 83,
+            "height": 19,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "About",
+            "width": 38,
+            "height": 19,
+            "href": "http://localhost:4321/about"
+          },
+          {
+            "tag": "a",
+            "text": "Contact",
+            "width": 48,
+            "height": 19,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Marketing",
+            "width": 119,
+            "height": 19,
+            "href": "http://localhost:4321/services#linkedin-marketing"
+          },
+          {
+            "tag": "a",
+            "text": "Thought Leadership",
+            "width": 123,
+            "height": 19,
+            "href": "http://localhost:4321/services#thought-leadership"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Training",
+            "width": 105,
+            "height": 19,
+            "href": "http://localhost:4321/services#training"
+          },
+          {
+            "tag": "a",
+            "text": "Blog",
+            "width": 28,
+            "height": 19,
+            "href": "http://localhost:4321/blog"
+          },
+          {
+            "tag": "input",
+            "text": "",
+            "width": 740,
+            "height": 39,
+            "href": ""
+          },
+          {
+            "tag": "button",
+            "text": "Subscribe",
+            "width": 740,
+            "height": 19,
+            "href": ""
+          },
+          {
+            "tag": "a",
+            "text": "",
+            "width": 24,
+            "height": 31,
+            "href": "https://linkedin.com/company/beep2b"
+          },
+          {
+            "tag": "a",
+            "text": "",
+            "width": 24,
+            "height": 31,
+            "href": "mailto:hello@beep2b.com"
+          }
+        ],
+        "overlaps": [
+          {
+            "el1": "div.card: \"🤝 Relationships Over Reach We\"",
+            "el2": "h3.value-title: \"Relationships Over Reach\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"🤝 Relationships Over Reach We\"",
+            "el2": "p.value-description: \"We prioritize building genuine\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"⚙️ Systems Over Hustle Lead ge\"",
+            "el2": "h3.value-title: \"Systems Over Hustle\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"⚙️ Systems Over Hustle Lead ge\"",
+            "el2": "p.value-description: \"Lead generation shouldn't be a\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"🔍 Transparency Always You see\"",
+            "el2": "h3.value-title: \"Transparency Always\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"🔍 Transparency Always You see\"",
+            "el2": "p.value-description: \"You see everything: every mess\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"🎯 Built by Marketers for Mark\"",
+            "el2": "h3.value-title: \"Built by Marketers for Markete\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"🎯 Built by Marketers for Mark\"",
+            "el2": "p.value-description: \"We're not a tech company that \"",
+            "overlapRatio": "100%"
+          }
+        ],
+        "timeline": {
+          "width": 740,
+          "height": 667.9375,
+          "top": 2396.25,
+          "left": 14,
+          "right": 754,
+          "bottom": 3064.1875,
+          "fontSize": "14px",
+          "display": "block",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "timelineItemCols": "40px 686px",
+        "valuesGrid": {
+          "width": 740,
+          "height": 914.5,
+          "top": 1219.0625,
+          "left": 14,
+          "right": 754,
+          "bottom": 2133.5625,
+          "fontSize": "14px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "valuesGridCols": "740px",
+        "statsContainer": {
+          "width": 740,
+          "height": 254.1875,
+          "top": 3320.75,
+          "left": 14,
+          "right": 754,
+          "bottom": 3574.9375,
+          "fontSize": "14px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "statsContainerCols": "363px 363px",
+        "footerGrid": {
+          "width": 740,
+          "height": 806.625,
+          "top": 4218.1875,
+          "left": 14,
+          "right": 754,
+          "bottom": 5024.8125,
+          "fontSize": "14px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "footerGridCols": "740px"
+      }
+    },
+    "nav": {
+      "hamburgerVisible": true,
+      "hamburgerSize": "38x28",
+      "navLinksHidden": true,
+      "menuOpened": true,
+      "menuWidth": 320,
+      "navLinkDetails": [
+        {
+          "text": "Home",
+          "width": 277,
+          "height": 47,
+          "fontSize": "15.75px"
+        },
+        {
+          "text": "How It Works",
+          "width": 277,
+          "height": 47,
+          "fontSize": "15.75px"
+        },
+        {
+          "text": "Services",
+          "width": 277,
+          "height": 47,
+          "fontSize": "15.75px"
+        },
+        {
+          "text": "About",
+          "width": 277,
+          "height": 47,
+          "fontSize": "15.75px"
+        },
+        {
+          "text": "Blog",
+          "width": 277,
+          "height": 47,
+          "fontSize": "15.75px"
+        },
+        {
+          "text": "Contact",
+          "width": 277,
+          "height": 47,
+          "fontSize": "15.75px"
+        },
+        {
+          "text": "Book a Call",
+          "width": 277,
+          "height": 47,
+          "fontSize": "15.75px"
+        }
+      ],
+      "menuClosedViaEscape": true
+    }
+  },
+  "mobile": {
+    "viewport": {
+      "width": 480,
+      "height": 844
+    },
+    "pages": {
+      "home": {
+        "page": "home",
+        "viewport": "480x844",
+        "overflow": {
+          "overflow": true,
+          "docWidth": 800,
+          "viewWidth": 480,
+          "overflowPx": 320
+        },
+        "smallTapTargets": [
+          {
+            "tag": "a",
+            "text": "Beep2B",
+            "width": 73,
+            "height": 32,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "button",
+            "text": "",
+            "width": 37,
+            "height": 27,
+            "href": ""
+          },
+          {
+            "tag": "a",
+            "text": "Home",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "a",
+            "text": "How It Works",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "Services",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/services"
+          },
+          {
+            "tag": "a",
+            "text": "About",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/about"
+          },
+          {
+            "tag": "a",
+            "text": "Blog",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/blog"
+          },
+          {
+            "tag": "a",
+            "text": "Contact",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "Book a Call",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "Book a Discovery Call",
+            "width": 384,
+            "height": 21,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "See How It Works",
+            "width": 384,
+            "height": 25,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "Learn the Complete System",
+            "width": 161,
+            "height": 21,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "Book Your Call Now",
+            "width": 121,
+            "height": 25,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "Home",
+            "width": 35,
+            "height": 17,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "a",
+            "text": "How It Works",
+            "width": 77,
+            "height": 17,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "About",
+            "width": 35,
+            "height": 17,
+            "href": "http://localhost:4321/about"
+          },
+          {
+            "tag": "a",
+            "text": "Contact",
+            "width": 44,
+            "height": 17,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Marketing",
+            "width": 111,
+            "height": 17,
+            "href": "http://localhost:4321/services#linkedin-marketing"
+          },
+          {
+            "tag": "a",
+            "text": "Thought Leadership",
+            "width": 114,
+            "height": 17,
+            "href": "http://localhost:4321/services#thought-leadership"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Training",
+            "width": 97,
+            "height": 17,
+            "href": "http://localhost:4321/services#training"
+          },
+          {
+            "tag": "a",
+            "text": "Blog",
+            "width": 26,
+            "height": 17,
+            "href": "http://localhost:4321/blog"
+          },
+          {
+            "tag": "input",
+            "text": "",
+            "width": 454,
+            "height": 37,
+            "href": ""
+          },
+          {
+            "tag": "button",
+            "text": "Subscribe",
+            "width": 454,
+            "height": 19,
+            "href": ""
+          },
+          {
+            "tag": "a",
+            "text": "",
+            "width": 24,
+            "height": 29,
+            "href": "https://linkedin.com/company/beep2b"
+          },
+          {
+            "tag": "a",
+            "text": "",
+            "width": 24,
+            "height": 29,
+            "href": "mailto:hello@beep2b.com"
+          }
+        ],
+        "overlaps": [
+          {
+            "el1": "div.card: \"01   Precision Targeting Conne\"",
+            "el2": "h3.feature-title: \"Precision Targeting\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"01   Precision Targeting Conne\"",
+            "el2": "p.feature-description: \"Connect with decision-makers i\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"02   Relationship-First Genuin\"",
+            "el2": "h3.feature-title: \"Relationship-First\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"02   Relationship-First Genuin\"",
+            "el2": "p.feature-description: \"Genuine conversations, not col\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"03   Predictable Pipeline Know\"",
+            "el2": "h3.feature-title: \"Predictable Pipeline\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"03   Predictable Pipeline Know\"",
+            "el2": "p.feature-description: \"Know exactly how many leads to\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"04   Thought Leadership Positi\"",
+            "el2": "h3.feature-title: \"Thought Leadership\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"04   Thought Leadership Positi\"",
+            "el2": "p.feature-description: \"Position yourself as the go-to\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"05   Transparent Reporting See\"",
+            "el2": "h3.feature-title: \"Transparent Reporting\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"05   Transparent Reporting See\"",
+            "el2": "p.feature-description: \"See every metric, every conver\"",
+            "overlapRatio": "100%"
+          }
+        ],
+        "heroHeadline": {
+          "width": 384.296875,
+          "height": 84.5,
+          "top": 374.171875,
+          "left": 47.859375,
+          "right": 432.15625,
+          "bottom": 458.671875,
+          "fontSize": "26px",
+          "display": "block",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "featuresGrid": {
+          "width": 454,
+          "height": 1143,
+          "top": 1341.15625,
+          "left": 13,
+          "right": 467,
+          "bottom": 2484.15625,
+          "fontSize": "13px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "beepSteps": {
+          "width": 454,
+          "height": 736,
+          "top": 2786.125,
+          "left": 13,
+          "right": 467,
+          "bottom": 3522.125,
+          "fontSize": "13px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "trustBar": {
+          "width": 454,
+          "height": 178.75,
+          "top": 941.6875,
+          "left": 13,
+          "right": 467,
+          "bottom": 1120.4375,
+          "fontSize": "13px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "39px 0px"
+        },
+        "featuresGridCols": "454px",
+        "beepStepsCols": "454px",
+        "trustBarCols": "217.25px 217.25px",
+        "footerGrid": {
+          "width": 454,
+          "height": 751.4375,
+          "top": 5108.21875,
+          "left": 13,
+          "right": 467,
+          "bottom": 5859.65625,
+          "fontSize": "13px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "footerGridCols": "454px"
+      },
+      "services": {
+        "page": "services",
+        "viewport": "480x844",
+        "overflow": {
+          "overflow": true,
+          "docWidth": 800,
+          "viewWidth": 480,
+          "overflowPx": 320
+        },
+        "smallTapTargets": [
+          {
+            "tag": "a",
+            "text": "Beep2B",
+            "width": 73,
+            "height": 32,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "button",
+            "text": "",
+            "width": 37,
+            "height": 27,
+            "href": ""
+          },
+          {
+            "tag": "a",
+            "text": "Home",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "a",
+            "text": "How It Works",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "Services",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/services"
+          },
+          {
+            "tag": "a",
+            "text": "About",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/about"
+          },
+          {
+            "tag": "a",
+            "text": "Blog",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/blog"
+          },
+          {
+            "tag": "a",
+            "text": "Contact",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "Book a Call",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "Book a Discovery Call",
+            "width": 454,
+            "height": 21,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "Learn Our Methodology",
+            "width": 454,
+            "height": 25,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "Book a Discovery Call",
+            "width": 454,
+            "height": 21,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "Learn Our Methodology",
+            "width": 454,
+            "height": 25,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "Book a Discovery Call",
+            "width": 454,
+            "height": 21,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "Learn Our Methodology",
+            "width": 454,
+            "height": 25,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "Schedule Your Call Now",
+            "width": 140,
+            "height": 21,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "Home",
+            "width": 35,
+            "height": 17,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "a",
+            "text": "How It Works",
+            "width": 77,
+            "height": 17,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "About",
+            "width": 35,
+            "height": 17,
+            "href": "http://localhost:4321/about"
+          },
+          {
+            "tag": "a",
+            "text": "Contact",
+            "width": 44,
+            "height": 17,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Marketing",
+            "width": 111,
+            "height": 17,
+            "href": "http://localhost:4321/services#linkedin-marketing"
+          },
+          {
+            "tag": "a",
+            "text": "Thought Leadership",
+            "width": 114,
+            "height": 17,
+            "href": "http://localhost:4321/services#thought-leadership"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Training",
+            "width": 97,
+            "height": 17,
+            "href": "http://localhost:4321/services#training"
+          },
+          {
+            "tag": "a",
+            "text": "Blog",
+            "width": 26,
+            "height": 17,
+            "href": "http://localhost:4321/blog"
+          },
+          {
+            "tag": "input",
+            "text": "",
+            "width": 454,
+            "height": 37,
+            "href": ""
+          },
+          {
+            "tag": "button",
+            "text": "Subscribe",
+            "width": 454,
+            "height": 19,
+            "href": ""
+          },
+          {
+            "tag": "a",
+            "text": "",
+            "width": 24,
+            "height": 29,
+            "href": "https://linkedin.com/company/beep2b"
+          },
+          {
+            "tag": "a",
+            "text": "",
+            "width": 24,
+            "height": 29,
+            "href": "mailto:hello@beep2b.com"
+          }
+        ],
+        "overlaps": [],
+        "serviceHeader": {
+          "width": 454,
+          "height": 152.71875,
+          "top": 420.40625,
+          "left": 13,
+          "right": 467,
+          "bottom": 573.125,
+          "fontSize": "13px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "serviceHeaderCols": "454px",
+        "serviceCta": {
+          "width": 454,
+          "height": 78.75,
+          "top": 1355.125,
+          "left": 13,
+          "right": 467,
+          "bottom": 1433.875,
+          "fontSize": "13px",
+          "display": "flex",
+          "overflow": "visible",
+          "padding": "19.5px 0px 0px"
+        },
+        "serviceCtaDirection": "column",
+        "footerGrid": {
+          "width": 454,
+          "height": 751.4375,
+          "top": 4064.4375,
+          "left": 13,
+          "right": 467,
+          "bottom": 4815.875,
+          "fontSize": "13px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "footerGridCols": "454px"
+      },
+      "contact": {
+        "page": "contact",
+        "viewport": "480x844",
+        "overflow": {
+          "overflow": true,
+          "docWidth": 800,
+          "viewWidth": 480,
+          "overflowPx": 320
+        },
+        "smallTapTargets": [
+          {
+            "tag": "a",
+            "text": "Beep2B",
+            "width": 73,
+            "height": 32,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "button",
+            "text": "",
+            "width": 37,
+            "height": 27,
+            "href": ""
+          },
+          {
+            "tag": "a",
+            "text": "Home",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "a",
+            "text": "How It Works",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "Services",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/services"
+          },
+          {
+            "tag": "a",
+            "text": "About",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/about"
+          },
+          {
+            "tag": "a",
+            "text": "Blog",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/blog"
+          },
+          {
+            "tag": "a",
+            "text": "Contact",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "Book a Call",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "input",
+            "text": "",
+            "width": 426,
+            "height": 30,
+            "href": ""
+          },
+          {
+            "tag": "input",
+            "text": "",
+            "width": 426,
+            "height": 30,
+            "href": ""
+          },
+          {
+            "tag": "input",
+            "text": "",
+            "width": 426,
+            "height": 30,
+            "href": ""
+          },
+          {
+            "tag": "button",
+            "text": "Book Discovery Call",
+            "width": 426,
+            "height": 37,
+            "href": ""
+          },
+          {
+            "tag": "a",
+            "text": "Home",
+            "width": 35,
+            "height": 17,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "a",
+            "text": "How It Works",
+            "width": 77,
+            "height": 17,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "About",
+            "width": 35,
+            "height": 17,
+            "href": "http://localhost:4321/about"
+          },
+          {
+            "tag": "a",
+            "text": "Contact",
+            "width": 44,
+            "height": 17,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Marketing",
+            "width": 111,
+            "height": 17,
+            "href": "http://localhost:4321/services#linkedin-marketing"
+          },
+          {
+            "tag": "a",
+            "text": "Thought Leadership",
+            "width": 114,
+            "height": 17,
+            "href": "http://localhost:4321/services#thought-leadership"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Training",
+            "width": 97,
+            "height": 17,
+            "href": "http://localhost:4321/services#training"
+          },
+          {
+            "tag": "a",
+            "text": "Blog",
+            "width": 26,
+            "height": 17,
+            "href": "http://localhost:4321/blog"
+          },
+          {
+            "tag": "input",
+            "text": "",
+            "width": 454,
+            "height": 37,
+            "href": ""
+          },
+          {
+            "tag": "button",
+            "text": "Subscribe",
+            "width": 454,
+            "height": 19,
+            "href": ""
+          },
+          {
+            "tag": "a",
+            "text": "",
+            "width": 24,
+            "height": 29,
+            "href": "https://linkedin.com/company/beep2b"
+          },
+          {
+            "tag": "a",
+            "text": "",
+            "width": 24,
+            "height": 29,
+            "href": "mailto:hello@beep2b.com"
+          }
+        ],
+        "overlaps": [
+          {
+            "el1": "div.card: \"Book Your Discovery Call \nFill\"",
+            "el2": "h2.form-heading: \"Book Your Discovery Call\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"Book Your Discovery Call \nFill\"",
+            "el2": "p.form-intro: \"Fill out the form below and we\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"Book Your Discovery Call \nFill\"",
+            "el2": "input.form-input: \"\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"Book Your Discovery Call \nFill\"",
+            "el2": "input.form-input: \"\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"Book Your Discovery Call \nFill\"",
+            "el2": "input.form-input: \"\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"Book Your Discovery Call \nFill\"",
+            "el2": "textarea.form-input: \"\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"Book Your Discovery Call \nFill\"",
+            "el2": "button.submit-button: \"Book Discovery Call\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"How long is the call? \n30 minu\"",
+            "el2": "h3.faq-question: \"How long is the call?\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"How long is the call? \n30 minu\"",
+            "el2": "p.faq-answer: \"30 minutes. We respect your ti\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"Will you try to sell me someth\"",
+            "el2": "h3.faq-question: \"Will you try to sell me someth\"",
+            "overlapRatio": "100%"
+          }
+        ],
+        "contactContainer": {
+          "width": 454,
+          "height": 1189.5625,
+          "top": 514.28125,
+          "left": 13,
+          "right": 467,
+          "bottom": 1703.84375,
+          "fontSize": "13px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "contactContainerCols": "454px",
+        "faqGrid": {
+          "width": 454,
+          "height": 432.125,
+          "top": 1910.75,
+          "left": 13,
+          "right": 467,
+          "bottom": 2342.875,
+          "fontSize": "13px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "faqGridCols": "454px",
+        "footerGrid": {
+          "width": 454,
+          "height": 751.4375,
+          "top": 2499.875,
+          "left": 13,
+          "right": 467,
+          "bottom": 3251.3125,
+          "fontSize": "13px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "footerGridCols": "454px"
+      },
+      "blog": {
+        "page": "blog",
+        "viewport": "480x844",
+        "overflow": {
+          "overflow": true,
+          "docWidth": 800,
+          "viewWidth": 480,
+          "overflowPx": 320
+        },
+        "smallTapTargets": [
+          {
+            "tag": "a",
+            "text": "Beep2B",
+            "width": 73,
+            "height": 32,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "button",
+            "text": "",
+            "width": 37,
+            "height": 27,
+            "href": ""
+          },
+          {
+            "tag": "a",
+            "text": "Home",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "a",
+            "text": "How It Works",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "Services",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/services"
+          },
+          {
+            "tag": "a",
+            "text": "About",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/about"
+          },
+          {
+            "tag": "a",
+            "text": "Blog",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/blog"
+          },
+          {
+            "tag": "a",
+            "text": "Contact",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "Book a Call",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "All Posts",
+            "width": 413,
+            "height": 33,
+            "href": "http://localhost:4321/blog"
+          },
+          {
+            "tag": "a",
+            "text": "Thought Leadership",
+            "width": 413,
+            "height": 33,
+            "href": "http://localhost:4321/blog?category=thought-leadership"
+          },
+          {
+            "tag": "a",
+            "text": "Social Selling",
+            "width": 413,
+            "height": 33,
+            "href": "http://localhost:4321/blog?category=social-selling"
+          },
+          {
+            "tag": "a",
+            "text": "Relationship Selling",
+            "width": 413,
+            "height": 33,
+            "href": "http://localhost:4321/blog?category=relationship-selling"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Training",
+            "width": 413,
+            "height": 33,
+            "href": "http://localhost:4321/blog?category=linkedin-training"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Tips",
+            "width": 413,
+            "height": 33,
+            "href": "http://localhost:4321/blog?category=linkedin-tips"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Profile",
+            "width": 413,
+            "height": 33,
+            "href": "http://localhost:4321/blog?category=linkedin-profile"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Marketing",
+            "width": 413,
+            "height": 33,
+            "href": "http://localhost:4321/blog?category=linkedin-marketing"
+          },
+          {
+            "tag": "a",
+            "text": "B2B",
+            "width": 413,
+            "height": 33,
+            "href": "http://localhost:4321/blog?category=b2b"
+          },
+          {
+            "tag": "a",
+            "text": "Authority Marketing",
+            "width": 413,
+            "height": 33,
+            "href": "http://localhost:4321/blog?category=authority-marketing"
+          },
+          {
+            "tag": "a",
+            "text": "Home",
+            "width": 35,
+            "height": 17,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "a",
+            "text": "How It Works",
+            "width": 77,
+            "height": 17,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "About",
+            "width": 35,
+            "height": 17,
+            "href": "http://localhost:4321/about"
+          },
+          {
+            "tag": "a",
+            "text": "Contact",
+            "width": 44,
+            "height": 17,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Marketing",
+            "width": 111,
+            "height": 17,
+            "href": "http://localhost:4321/services#linkedin-marketing"
+          },
+          {
+            "tag": "a",
+            "text": "Thought Leadership",
+            "width": 114,
+            "height": 17,
+            "href": "http://localhost:4321/services#thought-leadership"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Training",
+            "width": 97,
+            "height": 17,
+            "href": "http://localhost:4321/services#training"
+          },
+          {
+            "tag": "a",
+            "text": "Blog",
+            "width": 26,
+            "height": 17,
+            "href": "http://localhost:4321/blog"
+          },
+          {
+            "tag": "input",
+            "text": "",
+            "width": 454,
+            "height": 37,
+            "href": ""
+          },
+          {
+            "tag": "button",
+            "text": "Subscribe",
+            "width": 454,
+            "height": 19,
+            "href": ""
+          },
+          {
+            "tag": "a",
+            "text": "",
+            "width": 24,
+            "height": 29,
+            "href": "https://linkedin.com/company/beep2b"
+          },
+          {
+            "tag": "a",
+            "text": "",
+            "width": 24,
+            "height": 29,
+            "href": "mailto:hello@beep2b.com"
+          }
+        ],
+        "overlaps": [
+          {
+            "el1": "a.card-link: \"LinkedIn Profile   LinkedIn Ti\"",
+            "el2": "img: \"\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "a.card-link: \"LinkedIn Profile   LinkedIn Ti\"",
+            "el2": "h3.card-title: \"The Anatomy of a High-Converti\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "a.card-link: \"LinkedIn Profile   LinkedIn Ti\"",
+            "el2": "p.card-excerpt: \"Your LinkedIn profile is your \"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "a.card-link: \"Thought Leadership   Authority\"",
+            "el2": "img: \"\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "a.card-link: \"Thought Leadership   Authority\"",
+            "el2": "h3.card-title: \"How to Build Authority on Link\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "a.card-link: \"Thought Leadership   Authority\"",
+            "el2": "p.card-excerpt: \"Thought leadership is not abou\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "a.card-link: \"LinkedIn Marketing   B2B    Wh\"",
+            "el2": "img: \"\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "a.card-link: \"LinkedIn Marketing   B2B    Wh\"",
+            "el2": "h3.card-title: \"Why Most LinkedIn Outreach Fai\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "a.card-link: \"LinkedIn Marketing   B2B    Wh\"",
+            "el2": "p.card-excerpt: \"The average LinkedIn connectio\"",
+            "overlapRatio": "100%"
+          }
+        ],
+        "postsGrid": {
+          "width": 454,
+          "height": 1416.4375,
+          "top": 1015.90625,
+          "left": 13,
+          "right": 467,
+          "bottom": 2432.34375,
+          "fontSize": "13px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "postsGridCols": "454px",
+        "filterButtons": {
+          "width": 413,
+          "height": 393.34375,
+          "top": 498.0625,
+          "left": 33.5,
+          "right": 446.5,
+          "bottom": 891.40625,
+          "fontSize": "13px",
+          "display": "flex",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "filterDirection": "column",
+        "footerGrid": {
+          "width": 454,
+          "height": 751.4375,
+          "top": 2991.21875,
+          "left": 13,
+          "right": 467,
+          "bottom": 3742.65625,
+          "fontSize": "13px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "footerGridCols": "454px"
+      },
+      "about": {
+        "page": "about",
+        "viewport": "480x844",
+        "overflow": {
+          "overflow": true,
+          "docWidth": 800,
+          "viewWidth": 480,
+          "overflowPx": 320
+        },
+        "smallTapTargets": [
+          {
+            "tag": "a",
+            "text": "Beep2B",
+            "width": 73,
+            "height": 32,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "button",
+            "text": "",
+            "width": 37,
+            "height": 27,
+            "href": ""
+          },
+          {
+            "tag": "a",
+            "text": "Home",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "a",
+            "text": "How It Works",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "Services",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/services"
+          },
+          {
+            "tag": "a",
+            "text": "About",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/about"
+          },
+          {
+            "tag": "a",
+            "text": "Blog",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/blog"
+          },
+          {
+            "tag": "a",
+            "text": "Contact",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "Book a Call",
+            "width": 280,
+            "height": 43,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "Book a Discovery Call",
+            "width": 400,
+            "height": 41,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "Home",
+            "width": 35,
+            "height": 17,
+            "href": "http://localhost:4321/"
+          },
+          {
+            "tag": "a",
+            "text": "How It Works",
+            "width": 77,
+            "height": 17,
+            "href": "http://localhost:4321/how-it-works"
+          },
+          {
+            "tag": "a",
+            "text": "About",
+            "width": 35,
+            "height": 17,
+            "href": "http://localhost:4321/about"
+          },
+          {
+            "tag": "a",
+            "text": "Contact",
+            "width": 44,
+            "height": 17,
+            "href": "http://localhost:4321/contact"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Marketing",
+            "width": 111,
+            "height": 17,
+            "href": "http://localhost:4321/services#linkedin-marketing"
+          },
+          {
+            "tag": "a",
+            "text": "Thought Leadership",
+            "width": 114,
+            "height": 17,
+            "href": "http://localhost:4321/services#thought-leadership"
+          },
+          {
+            "tag": "a",
+            "text": "LinkedIn Training",
+            "width": 97,
+            "height": 17,
+            "href": "http://localhost:4321/services#training"
+          },
+          {
+            "tag": "a",
+            "text": "Blog",
+            "width": 26,
+            "height": 17,
+            "href": "http://localhost:4321/blog"
+          },
+          {
+            "tag": "input",
+            "text": "",
+            "width": 454,
+            "height": 37,
+            "href": ""
+          },
+          {
+            "tag": "button",
+            "text": "Subscribe",
+            "width": 454,
+            "height": 19,
+            "href": ""
+          },
+          {
+            "tag": "a",
+            "text": "",
+            "width": 24,
+            "height": 29,
+            "href": "https://linkedin.com/company/beep2b"
+          },
+          {
+            "tag": "a",
+            "text": "",
+            "width": 24,
+            "height": 29,
+            "href": "mailto:hello@beep2b.com"
+          }
+        ],
+        "overlaps": [
+          {
+            "el1": "div.card: \"🤝 Relationships Over Reach We\"",
+            "el2": "h3.value-title: \"Relationships Over Reach\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"🤝 Relationships Over Reach We\"",
+            "el2": "p.value-description: \"We prioritize building genuine\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"⚙️ Systems Over Hustle Lead ge\"",
+            "el2": "h3.value-title: \"Systems Over Hustle\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"⚙️ Systems Over Hustle Lead ge\"",
+            "el2": "p.value-description: \"Lead generation shouldn't be a\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"🔍 Transparency Always You see\"",
+            "el2": "h3.value-title: \"Transparency Always\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"🔍 Transparency Always You see\"",
+            "el2": "p.value-description: \"You see everything: every mess\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"🎯 Built by Marketers for Mark\"",
+            "el2": "h3.value-title: \"Built by Marketers for Markete\"",
+            "overlapRatio": "100%"
+          },
+          {
+            "el1": "div.card: \"🎯 Built by Marketers for Mark\"",
+            "el2": "p.value-description: \"We're not a tech company that \"",
+            "overlapRatio": "100%"
+          }
+        ],
+        "timeline": {
+          "width": 454,
+          "height": 727.28125,
+          "top": 2172.5625,
+          "left": 13,
+          "right": 467,
+          "bottom": 2899.84375,
+          "fontSize": "13px",
+          "display": "block",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "timelineItemCols": "40px 401px",
+        "valuesGrid": {
+          "width": 454,
+          "height": 882.25,
+          "top": 1077.3125,
+          "left": 13,
+          "right": 467,
+          "bottom": 1959.5625,
+          "fontSize": "13px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "valuesGridCols": "454px",
+        "statsContainer": {
+          "width": 454,
+          "height": 446.0625,
+          "top": 3112.4375,
+          "left": 13,
+          "right": 467,
+          "bottom": 3558.5,
+          "fontSize": "13px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "statsContainerCols": "454px",
+        "footerGrid": {
+          "width": 454,
+          "height": 751.4375,
+          "top": 4099.09375,
+          "left": 13,
+          "right": 467,
+          "bottom": 4850.53125,
+          "fontSize": "13px",
+          "display": "grid",
+          "overflow": "visible",
+          "padding": "0px"
+        },
+        "footerGridCols": "454px"
+      }
+    },
+    "nav": {
+      "hamburgerVisible": true,
+      "hamburgerSize": "37x27",
+      "navLinksHidden": true,
+      "menuOpened": true,
+      "menuWidth": 320,
+      "navLinkDetails": [
+        {
+          "text": "Home",
+          "width": 280,
+          "height": 43,
+          "fontSize": "14.625px"
+        },
+        {
+          "text": "How It Works",
+          "width": 280,
+          "height": 43,
+          "fontSize": "14.625px"
+        },
+        {
+          "text": "Services",
+          "width": 280,
+          "height": 43,
+          "fontSize": "14.625px"
+        },
+        {
+          "text": "About",
+          "width": 280,
+          "height": 43,
+          "fontSize": "14.625px"
+        },
+        {
+          "text": "Blog",
+          "width": 280,
+          "height": 43,
+          "fontSize": "14.625px"
+        },
+        {
+          "text": "Contact",
+          "width": 280,
+          "height": 43,
+          "fontSize": "14.625px"
+        },
+        {
+          "text": "Book a Call",
+          "width": 280,
+          "height": 43,
+          "fontSize": "14.625px"
+        }
+      ],
+      "menuClosedViaEscape": true
+    }
+  }
+}

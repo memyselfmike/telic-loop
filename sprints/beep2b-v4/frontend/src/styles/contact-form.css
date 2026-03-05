@@ -16,7 +16,7 @@
   font-weight: var(--font-semibold);
   color: var(--color-text-secondary);
   text-transform: uppercase;
-  letter-spacing: var(--letter-wide);
+  letter-spacing: var(--tracking-wide);
 }
 
 .form-label .required {
@@ -61,7 +61,7 @@
 .form-textarea {
   resize: vertical;
   min-height: 120px;
-  line-height: var(--line-relaxed);
+  line-height: var(--leading-relaxed);
 }
 
 .error-message {

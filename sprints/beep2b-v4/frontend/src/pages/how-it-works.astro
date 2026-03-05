@@ -87,7 +87,7 @@ const differentiators = [
         <div class={`beep-step-detailed ${index % 2 === 0 ? 'layout-left' : 'layout-right'}`} data-animate="fade-in">
           <div class="step-visual">
             <div class="step-number">{step.number}</div>
-            <Badge variant={step.color} size="large">{step.letter}</Badge>
+            <Badge variant={step.color} size="lg">{step.letter}</Badge>
           </div>
           <div class="step-content">
             <div class="step-highlight">
@@ -135,8 +135,8 @@ const differentiators = [
         Book a discovery call to learn how we can customize the BEEP methodology for your industry, audience, and sales cycle.
       </p>
       <div class="cta-buttons">
-        <Button href="/contact" variant="primary" size="large">Book a Discovery Call</Button>
-        <Button href="/services" variant="secondary" size="large">View Our Services</Button>
+        <Button href="/contact" variant="primary" size="lg">Book a Discovery Call</Button>
+        <Button href="/services" variant="secondary" size="lg">View Our Services</Button>
       </div>
     </div>
   </Section>
@@ -152,18 +152,18 @@ const differentiators = [
   }
 
   .page-title {
-    font-size: var(--font-size-5xl);
-    font-weight: var(--font-weight-black);
+    font-size: var(--text-5xl);
+    font-weight: var(--font-black);
     color: var(--color-text-primary);
     margin: var(--space-4) 0;
-    line-height: var(--line-height-tight);
-    letter-spacing: var(--letter-spacing-tight);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
   }
 
   .page-intro {
-    font-size: var(--font-size-lg);
+    font-size: var(--text-lg);
     color: var(--color-text-secondary);
-    line-height: var(--line-height-relaxed);
+    line-height: var(--leading-relaxed);
     margin: 0;
   }
 
@@ -213,8 +213,8 @@ const differentiators = [
   }
 
   .step-number {
-    font-size: var(--font-size-6xl);
-    font-weight: var(--font-weight-black);
+    font-size: var(--text-6xl);
+    font-weight: var(--font-black);
     color: rgba(79, 125, 247, 0.2);
     line-height: 1;
     text-align: center;
@@ -233,46 +233,46 @@ const differentiators = [
   }
 
   .step-title {
-    font-size: var(--font-size-4xl);
-    font-weight: var(--font-weight-black);
+    font-size: var(--text-4xl);
+    font-weight: var(--font-black);
     color: var(--color-text-primary);
     margin: 0;
-    line-height: var(--line-height-tight);
+    line-height: var(--leading-tight);
   }
 
   .step-description {
-    font-size: var(--font-size-xl);
+    font-size: var(--text-xl);
     color: var(--color-text-secondary);
-    line-height: var(--line-height-relaxed);
+    line-height: var(--leading-relaxed);
     margin: 0;
-    font-weight: var(--font-weight-medium);
+    font-weight: var(--font-medium);
   }
 
   .step-details {
-    font-size: var(--font-size-base);
+    font-size: var(--text-base);
     color: var(--color-text-muted);
-    line-height: var(--line-height-relaxed);
+    line-height: var(--leading-relaxed);
     margin: 0;
   }
 
   /* === SECTION STYLING === */
   .section-heading {
-    font-size: var(--font-size-4xl);
-    font-weight: var(--font-weight-black);
+    font-size: var(--text-4xl);
+    font-weight: var(--font-black);
     color: var(--color-text-primary);
     text-align: center;
     margin: 0 0 var(--space-6) 0;
-    line-height: var(--line-height-tight);
-    letter-spacing: var(--letter-spacing-tight);
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
   }
 
   .section-intro {
-    font-size: var(--font-size-lg);
+    font-size: var(--text-lg);
     color: var(--color-text-secondary);
     text-align: center;
     max-width: 700px;
     margin: 0 auto var(--space-12) auto;
-    line-height: var(--line-height-relaxed);
+    line-height: var(--leading-relaxed);
   }
 
   /* === DIFFERENTIATORS GRID === */
@@ -303,22 +303,22 @@ const differentiators = [
   }
 
   .diff-icon {
-    font-size: var(--font-size-5xl);
+    font-size: var(--text-5xl);
     line-height: 1;
   }
 
   .diff-title {
-    font-size: var(--font-size-xl);
-    font-weight: var(--font-weight-bold);
+    font-size: var(--text-xl);
+    font-weight: var(--font-bold);
     color: var(--color-text-primary);
     margin: 0;
-    line-height: var(--line-height-tight);
+    line-height: var(--leading-tight);
   }
 
   .diff-description {
-    font-size: var(--font-size-base);
+    font-size: var(--text-base);
     color: var(--color-text-secondary);
-    line-height: var(--line-height-relaxed);
+    line-height: var(--leading-relaxed);
     margin: 0;
   }
 
@@ -332,19 +332,19 @@ const differentiators = [
   }
 
   .cta-heading {
-    font-size: var(--font-size-3xl);
-    font-weight: var(--font-weight-black);
+    font-size: var(--text-3xl);
+    font-weight: var(--font-black);
     color: var(--color-text-primary);
     margin: 0 0 var(--space-4) 0;
-    line-height: var(--line-height-tight);
+    line-height: var(--leading-tight);
   }
 
   .cta-text {
-    font-size: var(--font-size-lg);
+    font-size: var(--text-lg);
     color: var(--color-text-secondary);
     max-width: 600px;
     margin: 0 auto var(--space-8) auto;
-    line-height: var(--line-height-relaxed);
+    line-height: var(--leading-relaxed);
   }
 
   .cta-buttons {
@@ -377,25 +377,25 @@ const differentiators = [
     }
 
     .step-number {
-      font-size: var(--font-size-5xl);
+      font-size: var(--text-5xl);
     }
   }
 
   @media (max-width: 768px) {
     .page-title {
-      font-size: var(--font-size-4xl);
+      font-size: var(--text-4xl);
     }
 
     .section-heading {
-      font-size: var(--font-size-3xl);
+      font-size: var(--text-3xl);
     }
 
     .step-title {
-      font-size: var(--font-size-3xl);
+      font-size: var(--text-3xl);
     }
 
     .cta-heading {
-      font-size: var(--font-size-2xl);
+      font-size: var(--text-2xl);
     }
 
     .beep-steps-detailed {
@@ -414,7 +414,7 @@ const differentiators = [
 
   @media (max-width: 480px) {
     .page-title {
-      font-size: var(--font-size-3xl);
+      font-size: var(--text-3xl);
     }
 
     .cta-buttons {
@@ -423,7 +423,7 @@ const differentiators = [
     }
 
     .step-description {
-      font-size: var(--font-size-lg);
+      font-size: var(--text-lg);
     }
   }
 </style>

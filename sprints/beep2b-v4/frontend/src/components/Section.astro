@@ -2,13 +2,22 @@
 interface Props {
   label?: string;
   parallax?: boolean;
+  background?: 'primary' | 'elevated' | 'card';
   class?: string;
 }
 
-const { label, parallax = false, class: className = '' } = Astro.props;
+const { label, parallax = false, background = 'primary', class: className = '' } = Astro.props;
+
+// Map background prop to CSS variable
+const backgroundMap = {
+  primary: 'var(--color-bg-primary)',
+  elevated: 'var(--color-bg-elevated)',
+  card: 'var(--color-bg-card)'
+};
+const backgroundColor = backgroundMap[background];
 ---
 
-<section class={`section ${className}`} data-parallax={parallax ? "0.3" : undefined}>
+<section class={`section ${className}`} style={`background: ${backgroundColor};`} data-parallax={parallax ? "0.3" : undefined}>
   <div class="section-inner">
     {label && <span class="section-label">{label}</span>}
     <div class="container">
@@ -20,7 +29,6 @@ const { label, parallax = false, class: className = '' } = Astro.props;
 <style>
   .section {
     width: 100%;
-    background: var(--color-bg-primary);
     position: relative;
     overflow: hidden;
   }

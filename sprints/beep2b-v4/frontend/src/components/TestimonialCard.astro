@@ -40,15 +40,15 @@ const stars = Array.from({ length: 5 }, (_, i) => i < rating ? '★' : '☆');
   }
 
   .stars {
-    font-size: var(--font-size-2xl);
+    font-size: var(--text-2xl);
     color: var(--color-accent-secondary);
     letter-spacing: 0.1em;
   }
 
   .quote {
-    font-size: var(--font-size-lg);
+    font-size: var(--text-lg);
     color: var(--color-text-primary);
-    line-height: var(--line-height-relaxed);
+    line-height: var(--leading-relaxed);
     font-style: italic;
     margin: 0;
     flex-grow: 1;
@@ -63,18 +63,18 @@ const stars = Array.from({ length: 5 }, (_, i) => i < rating ? '★' : '☆');
   }
 
   .author-name {
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-semibold);
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
     color: var(--color-text-primary);
   }
 
   .author-role {
-    font-size: var(--font-size-sm);
+    font-size: var(--text-sm);
     color: var(--color-text-secondary);
   }
 
   .author-company {
-    font-size: var(--font-size-sm);
+    font-size: var(--text-sm);
     color: var(--color-text-muted);
   }
 </style>

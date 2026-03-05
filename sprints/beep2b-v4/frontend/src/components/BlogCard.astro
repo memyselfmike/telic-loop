@@ -23,7 +23,11 @@ const categories = Array.isArray(post.categories)
 <article class={`blog-card ${className}`}>
   <a href={`/blog/${post.slug}`} class="card-link">
     <div class="card-image">
-      <img src={featuredImage} alt={post.title} loading="lazy" />
+      {featuredImage.startsWith('linear-gradient') || featuredImage.startsWith('radial-gradient') ? (
+        <div class="card-image-gradient" style={`background-image: ${featuredImage}`}></div>
+      ) : (
+        <img src={featuredImage} alt={post.title} loading="lazy" />
+      )}
       <div class="image-overlay"></div>
     </div>
 
@@ -88,14 +92,21 @@ const categories = Array.isArray(post.categories)
     overflow: hidden;
   }
 
-  .card-image img {
+  .card-image img,
+  .card-image-gradient {
     width: 100%;
     height: 100%;
     object-fit: cover;
     transition: transform var(--transition-slow);
   }
 
-  .blog-card:hover .card-image img {
+  .card-image-gradient {
+    background-size: cover;
+    background-position: center;
+  }
+
+  .blog-card:hover .card-image img,
+  .blog-card:hover .card-image-gradient {
     transform: scale(1.05);
   }
 
@@ -127,7 +138,7 @@ const categories = Array.isArray(post.categories)
   .card-title {
     font-size: var(--text-xl);
     font-weight: var(--font-bold);
-    line-height: var(--line-tight);
+    line-height: var(--leading-tight);
     color: var(--color-text-primary);
     margin: 0;
     transition: color var(--transition-base);
@@ -156,7 +167,7 @@ const categories = Array.isArray(post.categories)
   .card-excerpt {
     flex: 1;
     font-size: var(--text-base);
-    line-height: var(--line-relaxed);
+    line-height: var(--leading-relaxed);
     color: var(--color-text-secondary);
     margin: 0;
     display: -webkit-box;
@@ -178,7 +189,7 @@ const categories = Array.isArray(post.categories)
     font-weight: var(--font-semibold);
     color: var(--color-accent-primary);
     text-transform: uppercase;
-    letter-spacing: var(--letter-wide);
+    letter-spacing: var(--tracking-wide);
   }
 
   .arrow {

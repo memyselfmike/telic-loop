@@ -192,6 +192,87 @@ textarea::placeholder {
   color: var(--color-text-disabled);
 }
 
+/* === BUTTONS === */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-weight: var(--font-semibold);
+  text-decoration: none;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+/* Button sizes */
+.btn-sm {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.btn-md {
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--text-base);
+}
+
+.btn-lg {
+  padding: var(--space-4) var(--space-8);
+  font-size: var(--text-lg);
+}
+
+/* Primary button - gradient with glow */
+.btn-primary {
+  background: var(--gradient-primary);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-glow-sm);
+}
+
+.btn-primary:hover {
+  box-shadow: var(--shadow-glow-md);
+  transform: translateY(-2px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* Secondary button - outlined with fill on hover */
+.btn-secondary {
+  background: transparent;
+  color: var(--color-accent-primary);
+  border: 2px solid var(--color-accent-primary);
+}
+
+.btn-secondary:hover {
+  background: var(--color-accent-primary);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-glow-sm);
+}
+
+/* Ghost button - minimal style */
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-ghost:hover {
+  background: rgba(79, 125, 247, 0.1);
+  color: var(--color-accent-primary);
+  border-color: rgba(79, 125, 247, 0.3);
+}
+
+/* Focus state for accessibility */
+.btn:focus-visible {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
+}
+
 /* === UTILITIES === */
 
 .text-center {

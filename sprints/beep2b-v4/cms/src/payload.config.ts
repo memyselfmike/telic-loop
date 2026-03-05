@@ -30,6 +30,12 @@ export default buildConfig({
   db: mongooseAdapter({
     url: process.env.MONGODB_URI || 'mongodb://localhost:27017/beep2b',
   }),
+  cors: process.env.NODE_ENV === 'production'
+    ? ['https://beep2b.com', 'https://www.beep2b.com']
+    : ['http://localhost:4321', 'http://localhost:3000'],
+  csrf: process.env.NODE_ENV === 'production'
+    ? ['https://beep2b.com', 'https://www.beep2b.com']
+    : ['http://localhost:4321', 'http://localhost:3000'],
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
