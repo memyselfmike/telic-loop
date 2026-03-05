@@ -1,0 +1,80 @@
+---
+import Card from './Card.astro';
+
+interface Props {
+  quote: string;
+  name: string;
+  role: string;
+  company: string;
+  rating: number;
+}
+
+const { quote, name, role, company, rating } = Astro.props;
+
+// Generate star icons based on rating
+const stars = Array.from({ length: 5 }, (_, i) => i < rating ? '★' : '☆');
+---
+
+<Card animate="fade-in">
+  <div class="testimonial-card">
+    <div class="stars" aria-label={`${rating} out of 5 stars`}>
+      {stars.join('')}
+    </div>
+    <blockquote class="quote">"{quote}"</blockquote>
+    <div class="author">
+      <div class="author-name">{name}</div>
+      <div class="author-role">{role}</div>
+      <div class="author-company">{company}</div>
+    </div>
+  </div>
+</Card>
+
+<style>
+  .testimonial-card {
+    padding: var(--space-8);
+    text-align: center;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  .stars {
+    font-size: var(--font-size-2xl);
+    color: var(--color-accent-secondary);
+    letter-spacing: 0.1em;
+  }
+
+  .quote {
+    font-size: var(--font-size-lg);
+    color: var(--color-text-primary);
+    line-height: var(--line-height-relaxed);
+    font-style: italic;
+    margin: 0;
+    flex-grow: 1;
+  }
+
+  .author {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: var(--space-4);
+  }
+
+  .author-name {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+  }
+
+  .author-role {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+  }
+
+  .author-company {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+  }
+</style>

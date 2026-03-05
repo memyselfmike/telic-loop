@@ -1,21 +1,488 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import Section from '../components/Section.astro';
+import Button from '../components/Button.astro';
+import Badge from '../components/Badge.astro';
+import FeatureCard from '../components/FeatureCard.astro';
+import TestimonialCard from '../components/TestimonialCard.astro';
+import SectionDivider from '../components/SectionDivider.astro';
+import { getImageUrl } from '../lib/pixabay';
+
+// Fetch testimonials from CMS
+let testimonials = [];
+try {
+  const CMS_URL = import.meta.env.CMS_URL || 'http://cms:3000';
+  const response = await fetch(`${CMS_URL}/api/testimonials`);
+  if (response.ok) {
+    const data = await response.json();
+    testimonials = data.docs.slice(0, 3); // Get first 3
+  }
+} catch (error) {
+  console.error('Failed to fetch testimonials:', error);
+}
+
+// Feature data from PRD
+const features = [
+  {
+    number: '01',
+    title: 'Precision Targeting',
+    description: 'Connect with decision-makers in your exact niche'
+  },
+  {
+    number: '02',
+    title: 'Relationship-First',
+    description: 'Genuine conversations, not cold spam'
+  },
+  {
+    number: '03',
+    title: 'Predictable Pipeline',
+    description: 'Know exactly how many leads to expect each month'
+  },
+  {
+    number: '04',
+    title: 'Thought Leadership',
+    description: 'Position yourself as the go-to expert'
+  },
+  {
+    number: '05',
+    title: 'Transparent Reporting',
+    description: 'See every metric, every conversation, every result'
+  },
+  {
+    number: '06',
+    title: 'Training & Playbooks',
+    description: 'Learn the system so your team can run it independently'
+  }
+];
+
+// BEEP methodology steps
+const beepSteps = [
+  {
+    letter: 'B',
+    title: 'Build',
+    description: 'Grow your LinkedIn network with precision-targeted connections to your ideal customer profile',
+    color: 'primary'
+  },
+  {
+    letter: 'E',
+    title: 'Engage',
+    description: 'Foster meaningful one-to-one conversations based on prospects\' goals, interests, and pain points',
+    color: 'accent'
+  },
+  {
+    letter: 'E',
+    title: 'Educate',
+    description: 'Deliver high-value content that establishes you as a trusted authority in your niche',
+    color: 'secondary'
+  },
+  {
+    letter: 'P',
+    title: 'Promote',
+    description: 'Share offerings to a warmed, trusting audience that already sees your value',
+    color: 'warning'
+  }
+];
+
+// Get hero background image
+const heroBackground = getImageUrl('business office dark', 'var(--gradient-dark)');
+const isImageBackground = heroBackground.startsWith('/images/');
 ---
 
-<BaseLayout>
-  <main>
-    <section style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem;">
-      <div style="text-align: center; max-width: 800px;">
-        <h1 style="font-size: 3rem; font-weight: 700; margin-bottom: 1rem;">
-          Beep2B
-        </h1>
-        <p style="font-size: 1.5rem; color: #b0b0c0; margin-bottom: 2rem;">
-          Consistent B2B Leads From LinkedIn
-        </p>
-        <p style="color: #6b6b80;">
-          This is a placeholder page. The Beep2B marketing website is being built with Astro 5, React, and Payload CMS.
-        </p>
+<BaseLayout title="Consistent B2B Leads From LinkedIn | Beep2B">
+  <!-- Hero Section -->
+  <section class="hero" data-animate="fade-in">
+    {isImageBackground ? (
+      <div class="hero-bg" style={`background-image: url(${heroBackground})`}></div>
+    ) : (
+      <div class="hero-bg" style={`background: ${heroBackground}`}></div>
+    )}
+    <div class="hero-overlay"></div>
+    <div class="container hero-content">
+      <h1 class="hero-headline" data-animate="slide-up">
+        Consistent B2B Leads<br/>From LinkedIn
+      </h1>
+      <p class="hero-subtitle" data-animate="slide-up">
+        The repeatable BEEP system for predictable pipeline growth
+      </p>
+      <div class="hero-ctas" data-animate="slide-up">
+        <Button href="/contact" variant="primary" size="large">Book a Discovery Call</Button>
+        <Button href="/how-it-works" variant="secondary" size="large">See How It Works</Button>
       </div>
-    </section>
-  </main>
+    </div>
+  </section>
+
+  <!-- Trust Bar -->
+  <Section>
+    <div class="trust-bar" data-stagger>
+      <div class="trust-item" data-animate="fade-in">
+        <div class="trust-number" data-counter="500">0</div>
+        <div class="trust-label">Clients</div>
+      </div>
+      <div class="trust-item" data-animate="fade-in">
+        <div class="trust-number" data-counter="22">0</div>
+        <div class="trust-label">Countries</div>
+      </div>
+      <div class="trust-item" data-animate="fade-in">
+        <div class="trust-number" data-counter="2014">0</div>
+        <div class="trust-label">Est.</div>
+      </div>
+      <div class="trust-item" data-animate="fade-in">
+        <div class="trust-number" data-counter="4">0</div>
+        <div class="trust-label">Steps</div>
+      </div>
+    </div>
+  </Section>
+
+  <SectionDivider />
+
+  <!-- Features Grid -->
+  <Section label="What We Do">
+    <h2 class="section-heading" data-animate="slide-up">
+      Systematic B2B Lead Generation
+    </h2>
+    <div class="features-grid" data-stagger>
+      {features.map(feature => (
+        <FeatureCard {...feature} />
+      ))}
+    </div>
+  </Section>
+
+  <SectionDivider />
+
+  <!-- BEEP Preview -->
+  <Section label="Our Methodology" background="elevated">
+    <h2 class="section-heading" data-animate="slide-up">
+      The BEEP Framework
+    </h2>
+    <p class="section-intro" data-animate="slide-up">
+      A proven 4-step system that transforms LinkedIn from a networking tool into a predictable lead generation engine
+    </p>
+    <div class="beep-steps" data-stagger>
+      {beepSteps.map((step, index) => (
+        <div class="beep-step" data-animate="fade-in">
+          <Badge variant={step.color} size="large">{step.letter}</Badge>
+          <h3 class="beep-step-title">{step.title}</h3>
+          <p class="beep-step-description">{step.description}</p>
+        </div>
+      ))}
+    </div>
+    <div class="beep-cta" data-animate="fade-in">
+      <Button href="/how-it-works" variant="primary" size="large">Learn the Complete System</Button>
+    </div>
+  </Section>
+
+  <SectionDivider />
+
+  <!-- Testimonials -->
+  <Section label="Client Success">
+    <h2 class="section-heading" data-animate="slide-up">
+      Real Results from Real Clients
+    </h2>
+    <div class="testimonials-grid" data-stagger>
+      {testimonials.map(t => (
+        <TestimonialCard
+          quote={t.quote}
+          name={t.name}
+          role={t.role}
+          company={t.company}
+          rating={t.rating}
+        />
+      ))}
+    </div>
+  </Section>
+
+  <SectionDivider />
+
+  <!-- CTA Banner -->
+  <section class="cta-banner" data-animate="fade-in">
+    <div class="cta-banner-bg"></div>
+    <div class="container cta-content">
+      <h2 class="cta-heading">Ready to Grow Your B2B Pipeline?</h2>
+      <p class="cta-text">
+        Book a discovery call to learn how the BEEP system can deliver consistent, qualified leads for your business
+      </p>
+      <Button href="/contact" variant="secondary" size="large">Book Your Call Now</Button>
+    </div>
+  </section>
 </BaseLayout>
+
+<style>
+  /* === HERO === */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    z-index: 0;
+  }
+
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(10, 10, 15, 0.95) 0%,
+      rgba(18, 18, 26, 0.85) 50%,
+      rgba(10, 10, 15, 0.95) 100%
+    );
+    z-index: 1;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    padding: var(--space-16) var(--space-4);
+  }
+
+  .hero-headline {
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    font-weight: var(--font-weight-black);
+    line-height: var(--line-height-tight);
+    background: linear-gradient(135deg, #ffffff 0%, #b0b0c0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0 0 var(--space-6) 0;
+    letter-spacing: var(--letter-spacing-tight);
+  }
+
+  .hero-subtitle {
+    font-size: clamp(1.125rem, 3vw, 1.5rem);
+    color: var(--color-text-secondary);
+    line-height: var(--line-height-relaxed);
+    margin: 0 0 var(--space-8) 0;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .hero-ctas {
+    display: flex;
+    gap: var(--space-4);
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* === TRUST BAR === */
+  .trust-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-8);
+    padding: var(--space-12) 0;
+  }
+
+  .trust-item {
+    text-align: center;
+  }
+
+  .trust-number {
+    font-size: var(--font-size-5xl);
+    font-weight: var(--font-weight-black);
+    color: var(--color-accent-primary);
+    line-height: 1;
+    margin-bottom: var(--space-2);
+  }
+
+  .trust-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-wide);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  /* === SECTION HEADINGS === */
+  .section-heading {
+    font-size: var(--font-size-4xl);
+    font-weight: var(--font-weight-black);
+    color: var(--color-text-primary);
+    text-align: center;
+    margin: 0 0 var(--space-12) 0;
+    line-height: var(--line-height-tight);
+    letter-spacing: var(--letter-spacing-tight);
+  }
+
+  .section-intro {
+    font-size: var(--font-size-lg);
+    color: var(--color-text-secondary);
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto var(--space-12) auto;
+    line-height: var(--line-height-relaxed);
+  }
+
+  /* === FEATURES GRID === */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--space-6);
+  }
+
+  @media (min-width: 768px) {
+    .features-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .features-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  /* === BEEP STEPS === */
+  .beep-steps {
+    display: grid;
+    gap: var(--space-8);
+    margin-bottom: var(--space-12);
+  }
+
+  @media (min-width: 768px) {
+    .beep-steps {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .beep-steps {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  .beep-step {
+    text-align: center;
+    padding: var(--space-6);
+    background: var(--gradient-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: var(--transition-base);
+  }
+
+  .beep-step:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    border-color: rgba(79, 125, 247, 0.3);
+  }
+
+  .beep-step-title {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-primary);
+    margin: var(--space-4) 0;
+  }
+
+  .beep-step-description {
+    font-size: var(--font-size-base);
+    color: var(--color-text-secondary);
+    line-height: var(--line-height-relaxed);
+    margin: 0;
+  }
+
+  .beep-cta {
+    text-align: center;
+  }
+
+  /* === TESTIMONIALS GRID === */
+  .testimonials-grid {
+    display: grid;
+    gap: var(--space-6);
+  }
+
+  @media (min-width: 768px) {
+    .testimonials-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .testimonials-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  /* === CTA BANNER === */
+  .cta-banner {
+    position: relative;
+    padding: var(--space-20) var(--space-4);
+    overflow: hidden;
+  }
+
+  .cta-banner-bg {
+    position: absolute;
+    inset: 0;
+    background: var(--gradient-primary);
+    opacity: 0.15;
+    z-index: 0;
+  }
+
+  .cta-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+  }
+
+  .cta-heading {
+    font-size: var(--font-size-4xl);
+    font-weight: var(--font-weight-black);
+    color: var(--color-text-primary);
+    margin: 0 0 var(--space-4) 0;
+    line-height: var(--line-height-tight);
+  }
+
+  .cta-text {
+    font-size: var(--font-size-lg);
+    color: var(--color-text-secondary);
+    max-width: 600px;
+    margin: 0 auto var(--space-8) auto;
+    line-height: var(--line-height-relaxed);
+  }
+
+  /* === RESPONSIVE === */
+  @media (max-width: 768px) {
+    .hero-headline {
+      font-size: 2.5rem;
+    }
+
+    .hero-subtitle {
+      font-size: 1.125rem;
+    }
+
+    .section-heading {
+      font-size: var(--font-size-3xl);
+    }
+
+    .cta-heading {
+      font-size: var(--font-size-3xl);
+    }
+
+    .trust-bar {
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-6);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .hero-headline {
+      font-size: 2rem;
+    }
+
+    .hero-ctas {
+      flex-direction: column;
+    }
+
+    .features-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

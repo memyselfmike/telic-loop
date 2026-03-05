@@ -1,0 +1,47 @@
+---
+import Card from './Card.astro';
+import Badge from './Badge.astro';
+
+interface Props {
+  number: string;
+  title: string;
+  description: string;
+}
+
+const { number, title, description } = Astro.props;
+---
+
+<Card animate="fade-in">
+  <div class="feature-card">
+    <Badge variant="primary" size="large">{number}</Badge>
+    <h3 class="feature-title">{title}</h3>
+    <p class="feature-description">{description}</p>
+  </div>
+</Card>
+
+<style>
+  .feature-card {
+    padding: var(--space-6);
+    text-align: center;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+  }
+
+  .feature-title {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-primary);
+    margin: 0;
+    line-height: var(--line-height-tight);
+  }
+
+  .feature-description {
+    font-size: var(--font-size-base);
+    color: var(--color-text-secondary);
+    line-height: var(--line-height-relaxed);
+    margin: 0;
+  }
+</style>

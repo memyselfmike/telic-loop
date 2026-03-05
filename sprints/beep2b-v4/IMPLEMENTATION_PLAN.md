@@ -1,20 +1,20 @@
 # Implementation Plan (rendered from state)
 
-Generated: 2026-03-05T09:11:00.701941
+Generated: 2026-03-05T09:37:07.600476
 
 
 ## Infrastructure
 
-- [ ] **1.1**: Create docker-compose.yml with 3 services: frontend (node:20-alpine, port 4321, volume-mount frontend/), cms (node:22-alpine, port 3000, volume-mount cms/, command: sh -c "npm install && npx next dev"), db (mongo:7, port 27017). MongoDB named volume mongodata. CMS depends on db (mongosh healthcheck). Frontend depends on CMS. CMS env: DATABASE_URL=mongodb://db:27017/beep2b, PAYLOAD_SECRET, PAYLOAD_CONFIG_PATH=src/payload.config.ts. Frontend env: CMS_URL=http://cms:3000. Add .dockerignore for node_modules.
+- [x] **1.1**: Create docker-compose.yml with 3 services: frontend (node:20-alpine, port 4321, volume-mount frontend/), cms (node:22-alpine, port 3000, volume-mount cms/, command: sh -c "npm install && npx next dev"), db (mongo:7, port 27017). MongoDB named volume mongodata. CMS depends on db (mongosh healthcheck). Frontend depends on CMS. CMS env: DATABASE_URL=mongodb://db:27017/beep2b, PAYLOAD_SECRET, PAYLOAD_CONFIG_PATH=src/payload.config.ts. Frontend env: CMS_URL=http://cms:3000. Add .dockerignore for node_modules.
   - Value: User can docker compose up and have the entire stack running with zero manual config
   - Acceptance: docker compose config validates. docker compose up builds and starts all 3 services. MongoDB data persists via named volume across restarts.
 
-- [ ] **1.2**: Scaffold Payload CMS 3.x in cms/. package.json: payload, @payloadcms/db-mongodb, @payloadcms/richtext-lexical, @payloadcms/next, @payloadcms/ui, next@15, react, react-dom, sharp, cross-env, graphql. dev script: next dev. next.config.mjs with withPayload. tsconfig.json with @payload-config alias. src/payload.config.ts with buildConfig, mongooseAdapter, lexicalEditor. App dir: (payload)/layout.tsx, admin/[[...segments]]/page.tsx, api/[...slug]/route.ts. Users collection for auth.
+- [x] **1.2**: Scaffold Payload CMS 3.x in cms/. package.json: payload, @payloadcms/db-mongodb, @payloadcms/richtext-lexical, @payloadcms/next, @payloadcms/ui, next@15, react, react-dom, sharp, cross-env, graphql. dev script: next dev. next.config.mjs with withPayload. tsconfig.json with @payload-config alias. src/payload.config.ts with buildConfig, mongooseAdapter, lexicalEditor. App dir: (payload)/layout.tsx, admin/[[...segments]]/page.tsx, api/[...slug]/route.ts. Users collection for auth.
   - Value: CMS service boots with Next.js, serves admin panel at /admin and REST API at /api
   - Acceptance: cms container starts via docker compose. http://localhost:3000/admin loads Payload admin panel. /api endpoint responds to requests. No startup errors in logs.
   - Deps: 1.1
 
-- [ ] **1.4**: Scaffold Astro 5.x frontend in frontend/. package.json with astro@5, @astrojs/react, react, react-dom. Create astro.config.mjs enabling React integration, dev server on 0.0.0.0:4321. Create Dockerfile (node:20-alpine, workdir, copy, npm install). Create src/pages/index.astro with placeholder. Create src/layouts/BaseLayout.astro with HTML shell, dark theme meta, viewport meta, charset.
+- [x] **1.4**: Scaffold Astro 5.x frontend in frontend/. package.json with astro@5, @astrojs/react, react, react-dom. Create astro.config.mjs enabling React integration, dev server on 0.0.0.0:4321. Create Dockerfile (node:20-alpine, workdir, copy, npm install). Create src/pages/index.astro with placeholder. Create src/layouts/BaseLayout.astro with HTML shell, dark theme meta, viewport meta, charset.
   - Value: Frontend service boots and serves pages so all subsequent UI tasks have a working foundation
   - Acceptance: frontend container starts via docker compose. http://localhost:4321 returns HTML page. Astro dev server hot-reloads on file changes. Dark background visible.
   - Deps: 1.1
@@ -22,12 +22,12 @@ Generated: 2026-03-05T09:11:00.701941
 
 ## Cms
 
-- [ ] **2.1**: Create Payload CMS collections. Posts: title, slug (auto from title), author, date, categories (relationship), featuredImage (upload), excerpt (textarea), content (richText/lexical). Categories: title, slug. Testimonials: name, company, role, quote (textarea), rating (1-5 number). Media collection for uploads. Register all collections in payload.config.ts.
+- [x] **2.1**: Create Payload CMS collections. Posts: title, slug (auto from title), author, date, categories (relationship), featuredImage (upload), excerpt (textarea), content (richText/lexical). Categories: title, slug. Testimonials: name, company, role, quote (textarea), rating (1-5 number). Media collection for uploads. Register all collections in payload.config.ts.
   - Value: CMS has the complete data model to manage all site content: posts, categories, testimonials, media
   - Acceptance: Payload admin shows Posts, Categories, Testimonials, Media collections. Can create entries in each. REST API returns data at /api/posts, /api/categories, /api/testimonials.
   - Deps: 1.2
 
-- [ ] **2.2**: Create seed script at cms/src/seed.ts that runs via Payload onInit hook (skip if data exists). Seeds: 9 blog categories from PRD, 3 testimonials (Sarah M./James K./Anja W. with full copy from PRD including star ratings), 3 sample blog posts with realistic B2B/LinkedIn content, excerpts, and category assignments. Also create a default admin user (admin@beep2b.com / changeme) so CMS is immediately accessible.
+- [x] **2.2**: Create seed script at cms/src/seed.ts that runs via Payload onInit hook (skip if data exists). Seeds: 9 blog categories from PRD, 3 testimonials (Sarah M./James K./Anja W. with full copy from PRD including star ratings), 3 sample blog posts with realistic B2B/LinkedIn content, excerpts, and category assignments. Also create a default admin user (admin@beep2b.com / changeme) so CMS is immediately accessible.
   - Value: Site launches with realistic content so every page has data to display from day one, and CMS is immediately accessible
   - Acceptance: After fresh docker compose up, /api/categories returns 9 items, /api/posts returns 3 posts with categories, /api/testimonials returns 3 entries. Admin login works. Data persists across restarts.
   - Deps: 2.1
@@ -35,27 +35,27 @@ Generated: 2026-03-05T09:11:00.701941
 
 ## Design_System
 
-- [ ] **3.1**: Create CSS design token system at frontend/src/styles/tokens.css. Define custom properties: backgrounds (#0a0a0f, #12121a, #1a1a2e), text (#fff, #b0b0c0, #6b6b80), accents (#4f7df7, #f7a04f), gradients, spacing scale (4/8/16/24/32/48/64/96px), shadows with blue tint (sm/md/lg/xl), border-radius (4/8/12/24/999px), transitions (200/300ms ease), font sizes (0.75-5rem). Create global.css importing tokens with base resets, dark body, typography, link styles, container max-width 1200px.
+- [x] **3.1**: Create CSS design token system at frontend/src/styles/tokens.css. Define custom properties: backgrounds (#0a0a0f, #12121a, #1a1a2e), text (#fff, #b0b0c0, #6b6b80), accents (#4f7df7, #f7a04f), gradients, spacing scale (4/8/16/24/32/48/64/96px), shadows with blue tint (sm/md/lg/xl), border-radius (4/8/12/24/999px), transitions (200/300ms ease), font sizes (0.75-5rem). Create global.css importing tokens with base resets, dark body, typography, link styles, container max-width 1200px.
   - Value: Establishes visual consistency so every component shares the same premium dark palette, spacing, and typography
   - Acceptance: All CSS custom properties load. Body has #0a0a0f background. Typography renders with correct sizes and colors. No hardcoded color values needed outside tokens.
   - Deps: 1.4
 
-- [ ] **3.2**: Create scroll animation system: frontend/src/scripts/animations.js using Intersection Observer. Support data-animate attrs (fade-in, slide-up, slide-left, slide-right, scale-in). Staggered entrance via data-stagger with 100ms delay between children. Parallax scroll via data-parallax. Number counter animation via data-counter (0 to target). Create corresponding CSS @keyframes in frontend/src/styles/animations.css with initial hidden states and animated visible states.
+- [x] **3.2**: Create scroll animation system: frontend/src/scripts/animations.js using Intersection Observer. Support data-animate attrs (fade-in, slide-up, slide-left, slide-right, scale-in). Staggered entrance via data-stagger with 100ms delay between children. Parallax scroll via data-parallax. Number counter animation via data-counter (0 to target). Create corresponding CSS @keyframes in frontend/src/styles/animations.css with initial hidden states and animated visible states.
   - Value: Every section gets smooth scroll-triggered entrance animations matching the Nexus premium feel
   - Acceptance: Elements with data-animate appear with animation when scrolled into view. Staggered grids animate children sequentially. Parallax backgrounds shift on scroll. Number counters animate to target.
   - Deps: 3.1
 
-- [ ] **3.3**: Create shared UI components: Section.astro (full-width dark wrapper, max-width 1200px content, optional parallax bg, section label, generous padding), Card.astro (glass-morphism: rgba bg, subtle border, backdrop-filter blur, hover translateY -4px + shadow transition), Button.astro (primary: gradient bg + glow shadow; secondary: transparent + border + hover fill), Badge.astro (small rounded pill with accent bg for categories/step numbers), SectionDivider.astro (gradient line divider between sections).
+- [x] **3.3**: Create shared UI components: Section.astro (full-width dark wrapper, max-width 1200px content, optional parallax bg, section label, generous padding), Card.astro (glass-morphism: rgba bg, subtle border, backdrop-filter blur, hover translateY -4px + shadow transition), Button.astro (primary: gradient bg + glow shadow; secondary: transparent + border + hover fill), Badge.astro (small rounded pill with accent bg for categories/step numbers), SectionDivider.astro (gradient line divider between sections).
   - Value: Reusable component library ensures visual consistency and accelerates page development across all 7 pages
   - Acceptance: Each component renders with Nexus-style dark glass-morphism aesthetic. Cards lift on hover with shadow. Buttons show glow/fill effects. Badges display with accent colors. All use design tokens.
   - Deps: 3.1
 
-- [ ] **3.4**: Create Header.astro: sticky nav with glass-morphism (backdrop blur, semi-transparent bg), logo text "Beep2B", 7 nav links (Home, How It Works, Services, About, Blog, Contact, Book a Call CTA button), active link accent indicator, mobile hamburger icon trigger. Create Footer.astro: 4-column layout (company info + tagline, quick links, services, newsletter email input + social links), copyright, dark bg. Update BaseLayout.astro to include Header, Footer, global.css, animations.css, animations.js.
+- [x] **3.4**: Create Header.astro: sticky nav with glass-morphism (backdrop blur, semi-transparent bg), logo text "Beep2B", 7 nav links (Home, How It Works, Services, About, Blog, Contact, Book a Call CTA button), active link accent indicator, mobile hamburger icon trigger. Create Footer.astro: 4-column layout (company info + tagline, quick links, services, newsletter email input + social links), copyright, dark bg. Update BaseLayout.astro to include Header, Footer, global.css, animations.css, animations.js.
   - Value: Every page gets consistent premium navigation and footer without duplicating code
   - Acceptance: Header renders on all pages with working nav links to all 7 routes. Glass-morphism effect visible. Footer shows 4-column desktop layout, stacks on mobile. Active page highlighted.
   - Deps: 3.1, 3.2
 
-- [ ] **3.5**: Create Pixabay image helper at frontend/src/lib/pixabay.ts. Server-side fetch from Pixabay API (key: 54899839-52cb07e8d7437ca93ecb74181). Accepts query, returns image URL. Caches downloaded images to frontend/public/images/ with descriptive filenames. Create fetch-images script that pre-downloads backgrounds for: business office dark, technology abstract, networking professional, digital marketing. Run at build/dev time. Fallback to solid gradient if API fails.
+- [x] **3.5**: Create Pixabay image helper at frontend/src/lib/pixabay.ts. Server-side fetch from Pixabay API (key: 54899839-52cb07e8d7437ca93ecb74181). Accepts query, returns image URL. Caches downloaded images to frontend/public/images/ with descriptive filenames. Create fetch-images script that pre-downloads backgrounds for: business office dark, technology abstract, networking professional, digital marketing. Run at build/dev time. Fallback to solid gradient if API fails.
   - Value: Hero and section backgrounds use high-quality Pixabay photos, cached locally for fast loads and offline resilience
   - Acceptance: Pixabay API returns images. Images download to public/images/. Cached images serve without re-fetching. At least 4 background images available. Graceful fallback on API failure.
   - Deps: 1.4

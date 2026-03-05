@@ -2,6 +2,9 @@ import type { CollectionConfig } from 'payload'
 
 export const Posts: CollectionConfig = {
   slug: 'posts',
+  access: {
+    read: () => true, // Public read access for frontend
+  },
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'author', 'date', 'createdAt'],
