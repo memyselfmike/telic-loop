@@ -91,6 +91,53 @@ export async function seed(payload: Payload) {
   }
   payload.logger.info(`✓ Created ${testimonials.length} testimonials`);
 
+  // Create placeholder media entries for featured images
+  // In a real scenario, you would upload actual images
+  // For now, we'll create media records that reference the cached Pixabay images
+  const mediaImages = [
+    {
+      alt: "LinkedIn Marketing Strategy",
+      filename: "linkedin-marketing.jpg",
+      mimeType: "image/jpeg",
+      filesize: 150000,
+      width: 1200,
+      height: 675,
+      url: "/images/technology-abstract.jpg",
+    },
+    {
+      alt: "Professional Networking",
+      filename: "professional-networking.jpg",
+      mimeType: "image/jpeg",
+      filesize: 150000,
+      width: 1200,
+      height: 675,
+      url: "/images/networking-professional.jpg",
+    },
+    {
+      alt: "LinkedIn Profile Optimization",
+      filename: "linkedin-profile.jpg",
+      mimeType: "image/jpeg",
+      filesize: 150000,
+      width: 1200,
+      height: 675,
+      url: "/images/digital-marketing.jpg",
+    },
+  ];
+
+  const createdMedia = [];
+  for (const media of mediaImages) {
+    try {
+      const mediaDoc = await payload.create({
+        collection: "media",
+        data: media,
+      });
+      createdMedia.push(mediaDoc);
+    } catch (error) {
+      payload.logger.warn(`Could not create media: ${error}`);
+    }
+  }
+  payload.logger.info(`✓ Created ${createdMedia.length} media assets`);
+
   // Seed sample blog posts (3 with realistic B2B/LinkedIn content)
   const posts = [
     {
@@ -101,6 +148,7 @@ export async function seed(payload: Payload) {
         createdCategories.find((c) => c.title === "LinkedIn Marketing")?.id,
         createdCategories.find((c) => c.title === "B2B")?.id,
       ],
+      featuredImage: createdMedia[0]?.id,
       excerpt:
         "The average LinkedIn connection request has a 40% acceptance rate, but only 2% lead to conversations. Learn why most outreach falls flat and the four critical fixes that triple your response rate.",
       content: {
@@ -170,6 +218,7 @@ export async function seed(payload: Payload) {
         createdCategories.find((c) => c.title === "Thought Leadership")?.id,
         createdCategories.find((c) => c.title === "Authority Marketing")?.id,
       ],
+      featuredImage: createdMedia[1]?.id,
       excerpt:
         "Thought leadership is not about going viral. It is about consistent, strategic content that positions you as the go-to expert in your niche. Here is our proven 90-day playbook.",
       content: {
@@ -220,6 +269,7 @@ export async function seed(payload: Payload) {
         createdCategories.find((c) => c.title === "LinkedIn Profile")?.id,
         createdCategories.find((c) => c.title === "LinkedIn Tips")?.id,
       ],
+      featuredImage: createdMedia[2]?.id,
       excerpt:
         "Your LinkedIn profile is your digital storefront. These seven elements turn browsers into buyers and connection requests into qualified leads.",
       content: {

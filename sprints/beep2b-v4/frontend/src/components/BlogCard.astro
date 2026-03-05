@@ -10,9 +10,9 @@ interface Props {
 
 const { post, class: className = '' } = Astro.props;
 
-// Get featured image or fallback
+// Get featured image or fallback to cached Pixabay image
 const featuredImage = getResponsiveImageUrl(post.featuredImage, 'card')
-  || getImageUrl('business-abstract', 'linear-gradient(135deg, #1a1a2e 0%, #0a0a0f 100%)');
+  || '/images/technology-abstract.jpg';
 
 // Extract category objects
 const categories = Array.isArray(post.categories)
@@ -23,11 +23,7 @@ const categories = Array.isArray(post.categories)
 <article class={`blog-card ${className}`}>
   <a href={`/blog/${post.slug}`} class="card-link">
     <div class="card-image">
-      {featuredImage.startsWith('linear-gradient') || featuredImage.startsWith('radial-gradient') ? (
-        <div class="card-image-gradient" style={`background-image: ${featuredImage}`}></div>
-      ) : (
-        <img src={featuredImage} alt={post.title} loading="lazy" />
-      )}
+      <img src={featuredImage} alt={post.title} loading="lazy" />
       <div class="image-overlay"></div>
     </div>
 
@@ -92,21 +88,14 @@ const categories = Array.isArray(post.categories)
     overflow: hidden;
   }
 
-  .card-image img,
-  .card-image-gradient {
+  .card-image img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     transition: transform var(--transition-slow);
   }
 
-  .card-image-gradient {
-    background-size: cover;
-    background-position: center;
-  }
-
-  .blog-card:hover .card-image img,
-  .blog-card:hover .card-image-gradient {
+  .blog-card:hover .card-image img {
     transform: scale(1.05);
   }
 
