@@ -1,0 +1,52 @@
+---
+interface Props {
+  label?: string;
+  parallax?: boolean;
+  class?: string;
+}
+
+const { label, parallax = false, class: className = '' } = Astro.props;
+---
+
+<section class={`section ${className}`} data-parallax={parallax ? "0.3" : undefined}>
+  <div class="section-inner">
+    {label && <span class="section-label">{label}</span>}
+    <div class="container">
+      <slot />
+    </div>
+  </div>
+</section>
+
+<style>
+  .section {
+    width: 100%;
+    background: var(--color-bg-primary);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .section-inner {
+    padding: var(--space-24) 0;
+  }
+
+  /* Optional parallax background layer */
+  .section[data-parallax] {
+    background: linear-gradient(180deg,
+      var(--color-bg-primary) 0%,
+      var(--color-bg-card) 50%,
+      var(--color-bg-primary) 100%
+    );
+  }
+
+  @media (max-width: 768px) {
+    .section-inner {
+      padding: var(--space-16) 0;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .section-inner {
+      padding: var(--space-12) 0;
+    }
+  }
+</style>

@@ -1,0 +1,10 @@
+node_modules
+.next
+dist
+build
+.env
+.env.local
+payload-types.ts
+generated-schema.graphql
+*.log
+.DS_Store

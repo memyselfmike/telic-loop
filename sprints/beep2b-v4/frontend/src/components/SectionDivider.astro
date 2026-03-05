@@ -1,0 +1,40 @@
+---
+interface Props {
+  class?: string;
+}
+
+const { class: className = '' } = Astro.props;
+---
+
+<div class={`section-divider ${className}`}></div>
+
+<style>
+  .section-divider {
+    width: 100%;
+    height: 1px;
+    background: var(--gradient-primary);
+    opacity: 0.3;
+    margin: var(--space-12) 0;
+  }
+
+  /* Thicker variant */
+  .section-divider.thick {
+    height: 2px;
+    opacity: 0.5;
+  }
+
+  /* With spacing */
+  .section-divider.spaced {
+    margin: var(--space-20) 0;
+  }
+
+  @media (max-width: 768px) {
+    .section-divider {
+      margin: var(--space-8) 0;
+    }
+
+    .section-divider.spaced {
+      margin: var(--space-12) 0;
+    }
+  }
+</style>

@@ -1,0 +1,55 @@
+services:
+  db:
+    image: mongo:7
+    container_name: beep2b-db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+    healthcheck:
+      test: mongosh --eval "db.adminCommand('ping')"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  cms:
+    image: node:20-alpine
+    container_name: beep2b-cms
+    working_dir: /app
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./cms:/app
+      - /app/node_modules
+    environment:
+      - MONGODB_URI=mongodb://db:27017/beep2b
+      - PAYLOAD_SECRET=your-secret-key-change-in-production
+      - PAYLOAD_CONFIG_PATH=src/payload.config.ts
+      - NODE_ENV=development
+    command: sh -c "npm install --legacy-peer-deps && npx next dev"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    image: node:20-alpine
+    container_name: beep2b-frontend
+    working_dir: /app
+    ports:
+      - "4321:4321"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - CMS_URL=http://cms:3000
+      - NODE_ENV=development
+    command: sh -c "npm install && npm run dev"
+    depends_on:
+      - cms
+    restart: unless-stopped
+
+volumes:
+  mongodata:
+    name: beep2b-mongodata

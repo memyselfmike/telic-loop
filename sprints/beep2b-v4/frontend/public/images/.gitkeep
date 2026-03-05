@@ -1,0 +1,2 @@
+# This directory stores cached Pixabay images
+# Images are downloaded at build/dev time and cached locally

@@ -1,0 +1,185 @@
+/* Scroll-triggered animation styles */
+
+/* Initial hidden states for elements with data-animate */
+[data-animate] {
+  opacity: 0;
+  transition: all var(--transition-slow);
+}
+
+/* Fade in */
+[data-animate="fade-in"] {
+  opacity: 0;
+}
+
+[data-animate="fade-in"].animated {
+  opacity: 1;
+}
+
+/* Slide up */
+[data-animate="slide-up"] {
+  opacity: 0;
+  transform: translateY(40px);
+}
+
+[data-animate="slide-up"].animated {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Slide left */
+[data-animate="slide-left"] {
+  opacity: 0;
+  transform: translateX(40px);
+}
+
+[data-animate="slide-left"].animated {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Slide right */
+[data-animate="slide-right"] {
+  opacity: 0;
+  transform: translateX(-40px);
+}
+
+[data-animate="slide-right"].animated {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Scale in */
+[data-animate="scale-in"] {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+[data-animate="scale-in"].animated {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Staggered children animation */
+[data-stagger] > * {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all var(--transition-base);
+}
+
+[data-stagger] > *.stagger-animated {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Counter animation - ensure smooth number transitions */
+[data-counter] {
+  font-variant-numeric: tabular-nums;
+  transition: all var(--transition-base);
+}
+
+/* Parallax elements */
+[data-parallax] {
+  will-change: transform;
+  transition: transform 0.1s ease-out;
+}
+
+/* Additional keyframe animations */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideLeft {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideRight {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Utility animation classes */
+.fade-in {
+  animation: fadeIn var(--transition-slow) ease-out;
+}
+
+.slide-up {
+  animation: slideUp var(--transition-slow) ease-out;
+}
+
+.slide-left {
+  animation: slideLeft var(--transition-slow) ease-out;
+}
+
+.slide-right {
+  animation: slideRight var(--transition-slow) ease-out;
+}
+
+.scale-in {
+  animation: scaleIn var(--transition-slow) ease-out;
+}
+
+.pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  [data-animate],
+  [data-stagger] > *,
+  [data-parallax] {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}

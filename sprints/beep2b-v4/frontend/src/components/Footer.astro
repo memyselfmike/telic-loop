@@ -1,0 +1,238 @@
+---
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <div class="footer-grid">
+      <!-- Column 1: Company Info -->
+      <div class="footer-col">
+        <h3 class="footer-logo">Beep2B</h3>
+        <p class="footer-tagline">
+          Consistent B2B leads from LinkedIn using the proven BEEP methodology.
+        </p>
+        <p class="footer-stats">
+          <strong>500+ clients</strong> across <strong>22 countries</strong> since <strong>2014</strong>
+        </p>
+      </div>
+
+      <!-- Column 2: Quick Links -->
+      <div class="footer-col">
+        <h4 class="footer-heading">Quick Links</h4>
+        <ul class="footer-links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/how-it-works">How It Works</a></li>
+          <li><a href="/about">About</a></li>
+          <li><a href="/contact">Contact</a></li>
+        </ul>
+      </div>
+
+      <!-- Column 3: Services -->
+      <div class="footer-col">
+        <h4 class="footer-heading">Services</h4>
+        <ul class="footer-links">
+          <li><a href="/services#linkedin-marketing">LinkedIn Marketing</a></li>
+          <li><a href="/services#thought-leadership">Thought Leadership</a></li>
+          <li><a href="/services#training">LinkedIn Training</a></li>
+          <li><a href="/blog">Blog</a></li>
+        </ul>
+      </div>
+
+      <!-- Column 4: Connect -->
+      <div class="footer-col">
+        <h4 class="footer-heading">Stay Connected</h4>
+        <p class="footer-text">
+          Get LinkedIn marketing insights delivered to your inbox.
+        </p>
+        <form class="newsletter-form" action="#" method="post">
+          <input
+            type="email"
+            placeholder="Your email"
+            required
+            aria-label="Email address"
+          />
+          <button type="submit" class="btn btn-primary btn-sm">Subscribe</button>
+        </form>
+        <div class="social-links">
+          <a href="https://linkedin.com/company/beep2b" target="_blank" rel="noopener" aria-label="LinkedIn">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+            </svg>
+          </a>
+          <a href="mailto:hello@beep2b.com" aria-label="Email">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p class="footer-copyright">
+        &copy; {currentYear} Beep2B. All rights reserved.
+      </p>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    background: var(--color-bg-card);
+    border-top: 1px solid rgba(79, 125, 247, 0.1);
+    padding: var(--space-16) 0 var(--space-8);
+    margin-top: var(--space-24);
+  }
+
+  .footer-inner {
+    max-width: 1200px;
+  }
+
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1.5fr;
+    gap: var(--space-8);
+    margin-bottom: var(--space-12);
+  }
+
+  .footer-col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .footer-logo {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-black);
+    color: var(--color-text-primary);
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0;
+  }
+
+  .footer-tagline {
+    color: var(--color-text-secondary);
+    line-height: var(--leading-relaxed);
+    margin: 0;
+  }
+
+  .footer-stats {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    margin: 0;
+  }
+
+  .footer-stats strong {
+    color: var(--color-accent-primary);
+    font-weight: var(--font-semibold);
+  }
+
+  .footer-heading {
+    font-size: var(--text-lg);
+    font-weight: var(--font-bold);
+    color: var(--color-text-primary);
+    margin: 0 0 var(--space-3) 0;
+  }
+
+  .footer-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .footer-links a {
+    color: var(--color-text-secondary);
+    transition: color var(--transition-base);
+  }
+
+  .footer-links a:hover {
+    color: var(--color-accent-primary);
+  }
+
+  .footer-text {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    margin: 0;
+  }
+
+  .newsletter-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .newsletter-form input {
+    background: var(--color-bg-elevated);
+    border: 1px solid rgba(79, 125, 247, 0.2);
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+    color: var(--color-text-primary);
+    font-size: var(--text-sm);
+  }
+
+  .newsletter-form input:focus {
+    outline: none;
+    border-color: var(--color-accent-primary);
+  }
+
+  .social-links {
+    display: flex;
+    gap: var(--space-4);
+    margin-top: var(--space-2);
+  }
+
+  .social-links a {
+    color: var(--color-text-muted);
+    transition: color var(--transition-base);
+  }
+
+  .social-links a:hover {
+    color: var(--color-accent-primary);
+  }
+
+  .footer-bottom {
+    border-top: 1px solid rgba(79, 125, 247, 0.1);
+    padding-top: var(--space-6);
+    margin-top: var(--space-8);
+  }
+
+  .footer-copyright {
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    margin: 0;
+  }
+
+  /* Responsive */
+  @media (max-width: 1024px) {
+    .footer-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .footer {
+      padding: var(--space-12) 0 var(--space-6);
+    }
+
+    .footer-grid {
+      grid-template-columns: 1fr;
+      gap: var(--space-8);
+    }
+
+    .footer-col {
+      padding-bottom: var(--space-4);
+      border-bottom: 1px solid rgba(79, 125, 247, 0.1);
+    }
+
+    .footer-col:last-child {
+      border-bottom: none;
+    }
+  }
+</style>
