@@ -30,6 +30,7 @@ Explore the codebase and environment to understand:
 5. **Services**: any running services, their ports, health endpoints
 6. **Verification strategy**: how we'll verify correctness (pytest, playwright, curl, etc.)
 7. **Value proofs**: how we'll demonstrate value delivery
+8. **Version compatibility**: If the stack combines multiple frameworks (e.g., Next.js + Payload CMS, Django + Celery + Redis), use WebSearch to verify version compatibility between them. Pin exact major.minor versions in your plan — never rely on "latest" or loose ranges. Record confirmed-compatible version sets in your discovery report.
 
 Report your findings via `report_discovery` before proceeding to planning.
 
