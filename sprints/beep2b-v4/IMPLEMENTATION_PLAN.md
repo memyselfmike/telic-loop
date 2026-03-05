@@ -1,6 +1,6 @@
 # Implementation Plan (rendered from state)
 
-Generated: 2026-03-05T12:13:57.602224
+Generated: 2026-03-05T12:23:37.040299
 
 
 ## Infrastructure
@@ -169,15 +169,15 @@ Generated: 2026-03-05T12:13:57.602224
   - Value: The site has strong architectural foundations (Docker stack works, CMS API serves data, animation system functions, responsive layouts reflow correctly, 7 pages exist) but 4 critical and 5 blocking issues prevent it from meeting the Vision promise of a premium B2B marketing website.
   - Acceptance: Fix: Final evaluation summary.
 
-- [ ] **CE-14-40**: Fix 1: Change the BlogCard.astro line 14-15 to use an existing cached image name (e.g. technology-abstract instead of business-abstract) so it resolves to a real image file. Fix 2: Investigate why Astro template conditional fails to detect the gradient string and fix the conditional logic - possibly use a separate boolean flag variable. Fix 3: Add featured images to the seed data in cms/src/seed.ts.
+- [x] **CE-14-40**: Fix 1: Change the BlogCard.astro line 14-15 to use an existing cached image name (e.g. technology-abstract instead of business-abstract) so it resolves to a real image file. Fix 2: Investigate why Astro template conditional fails to detect the gradient string and fix the conditional logic - possibly use a separate boolean flag variable. Fix 3: Add featured images to the seed data in cms/src/seed.ts.
   - Value: All 3 blog post cards on /blog show broken image icons instead of visual imagery. Blog listing page looks unprofessional and broken. Individual blog post /blog/[slug] also has missing featured image header.
   - Acceptance: Fix: Blog card images render as broken <img> tags with CSS gradient strings as src attribute. BlogCard.astro line 26 conditional (featuredImage.startsWith("linear-gradient")) evaluates to false in Astro SSR/SSG template context, causing gradient fallback strings to be used as <img src="linear-gradient(...)">, which produces broken images instead of gradient background divs.
 
-- [ ] **CE-14-41**: Remove data-animate="scale-in" from each .stat-card in about.astro (lines 145, 149, 153, 157) and rely solely on the parent data-stagger animation. Or remove data-stagger from the container and rely on individual data-animate attributes.
+- [x] **CE-14-41**: Remove data-animate="scale-in" from each .stat-card in about.astro (lines 145, 149, 153, 157) and rely solely on the parent data-stagger animation. Or remove data-stagger from the container and rely on individual data-animate attributes.
   - Value: About page has a ~450px blank gap where stats should appear. The animated counters (500+ Clients, 22 Countries, Est. 2014, 4 Steps) that showcase company credibility are completely invisible. This undermines the premium agency feel.
   - Acceptance: Fix: About page stats section is completely invisible. The 4 stat cards (500+ Clients, 22 Countries, 2014 Established, 4 BEEP Steps) have opacity:0 and transform:translateY(20px)/scale(0.9) from conflicting CSS animation rules and never become visible. Root cause: each .stat-card has BOTH data-animate="scale-in" (requires .animated class) AND is a child of data-stagger container (applies .stagger-animated class). The CSS for data-animate="scale-in" requires .animated but only gets .stagger-animated, leaving opacity permanently at 0.
 
-- [ ] **CE-14-42**: Add a Next.js middleware file at cms/src/middleware.ts that intercepts OPTIONS requests and returns proper CORS headers (Access-Control-Allow-Origin: http://localhost:4321, Access-Control-Allow-Methods, Access-Control-Allow-Headers) before they reach Payload.
+- [x] **CE-14-42**: Add a Next.js middleware file at cms/src/middleware.ts that intercepts OPTIONS requests and returns proper CORS headers (Access-Control-Allow-Origin: http://localhost:4321, Access-Control-Allow-Methods, Access-Control-Allow-Headers) before they reach Payload.
   - Value: Users cannot submit the contact form. Clicking Book Discovery Call always shows the error Something went wrong. Please try again or email us at hello@beep2b.com. The primary call-to-action (contact/lead capture) is non-functional.
   - Acceptance: Fix: Contact form submission fails in browser with CORS error. The OPTIONS preflight request to http://localhost:3000/api/form-submissions returns 204 without CORS headers. While payload.config.ts has cors: ["http://localhost:4321"], Next.js handles OPTIONS before Payload middleware, stripping CORS headers from the preflight response. Direct curl POST works, but browser-initiated form submission fails.
 

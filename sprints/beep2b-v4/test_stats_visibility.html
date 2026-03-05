@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h2>Testing CSS</h2>
+<div class="stats-container" data-stagger style="display:grid;grid-template-columns:repeat(4,1fr);gap:2rem;">
+  <div class="stat-card" style="text-align:center;padding:2rem;">
+    <div class="stat-number" data-counter="500" style="font-size:3rem;font-weight:900;opacity:0;transform:translateY(20px);">0</div>
+    <div class="stat-label">Clients</div>
+  </div>
+</div>
+
+<p>The stat-number above has opacity:0 from animations.css line 63-67</p>
+<p>It will become visible (opacity:1) when JavaScript adds .stagger-animated class</p>
+</body>
+</html>

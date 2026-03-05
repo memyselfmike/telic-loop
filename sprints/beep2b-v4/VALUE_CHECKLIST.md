@@ -1,5 +1,5 @@
 # Value Checklist: beep2b-v4
-Generated: 2026-03-05T12:13:57.600899
+Generated: 2026-03-05T12:23:37.039311
 
 ## VRC Status
 - Value Score: 78%
@@ -49,9 +49,9 @@ Generated: 2026-03-05T12:13:57.600899
 - [x] **CE-12-37**: Add background prop to Section.astro Props interface with 'primary'|'elevated'|'card' options. Apply the corresponding --color-bg-* token to the section wrapper based on the prop value.
 - [x] **CE-12-38**: Change line 1 of FormSubmissions.ts from  to  to match the v3 convention used by all other collections.
 - [x] **CE-12-39**: Priority fixes: (1) Fix 140 CSS variable name mismatches across 12 files. (2) Fix CMS admin panel route structure. (3) Add CORS config to Payload CMS for form submissions. (4) Change Button size=large to size=lg. (5) Fix blog card image fallback. (6) Fix blog SSG category filtering. (7) Style nav CTA and footer Subscribe button. (8) Add background prop to Section.astro. (9) Fix FormSubmissions import.
-- [ ] **CE-14-40**: Fix 1: Change the BlogCard.astro line 14-15 to use an existing cached image name (e.g. technology-abstract instead of business-abstract) so it resolves to a real image file. Fix 2: Investigate why Astro template conditional fails to detect the gradient string and fix the conditional logic - possibly use a separate boolean flag variable. Fix 3: Add featured images to the seed data in cms/src/seed.ts.
-- [ ] **CE-14-41**: Remove data-animate="scale-in" from each .stat-card in about.astro (lines 145, 149, 153, 157) and rely solely on the parent data-stagger animation. Or remove data-stagger from the container and rely on individual data-animate attributes.
-- [ ] **CE-14-42**: Add a Next.js middleware file at cms/src/middleware.ts that intercepts OPTIONS requests and returns proper CORS headers (Access-Control-Allow-Origin: http://localhost:4321, Access-Control-Allow-Methods, Access-Control-Allow-Headers) before they reach Payload.
+- [x] **CE-14-40**: Fix 1: Change the BlogCard.astro line 14-15 to use an existing cached image name (e.g. technology-abstract instead of business-abstract) so it resolves to a real image file. Fix 2: Investigate why Astro template conditional fails to detect the gradient string and fix the conditional logic - possibly use a separate boolean flag variable. Fix 3: Add featured images to the seed data in cms/src/seed.ts.
+- [x] **CE-14-41**: Remove data-animate="scale-in" from each .stat-card in about.astro (lines 145, 149, 153, 157) and rely solely on the parent data-stagger animation. Or remove data-stagger from the container and rely on individual data-animate attributes.
+- [x] **CE-14-42**: Add a Next.js middleware file at cms/src/middleware.ts that intercepts OPTIONS requests and returns proper CORS headers (Access-Control-Allow-Origin: http://localhost:4321, Access-Control-Allow-Methods, Access-Control-Allow-Headers) before they reach Payload.
 - [ ] **CE-14-43**: This was already identified as blocked (task CE-12-31). The admin pages may need to be inside the (payload) route group: cms/src/app/(payload)/admin/[[...segments]]/page.tsx. Additionally, check Payload CMS and Next.js version compatibility and update packages.
 - [ ] **CE-14-44**: Priority fixes: (1) Fix BlogCard.astro gradient detection or use existing cached image names, (2) Remove conflicting data-animate from about.astro stat cards, (3) Add Next.js CORS middleware for OPTIONS preflight. Secondary: Fix unstyled nav CTA and footer Subscribe button.
 
