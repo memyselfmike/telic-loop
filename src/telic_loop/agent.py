@@ -286,8 +286,11 @@ class ClaudeSession:
         text_parts: list[str] = []
 
         try:
-            async with asyncio.timeout(self.timeout_sec):
+            async with asyncio.timeout(self.timeout_sec) as deadline:
                 async for message in query(prompt=prompt, options=options):
+                    # Heartbeat: reset timeout on each message so active sessions
+                    # aren't killed. Only truly idle sessions hit the deadline.
+                    deadline.reschedule(asyncio.get_event_loop().time() + self.timeout_sec)
                     if isinstance(message, AssistantMessage):
                         for block in message.content:
                             if isinstance(block, TextBlock):
