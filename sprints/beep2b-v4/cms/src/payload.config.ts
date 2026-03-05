@@ -9,6 +9,7 @@ import { Posts } from './collections/Posts'
 import { Categories } from './collections/Categories'
 import { Testimonials } from './collections/Testimonials'
 import { Media } from './collections/Media'
+import { FormSubmissions } from './collections/FormSubmissions'
 import { seed } from './seed'
 
 const filename = fileURLToPath(import.meta.url)
@@ -24,7 +25,7 @@ export default buildConfig({
       ogImage: '/og-image.jpg',
     },
   },
-  collections: [Users, Posts, Categories, Testimonials, Media],
+  collections: [Users, Posts, Categories, Testimonials, Media, FormSubmissions],
   editor: lexicalEditor({}),
   db: mongooseAdapter({
     url: process.env.MONGODB_URI || 'mongodb://localhost:27017/beep2b',

@@ -1,49 +1,46 @@
 #!/bin/bash
-# Value: All 7 pages load successfully
+# Value test: All 7 pages load with 200 status
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
-
-cd "$PROJECT_DIR"
-
-echo "=== Verifying All 7 Pages Load ==="
+echo "=== All Pages Load Test ==="
 
 PAGES=(
   "/"
   "/how-it-works"
   "/services"
   "/about"
-  "/blog"
   "/contact"
-  "/blog/the-anatomy-of-a-high-converting-linkedin-profile"
+  "/blog"
 )
 
-PAGE_NAMES=(
-  "Home"
-  "How It Works"
-  "Services"
-  "About"
-  "Blog"
-  "Contact"
-  "Blog Post"
-)
-
-for i in "${!PAGES[@]}"; do
-  PAGE="${PAGES[$i]}"
-  NAME="${PAGE_NAMES[$i]}"
-
-  echo "Testing $NAME ($PAGE)..."
-  STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:4321$PAGE" || echo "000")
-
+for page in "${PAGES[@]}"; do
+  echo "Testing http://localhost:4321$page..."
+  STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:4321$page" || echo "000")
+  
   if [ "$STATUS" != "200" ]; then
-    echo "FAIL: $NAME returned HTTP $STATUS"
+    echo "FAIL: Page $page returned $STATUS, expected 200"
     exit 1
   fi
-
-  echo "✓ $NAME loads successfully"
+  
+  echo "✓ $page loads successfully"
 done
 
-echo "=== All Pages Verification PASSED ==="
+# Test a sample blog post (should be generated from seed data)
+echo "Testing blog post page..."
+BLOG_POST_HTML=$(curl -s "http://localhost:4321/blog/the-anatomy-of-a-high-converting-linkedin-profile" || echo "")
+if [ -z "$BLOG_POST_HTML" ]; then
+  echo "FAIL: Blog post page did not return HTML"
+  exit 1
+fi
+
+if ! echo "$BLOG_POST_HTML" | grep -q "LinkedIn Profile"; then
+  echo "FAIL: Blog post page missing expected content"
+  exit 1
+fi
+
+echo "✓ Blog post page loads successfully"
+
+echo ""
+echo "=== PASS: All 7 pages load with content ==="
 exit 0

@@ -1,6 +1,6 @@
 # Implementation Plan (rendered from state)
 
-Generated: 2026-03-05T09:50:42.198787
+Generated: 2026-03-05T10:35:13.304397
 
 
 ## Infrastructure
@@ -68,7 +68,7 @@ Generated: 2026-03-05T09:50:42.198787
   - Acceptance: Hero renders with Pixabay bg, dark overlay, headline, 2 CTAs. Trust bar counters animate on scroll. 6 feature cards in 3-col grid with numbered badges. BEEP shows 4 steps with colored letter badges. 3 testimonials with star ratings. CTA banner with gradient. All copy from PRD.
   - Deps: 3.2, 3.4, 3.5
 
-- [ ] **4.2**: Build About page (about.astro). Hero: Our Story with company narrative. Mission statement. 4 values cards (glass-morphism): Relationships Over Reach, Systems Over Hustle, Transparency Always, Built by Marketers for Marketers. Timeline: 5 milestones from 2014 to today. Stats section with animated counters matching trust bar. All copy from PRD.
+- [x] **4.2**: Build About page (about.astro). Hero: Our Story with company narrative. Mission statement. 4 values cards (glass-morphism): Relationships Over Reach, Systems Over Hustle, Transparency Always, Built by Marketers for Marketers. Timeline: 5 milestones from 2014 to today. Stats section with animated counters matching trust bar. All copy from PRD.
   - Value: Prospects learn the company story, mission, and values that differentiate Beep2B
   - Acceptance: About page renders with hero, mission, 4 values cards, timeline, animated stats. All copy matches PRD About section.
   - Deps: 3.2, 3.4
@@ -83,23 +83,51 @@ Generated: 2026-03-05T09:50:42.198787
   - Acceptance: 3 numbered service blocks render with headings, descriptions, bullet benefit lists, and CTA buttons. Each block animates on scroll. All copy matches PRD services section.
   - Deps: 3.2, 3.4
 
-- [ ] **4.5**: Build Contact page (contact.astro). Split layout: left = Why Book a Discovery Call? with 4 benefits list, right = contact form. Form: Name, Email, Company, Message fields with validation. React island ContactForm.tsx for interactivity. Submit with loading state, success message, error handling. Contact details: hello@beep2b.com, LinkedIn link. Create ContactForm.tsx React component.
+- [x] **4.5**: Build Contact page (contact.astro). Split layout: left = Why Book a Discovery Call? with 4 benefits list, right = contact form. Form: Name, Email, Company, Message fields with validation. React island ContactForm.tsx for interactivity. Submit with loading state, success message, error handling. Contact details: hello@beep2b.com, LinkedIn link. Create ContactForm.tsx React component.
   - Value: Prospects can submit inquiries and book discovery calls directly from the site
   - Acceptance: Contact page renders split layout. Form validates required fields. Shows loading/success/error states. All copy from PRD Contact section.
   - Deps: 3.4
 
-- [ ] **4.6**: Build Blog listing page (blog.astro). Fetch posts from Payload CMS API at /api/posts. 3-col grid (responsive to 2-col/1-col). Each card: featured image or Pixabay fallback, title, date, category badges, excerpt, read more link. Category filter bar at top. Pagination (10 posts per page). Create BlogCard.astro component. Create lib/cms.ts helper for CMS API calls.
+- [x] **4.6**: Build Blog listing page (blog.astro). Fetch posts from Payload CMS API at /api/posts. 3-col grid (responsive to 2-col/1-col). Each card: featured image or Pixabay fallback, title, date, category badges, excerpt, read more link. Category filter bar at top. Pagination (10 posts per page). Create BlogCard.astro component. Create lib/cms.ts helper for CMS API calls.
   - Value: Visitors can browse blog content, filter by category, driving SEO and thought leadership
   - Acceptance: Blog page fetches and displays posts from CMS. Category filter works. Pagination shows 10 per page. Cards show images, titles, dates, excerpts.
   - Deps: 2.2, 3.4, 3.5
 
-- [ ] **4.7**: Build Blog Post dynamic route ([slug].astro). Fetch single post from Payload /api/posts?where[slug][equals]=. Featured image header. Title, author, date, category badges. Render rich text content from Payload lexical editor. Related posts section: 3 posts from same category. Create RichText.astro component for lexical content rendering. Use cms.ts helper.
+- [x] **4.7**: Build Blog Post dynamic route ([slug].astro). Fetch single post from Payload /api/posts?where[slug][equals]=. Featured image header. Title, author, date, category badges. Render rich text content from Payload lexical editor. Related posts section: 3 posts from same category. Create RichText.astro component for lexical content rendering. Use cms.ts helper.
   - Value: Visitors can read full blog articles with rich formatting, driving engagement and authority
   - Acceptance: Blog post page fetches and renders individual posts. Rich text displays headings, images, lists, blockquotes. Related posts show 3 from same category.
   - Deps: 4.6
 
 
 ## Unphased
+
+- [ ] **CE-10-23**: Fix animations.js: (1) Also observe [data-stagger] elements independently, even if they lack data-animate. (2) For data-counter, traverse descendants of observed elements to find and animate counters on child elements. Alternatively, add data-animate to all data-stagger parent containers.
+  - Value: Approximately 40% of homepage content is permanently invisible: feature cards, testimonial cards, and trust bar counters. Blog listing page shows zero blog posts despite 3 being fetched from CMS. Services page has invisible benefit lists. This makes the site look broken and empty to any visitor.
+  - Acceptance: Fix: Animation system bug: data-stagger elements without data-animate are never observed by IntersectionObserver. Blog post cards on /blog, feature cards on homepage, testimonial cards on homepage, and service benefit lists on /services all have parents with data-stagger but no data-animate, so child elements stay at opacity:0 permanently. The IntersectionObserver only observes [data-animate] elements. When it observes them and finds data-stagger, it calls staggerChildren(). But elements with ONLY data-stagger are never observed at all. Additionally, data-counter elements on trust bar numbers are children of data-animate elements, not data-animate elements themselves, so counter animation never triggers (shows 0 instead of 500+, 22, 2014, 4).
+
+- [ ] **CE-10-24**: Change docker-compose.yml line 21 from 3001:3000 to 3000:3000 to match the PRD specification.
+  - Value: User following PRD instructions will try localhost:3000/admin and get connection refused. They must discover port 3001 on their own. The CMS is functional but undiscoverable at the documented URL.
+  - Acceptance: Fix: CMS admin panel is not accessible at the documented port. docker-compose.yml maps CMS to external port 3001 (line 21: 3001:3000) instead of port 3000 as specified in the PRD. PRD Acceptance Criterion #4 states: Payload CMS admin accessible at http://localhost:3000/admin. The admin panel returns a redirect to /admin/login when accessed at port 3001, confirming CMS works internally but the port mapping contradicts the documented specification.
+
+- [ ] **CE-10-25**: Either (1) POST form data to a Payload CMS endpoint (create a FormSubmissions collection) or (2) send to an email service, or (3) at minimum clearly indicate in the UI that this is a demo form. Option 1 is preferred since the CMS is already available.
+  - Value: A prospect who fills out the contact form believes their inquiry was sent, but no data is actually transmitted or stored. This is deceptive UX and means the primary lead-capture mechanism does not function.
+  - Acceptance: Fix: Contact form submission is a mock/stub. ContactForm.tsx lines 69-73 simulate the API call with a hardcoded setTimeout and always-succeed behavior. There is no actual form submission endpoint. The form validates inputs correctly but the submit action does nothing real — it just waits 1.5 seconds and shows a success message regardless.
+
+- [ ] **CE-10-26**: Ensure all glass-morphism cards have: (1) sufficient background opacity (rgba(18,18,26,0.8) minimum), (2) visible border (rgba(79,125,247,0.2)), (3) text in --color-text-primary (#fff) for headings and --color-text-secondary (#b0b0c0) for body. Check contrast ratios meet WCAG AA (4.5:1 for text).
+  - Value: Even when the animation bug is fixed, many sections will have poor readability. Users cannot read service details, feature descriptions, or values cards without squinting. The site does not achieve the premium Nexus-inspired glass-morphism aesthetic promised in the PRD — it looks like a dark void with occasional visible headings.
+  - Acceptance: Fix: Extensive content invisible due to low contrast. Even on sections where animations DO trigger, many content elements are nearly invisible because dark text renders on dark backgrounds with insufficient contrast. On the scrolled homepage, the feature cards section heading "Systematic B2B Lead Generation" is visible but the actual card content (titles like Precision Targeting, descriptions) is barely legible — dark gray text on dark cards with no glass-morphism glow or visual distinction. The services page service block detail areas (bullet lists inside dark card regions) are similarly invisible. The About page values cards and timeline sections are empty dark blocks.
+
+- [ ] **CE-10-27**: This is likely another manifestation of the animation observer bug — the steps container or individual steps may not be properly observed. Ensure all 4 BEEP steps have data-animate attributes that are observed by the IntersectionObserver, or fix the observer to handle all animated elements.
+  - Value: A prospect clicking How It Works to understand the BEEP methodology sees only the Build step. They cannot learn about Engage, Educate, or Promote — the other 75% of the methodology. This page is supposed to convert interest into understanding, but it fails at its primary purpose.
+  - Acceptance: Fix: How It Works page only shows 1 of 4 BEEP steps. The scrolled screenshot shows only the Build step (step 01) is visible. Steps 02 (Engage), 03 (Educate), and 04 (Promote) are invisible. The alternating left/right layout means steps 2-4 use slide-left/slide-right animations that apparently do not trigger. Additionally the Why BEEP Works section with 3 differentiator cards is also invisible. This is the core methodology page — showing only 25% of the content defeats its purpose.
+
+- [ ] **CE-10-28**: Check Header.astro mobile nav CSS: the mobile menu panel should default to display:none or transform:translateX(100%) and only show on .active class toggle. Verify the initial state of the mobile menu at the 768px breakpoint.
+  - Value: On tablet viewports, the navigation menu permanently overlaps the right third of the page content, blocking the hero section and other content. Users cannot dismiss it without JavaScript interaction, and it creates a confusing first impression.
+  - Acceptance: Fix: Mobile navigation menu renders open on initial page load at 768px tablet viewport. The scrolled tablet screenshot (home-tablet.png) shows the mobile navigation menu panel open and visible on the right side of the screen, overlapping with page content, without the user clicking the hamburger icon. The menu shows all nav links (Home, How It Works, Services, About, Blog, Contact, Book a Call) in a slide-out panel that should only appear on hamburger click.
+
+- [ ] **CE-10-29**: Fix the 2 critical and 4 blocking issues identified. Priority order: (1) Fix animation observer to handle data-stagger and data-counter elements, (2) Fix CMS port mapping to 3000:3000, (3) Fix mobile nav default state at tablet breakpoint, (4) Fix content contrast/visibility for glass-morphism cards, (5) Replace mock contact form with real submission, (6) Fix How It Works page steps 2-4 visibility.
+  - Value: The site cannot be shipped as beep2b.com in its current state.
+  - Acceptance: Fix: Final evaluation verdict
 
 - [x] **CE-4-13**: Add 4 new tasks: (4.2) About page with hero, mission, values cards, timeline, stats counters. (4.5) Contact page with split layout, React ContactForm island component, form validation, success/error states. (4.6) Blog listing page fetching posts from Payload CMS API, 3-col grid, pagination, category filter bar. (4.7) Blog post dynamic route [slug].astro fetching single post from Payload, rendering rich text, related posts section.
   - Value: The site will be missing 4 out of 7 pages. Navigation links to About, Contact, Blog, and Blog Post will 404. The blog-from-CMS and contact-form acceptance criteria cannot be met. This is roughly 50% of the promised deliverable missing.

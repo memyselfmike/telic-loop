@@ -193,7 +193,7 @@ const navLinks = [
     .nav-links {
       position: fixed;
       top: 0;
-      right: -100%;
+      right: 0;
       width: 80%;
       max-width: 320px;
       height: 100vh;
@@ -203,12 +203,13 @@ const navLinks = [
       padding: var(--space-20) var(--space-6);
       gap: var(--space-4);
       border-left: 1px solid rgba(79, 125, 247, 0.2);
-      transition: right var(--transition-slow);
+      transition: transform var(--transition-slow);
+      transform: translateX(100%);
       overflow-y: auto;
     }
 
     .nav-links.open {
-      right: 0;
+      transform: translateX(0);
     }
 
     .nav-links li {

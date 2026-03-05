@@ -22,10 +22,16 @@ function initAnimations() {
           staggerChildren(entry.target);
         }
 
-        // Handle counter animations
+        // Handle counter animations on the element itself
         if (entry.target.hasAttribute('data-counter')) {
           animateCounter(entry.target);
         }
+
+        // Also find and animate any data-counter elements within this element
+        const counterChildren = entry.target.querySelectorAll('[data-counter]');
+        counterChildren.forEach((counter) => {
+          animateCounter(counter);
+        });
 
         // Optionally unobserve after animation (one-time animation)
         // observer.unobserve(entry.target);
@@ -33,8 +39,8 @@ function initAnimations() {
     });
   }, observerOptions);
 
-  // Observe all elements with data-animate attribute
-  const animatedElements = document.querySelectorAll('[data-animate]');
+  // Observe all elements with data-animate, data-stagger, or data-counter attributes
+  const animatedElements = document.querySelectorAll('[data-animate], [data-stagger], [data-counter]');
   animatedElements.forEach((el) => observer.observe(el));
 
   // Set up parallax scroll effect

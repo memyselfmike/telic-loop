@@ -66,11 +66,18 @@ export default function ContactForm() {
     setIsSubmitting(true);
 
     try {
-      // Simulate API call - in production, this would POST to a real endpoint
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Submit to Payload CMS FormSubmissions collection
+      const response = await fetch('http://localhost:3000/api/form-submissions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
 
-      // For demo purposes, we'll always show success
-      // In production: const response = await fetch('/api/contact', { method: 'POST', body: JSON.stringify(formData) });
+      if (!response.ok) {
+        throw new Error('Form submission failed');
+      }
 
       setSubmitStatus('success');
       setFormData({ name: '', email: '', company: '', message: '' });
