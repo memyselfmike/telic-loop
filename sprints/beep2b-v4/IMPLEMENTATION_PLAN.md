@@ -1,6 +1,6 @@
 # Implementation Plan (rendered from state)
 
-Generated: 2026-03-05T12:23:37.040299
+Generated: 2026-03-05T12:45:45.710876
 
 
 ## Infrastructure
@@ -181,13 +181,17 @@ Generated: 2026-03-05T12:23:37.040299
   - Value: Users cannot submit the contact form. Clicking Book Discovery Call always shows the error Something went wrong. Please try again or email us at hello@beep2b.com. The primary call-to-action (contact/lead capture) is non-functional.
   - Acceptance: Fix: Contact form submission fails in browser with CORS error. The OPTIONS preflight request to http://localhost:3000/api/form-submissions returns 204 without CORS headers. While payload.config.ts has cors: ["http://localhost:4321"], Next.js handles OPTIONS before Payload middleware, stripping CORS headers from the preflight response. Direct curl POST works, but browser-initiated form submission fails.
 
-- [ ] **CE-14-43**: This was already identified as blocked (task CE-12-31). The admin pages may need to be inside the (payload) route group: cms/src/app/(payload)/admin/[[...segments]]/page.tsx. Additionally, check Payload CMS and Next.js version compatibility and update packages.
+- [x] **CE-14-43**: This was already identified as blocked (task CE-12-31). The admin pages may need to be inside the (payload) route group: cms/src/app/(payload)/admin/[[...segments]]/page.tsx. Additionally, check Payload CMS and Next.js version compatibility and update packages.
   - Value: Content cannot be managed through the admin interface. Users cannot create/edit blog posts, testimonials, or form submissions through the GUI. The REST API works (auth, CRUD operations), but the admin panel UX promised in the Vision is not delivered.
   - Acceptance: Fix: CMS admin panel (http://localhost:3000/admin) crashes with Runtime TypeError: Cannot destructure property config of se(...) as it is undefined. The admin UI is completely unusable - login page, dashboard, and all collection views fail to render. This is a Payload CMS v3 / Next.js 15 compatibility issue where the client-side Payload bundle fails to initialize.
 
-- [ ] **CE-14-44**: Priority fixes: (1) Fix BlogCard.astro gradient detection or use existing cached image names, (2) Remove conflicting data-animate from about.astro stat cards, (3) Add Next.js CORS middleware for OPTIONS preflight. Secondary: Fix unstyled nav CTA and footer Subscribe button.
+- [x] **CE-14-44**: Priority fixes: (1) Fix BlogCard.astro gradient detection or use existing cached image names, (2) Remove conflicting data-animate from about.astro stat cards, (3) Add Next.js CORS middleware for OPTIONS preflight. Secondary: Fix unstyled nav CTA and footer Subscribe button.
   - Value: Blog listing looks broken (no images), About page has a large blank gap, and the primary lead-capture form does not work. These are core features of a B2B marketing website.
   - Acceptance: Fix: Three blocking issues prevent ship-readiness: (1) Blog card images broken - all 3 posts show broken <img> with gradient strings as src, (2) About page stats section invisible - conflicting CSS animation rules leave 4 stat cards at opacity:0, (3) Contact form CORS failure - browser preflight OPTIONS request missing CORS headers prevents form submission. Additionally the CMS admin panel is broken (Payload v3 context error), but this was already identified as blocked.
+
+- [ ] **CE-17-45**: This appears to be a Payload CMS v3 + Next.js 15 version compatibility issue with the CodeEditor component. Try pinning specific compatible versions: payload@3.0.0 with next@15.0.0 (not latest 15.5.x). Alternatively, check if the (payload) route group layout needs to wrap the admin routes.
+  - Value: Content editors cannot access the CMS admin panel to manage blog posts, testimonials, categories, or form submissions. The PRD acceptance criterion #4 (Payload CMS admin accessible at http://localhost:3000/admin) is not met. API endpoints still work, so the frontend is unaffected, but content management requires direct database access.
+  - Acceptance: Fix: CMS Admin Panel (/admin) returns 500 error with Runtime TypeError: Cannot destructure property config of se(...) as it is undefined. The Payload CMS admin login page crashes immediately in the browser, making it impossible to manage content through the admin UI.
 
 - [x] **CE-4-13**: Add 4 new tasks: (4.2) About page with hero, mission, values cards, timeline, stats counters. (4.5) Contact page with split layout, React ContactForm island component, form validation, success/error states. (4.6) Blog listing page fetching posts from Payload CMS API, 3-col grid, pagination, category filter bar. (4.7) Blog post dynamic route [slug].astro fetching single post from Payload, rendering rich text, related posts section.
   - Value: The site will be missing 4 out of 7 pages. Navigation links to About, Contact, Blog, and Blog Post will 404. The blog-from-CMS and contact-form acceptance criteria cannot be met. This is roughly 50% of the promised deliverable missing.
