@@ -40,6 +40,7 @@ Evaluate the plan against ALL of these quality dimensions:
 - Dependencies are correctly ordered (no circular deps, no missing prereqs)
 - Tasks are properly sized (not too big, not too trivial)
 - No task assumes external resources that don't exist
+- Multi-framework version combinations are pinned to specific compatible versions (not "latest" or loose ranges like "3.x")
 
 ### 4. VALUE ALIGNMENT (Does this deliver the promised outcome?)
 - The plan delivers what the VISION promises, not a technically correct but useless variant

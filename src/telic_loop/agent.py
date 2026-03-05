@@ -3,7 +3,7 @@
 V4 Roles (4 instead of V3's 7):
 - PLANNER:   Opus, 40 turns, Full + Web   — context discovery, plan creation
 - REVIEWER:  Opus, 20 turns, Read-only     — plan quality review (separate context)
-- BUILDER:   Sonnet, 60 turns, Full        — implementation, verification, fixing
+- BUILDER:   Sonnet, 60 turns, Full + Web  — implementation, verification, fixing
 - EVALUATOR: Opus, 40 turns, Read-only + Playwright — adversarial quality evaluation
 """
 
@@ -71,7 +71,7 @@ class AgentRole(Enum):
     """(model_config_attr, timeout_config_attr, max_turns, tool_set)"""
     PLANNER   = ("model_reasoning", "sdk_timeout_reasoning", 40, "full_web")
     REVIEWER  = ("model_reasoning", "sdk_timeout_reasoning", 20, "readonly")
-    BUILDER   = ("model_execution",  "sdk_timeout_building",  60, "full")
+    BUILDER   = ("model_execution",  "sdk_timeout_building",  60, "full_web")
     EVALUATOR = ("model_reasoning", "sdk_timeout_reasoning", 40, "readonly")
 
 

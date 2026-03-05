@@ -30,6 +30,28 @@ If the project uses a simple server (e.g., `node server.js`, `python app.py`):
 
 **Do this BEFORE any other priority.** Code that isn't running can't be tested or verified.
 
+### Web Research Policy
+
+You have access to WebSearch and WebFetch. These are **strictly limited** to dependency and version troubleshooting:
+
+**ALLOWED:**
+- Searching for version compatibility between frameworks (e.g., "Payload CMS 3.0 Next.js 15 compatibility")
+- Checking changelogs and migration guides for specific package versions
+- Looking up specific error messages you've encountered at runtime
+
+**FORBIDDEN:**
+- Tutorials, how-to guides, or architecture exploration
+- Searching for code examples or implementation patterns
+- General research unrelated to a concrete build failure
+
+**Protocol:**
+1. Try local tools first: `npm view <pkg> versions`, `npm ls`, `pip show`, `pip index versions`, reading `node_modules/<pkg>/package.json`
+2. Only use WebSearch after **2 failed local attempts** to resolve the issue
+3. When you do search, use precise queries with exact package names and version numbers
+4. Apply what you learn immediately — pin versions, swap packages, or adjust config
+
+**Budget:** Max 5 web searches per session. Make each one count.
+
 ### P1: Fix Failing Verifications
 If any verification scripts are failing, fix them FIRST. Regression is non-negotiable.
 
