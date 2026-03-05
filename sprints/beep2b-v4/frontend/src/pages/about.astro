@@ -1,0 +1,495 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Section from '../components/Section.astro';
+import Card from '../components/Card.astro';
+import Badge from '../components/Badge.astro';
+import Button from '../components/Button.astro';
+import SectionDivider from '../components/SectionDivider.astro';
+import { getImageUrl } from '../lib/pixabay';
+
+const heroBackground = getImageUrl('business-office-dark', 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%)');
+
+// Values from PRD
+const values = [
+  {
+    title: 'Relationships Over Reach',
+    description: 'We prioritize building genuine connections with qualified prospects over chasing vanity metrics. A smaller network of the right people always outperforms a massive network of the wrong ones.',
+    icon: '🤝'
+  },
+  {
+    title: 'Systems Over Hustle',
+    description: 'Lead generation shouldn\'t be a daily scramble. We build repeatable systems that deliver predictable results, so you can focus on closing deals instead of chasing leads.',
+    icon: '⚙️'
+  },
+  {
+    title: 'Transparency Always',
+    description: 'You see everything: every message sent, every conversation started, every metric tracked. No black boxes, no hidden strategies. Just clear, honest reporting.',
+    icon: '🔍'
+  },
+  {
+    title: 'Built by Marketers for Marketers',
+    description: 'We\'re not a tech company that stumbled into marketing. We\'re marketers who built the exact system we wished existed when we were grinding for leads ourselves.',
+    icon: '🎯'
+  }
+];
+
+// Timeline milestones
+const timeline = [
+  {
+    year: '2014',
+    title: 'The Beginning',
+    description: 'Founded in the UK with a simple belief: LinkedIn lead generation should be systematic, not random.'
+  },
+  {
+    year: '2016',
+    title: 'BEEP Methodology Created',
+    description: 'After 2 years of experimentation, we codified our 4-step system: Build, Engage, Educate, Promote.'
+  },
+  {
+    year: '2018',
+    title: 'Global Expansion',
+    description: 'Clients in 10 countries. The BEEP system proved it works across cultures, industries, and time zones.'
+  },
+  {
+    year: '2021',
+    title: '500+ Clients Milestone',
+    description: 'Crossed 500 clients across 22 countries. Launched training programs so teams could learn and own the system.'
+  },
+  {
+    year: '2024',
+    title: 'Today',
+    description: 'A proven, battle-tested system helping B2B companies worldwide turn LinkedIn into their #1 lead source.'
+  }
+];
+---
+
+<BaseLayout
+  title="About Us - Our Story | Beep2B"
+  description="Learn about Beep2B: founded in 2014, serving 500+ clients across 22 countries with our proven BEEP methodology for LinkedIn lead generation."
+>
+  <!-- Hero Section -->
+  <section class="hero" style={`background-image: url(${heroBackground});`}>
+    <div class="hero-overlay"></div>
+    <div class="hero-content" data-animate="fade-in">
+      <Badge variant="primary">Our Story</Badge>
+      <h1 class="hero-title">Building B2B Lead Generation Systems Since 2014</h1>
+      <p class="hero-subtitle">
+        We're a team of marketers who got tired of the LinkedIn lead generation lottery.
+        So we built a systematic approach that works: the BEEP methodology.
+        Today, we've helped 500+ companies across 22 countries turn LinkedIn into a predictable pipeline.
+      </p>
+    </div>
+  </section>
+
+  <SectionDivider />
+
+  <!-- Mission Section -->
+  <Section label="Our Mission">
+    <div class="mission-container" data-animate="slide-up">
+      <h2 class="section-heading">Make Systematic B2B Lead Generation Accessible</h2>
+      <p class="mission-text">
+        Every entrepreneur and marketer deserves a repeatable, transparent system for generating B2B leads on LinkedIn.
+        Not a black-box service. Not a hope-and-pray approach. A clear methodology you can learn, implement, and scale.
+      </p>
+      <p class="mission-text">
+        That's why we don't just execute for you — we teach you the BEEP system.
+        So whether you hire us to run it or train your team to own it, you're never dependent on a vendor.
+        You own the process, the playbook, and the results.
+      </p>
+    </div>
+  </Section>
+
+  <SectionDivider variant="spaced" />
+
+  <!-- Values Section -->
+  <Section label="What We Believe">
+    <h2 class="section-heading text-center" data-animate="fade-in">Our Core Values</h2>
+    <div class="values-grid" data-stagger>
+      {values.map((value) => (
+        <Card class="value-card">
+          <div class="value-icon">{value.icon}</div>
+          <h3 class="value-title">{value.title}</h3>
+          <p class="value-description">{value.description}</p>
+        </Card>
+      ))}
+    </div>
+  </Section>
+
+  <SectionDivider variant="spaced" />
+
+  <!-- Timeline Section -->
+  <Section label="Our Journey">
+    <h2 class="section-heading text-center" data-animate="fade-in">A Decade of Refinement</h2>
+    <div class="timeline">
+      {timeline.map((milestone, index) => (
+        <div class="timeline-item" data-animate="slide-left">
+          <div class="timeline-marker">
+            <div class="timeline-dot"></div>
+            <div class="timeline-line"></div>
+          </div>
+          <div class="timeline-content">
+            <Badge variant="accent" class="timeline-badge">{milestone.year}</Badge>
+            <h3 class="timeline-title">{milestone.title}</h3>
+            <p class="timeline-description">{milestone.description}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </Section>
+
+  <SectionDivider variant="spaced" />
+
+  <!-- Stats Section -->
+  <Section label="By The Numbers" parallax>
+    <div class="stats-container" data-stagger>
+      <div class="stat-card" data-animate="scale-in">
+        <div class="stat-number" data-counter="500">0</div>
+        <div class="stat-label">Clients Served</div>
+      </div>
+      <div class="stat-card" data-animate="scale-in">
+        <div class="stat-number" data-counter="22">0</div>
+        <div class="stat-label">Countries</div>
+      </div>
+      <div class="stat-card" data-animate="scale-in">
+        <div class="stat-number" data-counter="2014">0</div>
+        <div class="stat-label">Established</div>
+      </div>
+      <div class="stat-card" data-animate="scale-in">
+        <div class="stat-number" data-counter="4">0</div>
+        <div class="stat-label">BEEP Steps</div>
+      </div>
+    </div>
+  </Section>
+
+  <SectionDivider variant="spaced" />
+
+  <!-- CTA Section -->
+  <Section>
+    <div class="cta-box" data-animate="fade-in">
+      <h2 class="cta-title">Ready to Build Your LinkedIn Pipeline?</h2>
+      <p class="cta-text">
+        Book a discovery call and we'll show you exactly how the BEEP methodology can work for your business.
+      </p>
+      <div class="cta-buttons">
+        <Button href="/contact" variant="primary" size="lg">Book a Discovery Call</Button>
+        <Button href="/how-it-works" variant="secondary" size="lg">Learn the BEEP System</Button>
+      </div>
+    </div>
+  </Section>
+</BaseLayout>
+
+<style>
+  /* Hero Section */
+  .hero {
+    position: relative;
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    overflow: hidden;
+  }
+
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(10, 10, 15, 0.95) 0%,
+      rgba(26, 26, 46, 0.85) 100%
+    );
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 900px;
+    padding: var(--space-8);
+    text-align: center;
+  }
+
+  .hero-title {
+    font-size: var(--text-4xl);
+    font-weight: var(--font-bold);
+    line-height: var(--line-tight);
+    margin: var(--space-6) 0 var(--space-4);
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-subtitle {
+    font-size: var(--text-lg);
+    line-height: var(--line-relaxed);
+    color: var(--color-text-secondary);
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  /* Mission Section */
+  .mission-container {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .section-heading {
+    font-size: var(--text-3xl);
+    font-weight: var(--font-bold);
+    line-height: var(--line-tight);
+    margin-bottom: var(--space-6);
+    color: var(--color-text-primary);
+  }
+
+  .mission-text {
+    font-size: var(--text-lg);
+    line-height: var(--line-relaxed);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-4);
+  }
+
+  /* Values Section */
+  .values-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-6);
+    margin-top: var(--space-8);
+  }
+
+  .value-card {
+    text-align: center;
+  }
+
+  .value-icon {
+    font-size: 3rem;
+    margin-bottom: var(--space-4);
+  }
+
+  .value-title {
+    font-size: var(--text-xl);
+    font-weight: var(--font-semibold);
+    margin-bottom: var(--space-3);
+    color: var(--color-text-primary);
+  }
+
+  .value-description {
+    font-size: var(--text-base);
+    line-height: var(--line-relaxed);
+    color: var(--color-text-secondary);
+  }
+
+  /* Timeline Section */
+  .timeline {
+    max-width: 800px;
+    margin: var(--space-8) auto 0;
+  }
+
+  .timeline-item {
+    display: grid;
+    grid-template-columns: 60px 1fr;
+    gap: var(--space-6);
+    margin-bottom: var(--space-8);
+    position: relative;
+  }
+
+  .timeline-item:last-child .timeline-line {
+    display: none;
+  }
+
+  .timeline-marker {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .timeline-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--gradient-primary);
+    border: 3px solid var(--color-bg-primary);
+    box-shadow: 0 0 0 3px rgba(79, 125, 247, 0.3);
+    z-index: 2;
+  }
+
+  .timeline-line {
+    width: 2px;
+    flex: 1;
+    background: linear-gradient(
+      180deg,
+      var(--color-accent-primary) 0%,
+      rgba(79, 125, 247, 0.2) 100%
+    );
+    margin-top: var(--space-2);
+  }
+
+  .timeline-content {
+    padding-bottom: var(--space-6);
+  }
+
+  .timeline-badge {
+    margin-bottom: var(--space-2);
+  }
+
+  .timeline-title {
+    font-size: var(--text-xl);
+    font-weight: var(--font-semibold);
+    margin-bottom: var(--space-2);
+    color: var(--color-text-primary);
+  }
+
+  .timeline-description {
+    font-size: var(--text-base);
+    line-height: var(--line-relaxed);
+    color: var(--color-text-secondary);
+  }
+
+  /* Stats Section */
+  .stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-8);
+    margin-top: var(--space-8);
+  }
+
+  .stat-card {
+    text-align: center;
+    padding: var(--space-6);
+  }
+
+  .stat-number {
+    font-size: var(--text-5xl);
+    font-weight: var(--font-black);
+    line-height: 1;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: var(--space-3);
+  }
+
+  .stat-label {
+    font-size: var(--text-lg);
+    font-weight: var(--font-medium);
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-wide);
+  }
+
+  /* CTA Section */
+  .cta-box {
+    background: var(--gradient-dark);
+    border: 1px solid rgba(79, 125, 247, 0.2);
+    border-radius: var(--radius-xl);
+    padding: var(--space-16);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-box::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--gradient-primary);
+    opacity: 0.05;
+    pointer-events: none;
+  }
+
+  .cta-title {
+    font-size: var(--text-3xl);
+    font-weight: var(--font-bold);
+    margin-bottom: var(--space-4);
+    color: var(--color-text-primary);
+    position: relative;
+  }
+
+  .cta-text {
+    font-size: var(--text-lg);
+    color: var(--color-text-secondary);
+    max-width: 600px;
+    margin: 0 auto var(--space-6);
+    position: relative;
+  }
+
+  .cta-buttons {
+    display: flex;
+    gap: var(--space-4);
+    justify-content: center;
+    flex-wrap: wrap;
+    position: relative;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .hero {
+      min-height: 50vh;
+    }
+
+    .hero-title {
+      font-size: var(--text-2xl);
+    }
+
+    .hero-subtitle {
+      font-size: var(--text-base);
+    }
+
+    .section-heading {
+      font-size: var(--text-2xl);
+    }
+
+    .values-grid {
+      grid-template-columns: 1fr;
+      gap: var(--space-4);
+    }
+
+    .timeline-item {
+      grid-template-columns: 40px 1fr;
+      gap: var(--space-4);
+    }
+
+    .stats-container {
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-4);
+    }
+
+    .cta-box {
+      padding: var(--space-8);
+    }
+
+    .cta-title {
+      font-size: var(--text-xl);
+    }
+
+    .cta-buttons {
+      flex-direction: column;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .hero-title {
+      font-size: var(--text-xl);
+    }
+
+    .section-heading {
+      font-size: var(--text-xl);
+    }
+
+    .stats-container {
+      grid-template-columns: 1fr;
+    }
+
+    .stat-number {
+      font-size: var(--text-4xl);
+    }
+  }
+
+  /* Utilities */
+  .text-center {
+    text-align: center;
+  }
+</style>

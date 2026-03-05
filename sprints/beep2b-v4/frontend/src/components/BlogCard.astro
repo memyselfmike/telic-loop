@@ -1,0 +1,205 @@
+---
+import Badge from './Badge.astro';
+import { getImageUrl } from '../lib/pixabay';
+import { formatDate, getResponsiveImageUrl, type Post, type Category } from '../lib/cms';
+
+interface Props {
+  post: Post;
+  class?: string;
+}
+
+const { post, class: className = '' } = Astro.props;
+
+// Get featured image or fallback
+const featuredImage = getResponsiveImageUrl(post.featuredImage, 'card')
+  || getImageUrl('business-abstract', 'linear-gradient(135deg, #1a1a2e 0%, #0a0a0f 100%)');
+
+// Extract category objects
+const categories = Array.isArray(post.categories)
+  ? post.categories.filter((cat): cat is Category => typeof cat === 'object')
+  : [];
+---
+
+<article class={`blog-card ${className}`}>
+  <a href={`/blog/${post.slug}`} class="card-link">
+    <div class="card-image">
+      <img src={featuredImage} alt={post.title} loading="lazy" />
+      <div class="image-overlay"></div>
+    </div>
+
+    <div class="card-content">
+      {categories.length > 0 && (
+        <div class="card-categories">
+          {categories.slice(0, 2).map((category) => (
+            <Badge variant="primary" size="sm">{category.title}</Badge>
+          ))}
+        </div>
+      )}
+
+      <h3 class="card-title">{post.title}</h3>
+
+      <div class="card-meta">
+        <span class="meta-author">{post.author}</span>
+        <span class="meta-separator">•</span>
+        <span class="meta-date">{formatDate(post.date)}</span>
+      </div>
+
+      <p class="card-excerpt">{post.excerpt}</p>
+
+      <div class="card-footer">
+        <span class="read-more">
+          Read Article
+          <span class="arrow">→</span>
+        </span>
+      </div>
+    </div>
+  </a>
+</article>
+
+<style>
+  .blog-card {
+    height: 100%;
+    background: rgba(18, 18, 26, 0.6);
+    border: 1px solid rgba(79, 125, 247, 0.15);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: all var(--transition-base);
+    position: relative;
+  }
+
+  .blog-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    border-color: rgba(79, 125, 247, 0.3);
+  }
+
+  .card-link {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .card-image {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+  }
+
+  .card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--transition-slow);
+  }
+
+  .blog-card:hover .card-image img {
+    transform: scale(1.05);
+  }
+
+  .image-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(10, 10, 15, 0) 0%,
+      rgba(10, 10, 15, 0.4) 100%
+    );
+  }
+
+  .card-content {
+    flex: 1;
+    padding: var(--space-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .card-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-1);
+  }
+
+  .card-title {
+    font-size: var(--text-xl);
+    font-weight: var(--font-bold);
+    line-height: var(--line-tight);
+    color: var(--color-text-primary);
+    margin: 0;
+    transition: color var(--transition-base);
+  }
+
+  .blog-card:hover .card-title {
+    color: var(--color-accent-primary);
+  }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+  }
+
+  .meta-author {
+    font-weight: var(--font-medium);
+  }
+
+  .meta-separator {
+    opacity: 0.5;
+  }
+
+  .card-excerpt {
+    flex: 1;
+    font-size: var(--text-base);
+    line-height: var(--line-relaxed);
+    color: var(--color-text-secondary);
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-footer {
+    padding-top: var(--space-2);
+    border-top: 1px solid rgba(79, 125, 247, 0.1);
+  }
+
+  .read-more {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    color: var(--color-accent-primary);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-wide);
+  }
+
+  .arrow {
+    transition: transform var(--transition-base);
+  }
+
+  .blog-card:hover .arrow {
+    transform: translateX(4px);
+  }
+
+  @media (max-width: 768px) {
+    .card-content {
+      padding: var(--space-4);
+    }
+
+    .card-title {
+      font-size: var(--text-lg);
+    }
+
+    .card-excerpt {
+      font-size: var(--text-sm);
+    }
+  }
+</style>

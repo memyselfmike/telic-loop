@@ -1,0 +1,465 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Section from '../components/Section.astro';
+import Badge from '../components/Badge.astro';
+import BlogCard from '../components/BlogCard.astro';
+import SectionDivider from '../components/SectionDivider.astro';
+import { getPosts, getCategories } from '../lib/cms';
+import { getImageUrl } from '../lib/pixabay';
+
+const heroBackground = getImageUrl('digital-marketing', 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%)');
+
+// Get pagination from URL
+const currentPage = Number(Astro.url.searchParams.get('page')) || 1;
+const selectedCategory = Astro.url.searchParams.get('category') || '';
+
+// Fetch posts and categories
+const postsData = await getPosts({
+  page: currentPage,
+  limit: 9,
+  category: selectedCategory || undefined
+});
+
+const categories = await getCategories();
+
+const posts = postsData?.docs || [];
+const totalPages = postsData?.totalPages || 1;
+const hasNextPage = postsData?.hasNextPage || false;
+const hasPrevPage = postsData?.hasPrevPage || false;
+---
+
+<BaseLayout
+  title="Blog - LinkedIn Lead Generation Insights | Beep2B"
+  description="Expert insights, strategies, and case studies on B2B lead generation, LinkedIn marketing, and the BEEP methodology."
+>
+  <!-- Hero Section -->
+  <section class="hero" style={`background-image: url(${heroBackground});`}>
+    <div class="hero-overlay"></div>
+    <div class="hero-content" data-animate="fade-in">
+      <Badge variant="primary">Insights & Strategies</Badge>
+      <h1 class="hero-title">The Beep2B Blog</h1>
+      <p class="hero-subtitle">
+        Practical advice on LinkedIn lead generation, relationship selling, and building systematic B2B pipelines.
+      </p>
+    </div>
+  </section>
+
+  <SectionDivider />
+
+  <!-- Category Filter -->
+  <Section>
+    <div class="filter-bar" data-animate="slide-up">
+      <div class="filter-label">Filter by category:</div>
+      <div class="filter-buttons">
+        <a
+          href="/blog"
+          class={`filter-button ${selectedCategory === '' ? 'active' : ''}`}
+        >
+          All Posts
+        </a>
+        {categories.map((category) => (
+          <a
+            href={`/blog?category=${category.slug}`}
+            class={`filter-button ${selectedCategory === category.slug ? 'active' : ''}`}
+          >
+            {category.title}
+          </a>
+        ))}
+      </div>
+    </div>
+  </Section>
+
+  <!-- Posts Grid -->
+  <Section>
+    {posts.length > 0 ? (
+      <div class="posts-grid" data-stagger>
+        {posts.map((post) => (
+          <BlogCard post={post} />
+        ))}
+      </div>
+    ) : (
+      <div class="empty-state" data-animate="fade-in">
+        <div class="empty-icon">📭</div>
+        <h2 class="empty-title">No posts found</h2>
+        <p class="empty-text">
+          {selectedCategory
+            ? `No articles in the "${selectedCategory}" category yet. Try browsing all posts.`
+            : 'Check back soon for new content!'}
+        </p>
+        {selectedCategory && (
+          <a href="/blog" class="btn btn-primary btn-md">
+            View All Posts
+          </a>
+        )}
+      </div>
+    )}
+  </Section>
+
+  <!-- Pagination -->
+  {totalPages > 1 && (
+    <Section>
+      <nav class="pagination" aria-label="Blog pagination">
+        {hasPrevPage && (
+          <a
+            href={`/blog?page=${currentPage - 1}${selectedCategory ? `&category=${selectedCategory}` : ''}`}
+            class="pagination-button pagination-prev"
+            aria-label="Previous page"
+          >
+            ← Previous
+          </a>
+        )}
+
+        <div class="pagination-info">
+          Page {currentPage} of {totalPages}
+        </div>
+
+        {hasNextPage && (
+          <a
+            href={`/blog?page=${currentPage + 1}${selectedCategory ? `&category=${selectedCategory}` : ''}`}
+            class="pagination-button pagination-next"
+            aria-label="Next page"
+          >
+            Next →
+          </a>
+        )}
+      </nav>
+    </Section>
+  )}
+
+  <SectionDivider variant="spaced" />
+
+  <!-- CTA Section -->
+  <Section>
+    <div class="cta-box" data-animate="fade-in">
+      <h2 class="cta-title">Ready to Put These Strategies Into Action?</h2>
+      <p class="cta-text">
+        Learn how the BEEP methodology can transform your LinkedIn presence into a consistent lead generation machine.
+      </p>
+      <div class="cta-buttons">
+        <a href="/contact" class="btn btn-primary btn-lg">Book a Discovery Call</a>
+        <a href="/how-it-works" class="btn btn-secondary btn-lg">Learn the BEEP System</a>
+      </div>
+    </div>
+  </Section>
+</BaseLayout>
+
+<style>
+  /* Hero Section */
+  .hero {
+    position: relative;
+    min-height: 40vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    overflow: hidden;
+  }
+
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(10, 10, 15, 0.95) 0%,
+      rgba(26, 26, 46, 0.85) 100%
+    );
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 800px;
+    padding: var(--space-8);
+    text-align: center;
+  }
+
+  .hero-title {
+    font-size: var(--text-4xl);
+    font-weight: var(--font-bold);
+    line-height: var(--line-tight);
+    margin: var(--space-6) 0 var(--space-4);
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-subtitle {
+    font-size: var(--text-lg);
+    line-height: var(--line-relaxed);
+    color: var(--color-text-secondary);
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  /* Filter Bar */
+  .filter-bar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-6);
+    background: rgba(18, 18, 26, 0.4);
+    border: 1px solid rgba(79, 125, 247, 0.1);
+    border-radius: var(--radius-lg);
+  }
+
+  .filter-label {
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-wide);
+  }
+
+  .filter-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .filter-button {
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    color: var(--color-text-secondary);
+    background: transparent;
+    border: 1px solid rgba(79, 125, 247, 0.2);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    transition: all var(--transition-base);
+    white-space: nowrap;
+  }
+
+  .filter-button:hover {
+    background: rgba(79, 125, 247, 0.1);
+    color: var(--color-accent-primary);
+    border-color: rgba(79, 125, 247, 0.3);
+  }
+
+  .filter-button.active {
+    background: var(--gradient-primary);
+    color: var(--color-text-primary);
+    border-color: transparent;
+  }
+
+  /* Posts Grid */
+  .posts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--space-8);
+    margin-top: var(--space-8);
+  }
+
+  /* Empty State */
+  .empty-state {
+    text-align: center;
+    padding: var(--space-16) var(--space-8);
+  }
+
+  .empty-icon {
+    font-size: 4rem;
+    margin-bottom: var(--space-4);
+  }
+
+  .empty-title {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-bold);
+    margin-bottom: var(--space-3);
+    color: var(--color-text-primary);
+  }
+
+  .empty-text {
+    font-size: var(--text-lg);
+    line-height: var(--line-relaxed);
+    color: var(--color-text-secondary);
+    max-width: 500px;
+    margin: 0 auto var(--space-6);
+  }
+
+  /* Pagination */
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-6);
+    padding: var(--space-8) 0;
+  }
+
+  .pagination-button {
+    padding: var(--space-3) var(--space-6);
+    font-size: var(--text-base);
+    font-weight: var(--font-semibold);
+    color: var(--color-text-primary);
+    background: rgba(79, 125, 247, 0.1);
+    border: 1px solid rgba(79, 125, 247, 0.3);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    transition: all var(--transition-base);
+  }
+
+  .pagination-button:hover {
+    background: rgba(79, 125, 247, 0.2);
+    border-color: var(--color-accent-primary);
+    transform: translateY(-2px);
+  }
+
+  .pagination-info {
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    color: var(--color-text-muted);
+  }
+
+  /* CTA Box */
+  .cta-box {
+    background: var(--gradient-dark);
+    border: 1px solid rgba(79, 125, 247, 0.2);
+    border-radius: var(--radius-xl);
+    padding: var(--space-16);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-box::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--gradient-primary);
+    opacity: 0.05;
+    pointer-events: none;
+  }
+
+  .cta-title {
+    font-size: var(--text-3xl);
+    font-weight: var(--font-bold);
+    margin-bottom: var(--space-4);
+    color: var(--color-text-primary);
+    position: relative;
+  }
+
+  .cta-text {
+    font-size: var(--text-lg);
+    color: var(--color-text-secondary);
+    max-width: 600px;
+    margin: 0 auto var(--space-6);
+    position: relative;
+  }
+
+  .cta-buttons {
+    display: flex;
+    gap: var(--space-4);
+    justify-content: center;
+    flex-wrap: wrap;
+    position: relative;
+  }
+
+  /* Import button styles from Button component */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    font-weight: var(--font-semibold);
+    text-decoration: none;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    white-space: nowrap;
+    font-family: inherit;
+  }
+
+  .btn-md {
+    padding: var(--space-3) var(--space-6);
+    font-size: var(--text-base);
+  }
+
+  .btn-lg {
+    padding: var(--space-4) var(--space-8);
+    font-size: var(--text-lg);
+  }
+
+  .btn-primary {
+    background: var(--gradient-primary);
+    color: var(--color-text-primary);
+    box-shadow: var(--shadow-glow-sm);
+  }
+
+  .btn-primary:hover {
+    box-shadow: var(--shadow-glow-md);
+    transform: translateY(-2px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--color-accent-primary);
+    border: 2px solid var(--color-accent-primary);
+  }
+
+  .btn-secondary:hover {
+    background: var(--color-accent-primary);
+    color: var(--color-text-primary);
+    box-shadow: var(--shadow-glow-sm);
+  }
+
+  /* Responsive */
+  @media (max-width: 1024px) {
+    .posts-grid {
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: var(--space-6);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .hero {
+      min-height: 35vh;
+    }
+
+    .hero-title {
+      font-size: var(--text-2xl);
+    }
+
+    .hero-subtitle {
+      font-size: var(--text-base);
+    }
+
+    .posts-grid {
+      grid-template-columns: 1fr;
+      gap: var(--space-4);
+    }
+
+    .pagination {
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+
+    .cta-box {
+      padding: var(--space-8);
+    }
+
+    .cta-title {
+      font-size: var(--text-xl);
+    }
+
+    .cta-buttons {
+      flex-direction: column;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .hero-title {
+      font-size: var(--text-xl);
+    }
+
+    .filter-buttons {
+      flex-direction: column;
+    }
+
+    .filter-button {
+      width: 100%;
+      text-align: center;
+    }
+  }
+</style>

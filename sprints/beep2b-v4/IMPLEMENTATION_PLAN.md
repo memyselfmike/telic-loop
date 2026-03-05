@@ -1,6 +1,6 @@
 # Implementation Plan (rendered from state)
 
-Generated: 2026-03-05T09:37:07.600476
+Generated: 2026-03-05T09:50:42.198787
 
 
 ## Infrastructure
@@ -63,44 +63,64 @@ Generated: 2026-03-05T09:37:07.600476
 
 ## Pages
 
-- [ ] **4.1**: Build complete Home page (index.astro). Hero: bold headline, subtitle, dual CTAs, Pixabay bg with dark overlay, animated entrance. Trust bar: 4 animated counters. Features grid: 6 numbered glass-morphism cards with staggered entrance. BEEP preview: 4-step visual with letter badges and CTA to /how-it-works. Testimonials: 3 cards with quotes, names, roles, star ratings. CTA banner: gradient bg. Create FeatureCard.astro and TestimonialCard.astro.
+- [x] **4.1**: Build complete Home page (index.astro). Hero: bold headline, subtitle, dual CTAs, Pixabay bg with dark overlay, animated entrance. Trust bar: 4 animated counters. Features grid: 6 numbered glass-morphism cards with staggered entrance. BEEP preview: 4-step visual with letter badges and CTA to /how-it-works. Testimonials: 3 cards with quotes, names, roles, star ratings. CTA banner: gradient bg. Create FeatureCard.astro and TestimonialCard.astro.
   - Value: Landing page makes powerful first impression with premium hero, social proof counters, and clear value proposition
   - Acceptance: Hero renders with Pixabay bg, dark overlay, headline, 2 CTAs. Trust bar counters animate on scroll. 6 feature cards in 3-col grid with numbered badges. BEEP shows 4 steps with colored letter badges. 3 testimonials with star ratings. CTA banner with gradient. All copy from PRD.
   - Deps: 3.2, 3.4, 3.5
 
-- [ ] **4.3**: Build How It Works page (how-it-works.astro). Hero banner with page title. Interactive 4-step BEEP methodology with alternating left/right layout. Each step: large step number (01-04), letter badge (B/E/E/P) with unique accent color, heading, detailed description paragraph, highlight badge. Scroll-triggered entrance animation per step. Below: "Why BEEP Works" section with 3 differentiator glass-morphism cards. All copy from PRD.
+- [ ] **4.2**: Build About page (about.astro). Hero: Our Story with company narrative. Mission statement. 4 values cards (glass-morphism): Relationships Over Reach, Systems Over Hustle, Transparency Always, Built by Marketers for Marketers. Timeline: 5 milestones from 2014 to today. Stats section with animated counters matching trust bar. All copy from PRD.
+  - Value: Prospects learn the company story, mission, and values that differentiate Beep2B
+  - Acceptance: About page renders with hero, mission, 4 values cards, timeline, animated stats. All copy matches PRD About section.
+  - Deps: 3.2, 3.4
+
+- [x] **4.3**: Build How It Works page (how-it-works.astro). Hero banner with page title. Interactive 4-step BEEP methodology with alternating left/right layout. Each step: large step number (01-04), letter badge (B/E/E/P) with unique accent color, heading, detailed description paragraph, highlight badge. Scroll-triggered entrance animation per step. Below: "Why BEEP Works" section with 3 differentiator glass-morphism cards. All copy from PRD.
   - Value: Prospects understand exactly how the BEEP methodology works through an engaging interactive walkthrough
   - Acceptance: 4 BEEP steps render in alternating layout with colored letter badges. Each step animates on scroll. Why BEEP Works shows 3 differentiator cards. All copy matches PRD content.
   - Deps: 3.2, 3.4
 
-- [ ] **4.4**: Build Services page (services.astro). 3 numbered service blocks in Nexus style: 01 LinkedIn Marketing (managed outreach, profile optimization, connection building, conversation sequences, monthly reporting, account manager), 02 Thought Leadership Marketing (content strategy, ghostwritten articles, engagement campaigns, newsletter setup), 03 LinkedIn Training (workshops, BEEP playbook, profile audits, coaching). Each: numbered heading, description paragraph, 5-6 bullet benefits, CTA button. Scroll-triggered animations.
+- [x] **4.4**: Build Services page (services.astro). 3 numbered service blocks in Nexus style: 01 LinkedIn Marketing (managed outreach, profile optimization, connection building, conversation sequences, monthly reporting, account manager), 02 Thought Leadership Marketing (content strategy, ghostwritten articles, engagement campaigns, newsletter setup), 03 LinkedIn Training (workshops, BEEP playbook, profile audits, coaching). Each: numbered heading, description paragraph, 5-6 bullet benefits, CTA button. Scroll-triggered animations.
   - Value: Prospects see detailed service offerings with clear benefits, driving them toward a discovery call
   - Acceptance: 3 numbered service blocks render with headings, descriptions, bullet benefit lists, and CTA buttons. Each block animates on scroll. All copy matches PRD services section.
   - Deps: 3.2, 3.4
 
+- [ ] **4.5**: Build Contact page (contact.astro). Split layout: left = Why Book a Discovery Call? with 4 benefits list, right = contact form. Form: Name, Email, Company, Message fields with validation. React island ContactForm.tsx for interactivity. Submit with loading state, success message, error handling. Contact details: hello@beep2b.com, LinkedIn link. Create ContactForm.tsx React component.
+  - Value: Prospects can submit inquiries and book discovery calls directly from the site
+  - Acceptance: Contact page renders split layout. Form validates required fields. Shows loading/success/error states. All copy from PRD Contact section.
+  - Deps: 3.4
+
+- [ ] **4.6**: Build Blog listing page (blog.astro). Fetch posts from Payload CMS API at /api/posts. 3-col grid (responsive to 2-col/1-col). Each card: featured image or Pixabay fallback, title, date, category badges, excerpt, read more link. Category filter bar at top. Pagination (10 posts per page). Create BlogCard.astro component. Create lib/cms.ts helper for CMS API calls.
+  - Value: Visitors can browse blog content, filter by category, driving SEO and thought leadership
+  - Acceptance: Blog page fetches and displays posts from CMS. Category filter works. Pagination shows 10 per page. Cards show images, titles, dates, excerpts.
+  - Deps: 2.2, 3.4, 3.5
+
+- [ ] **4.7**: Build Blog Post dynamic route ([slug].astro). Fetch single post from Payload /api/posts?where[slug][equals]=. Featured image header. Title, author, date, category badges. Render rich text content from Payload lexical editor. Related posts section: 3 posts from same category. Create RichText.astro component for lexical content rendering. Use cms.ts helper.
+  - Value: Visitors can read full blog articles with rich formatting, driving engagement and authority
+  - Acceptance: Blog post page fetches and renders individual posts. Rich text displays headings, images, lists, blockquotes. Related posts show 3 from same category.
+  - Deps: 4.6
+
 
 ## Unphased
 
-- [ ] **CE-4-13**: Add 4 new tasks: (4.2) About page with hero, mission, values cards, timeline, stats counters. (4.5) Contact page with split layout, React ContactForm island component, form validation, success/error states. (4.6) Blog listing page fetching posts from Payload CMS API, 3-col grid, pagination, category filter bar. (4.7) Blog post dynamic route [slug].astro fetching single post from Payload, rendering rich text, related posts section.
+- [x] **CE-4-13**: Add 4 new tasks: (4.2) About page with hero, mission, values cards, timeline, stats counters. (4.5) Contact page with split layout, React ContactForm island component, form validation, success/error states. (4.6) Blog listing page fetching posts from Payload CMS API, 3-col grid, pagination, category filter bar. (4.7) Blog post dynamic route [slug].astro fetching single post from Payload, rendering rich text, related posts section.
   - Value: The site will be missing 4 out of 7 pages. Navigation links to About, Contact, Blog, and Blog Post will 404. The blog-from-CMS and contact-form acceptance criteria cannot be met. This is roughly 50% of the promised deliverable missing.
   - Acceptance: Fix: 4 of 7 required pages are completely missing from the plan: About (/about), Contact (/contact), Blog listing (/blog), and Blog Post (/blog/[slug]). The PRD explicitly requires all 7 pages navigable from the nav bar (Acceptance Criterion #3). The blog pages are especially critical since they require CMS integration (Acceptance Criterion #5: Blog posts render from Payload CMS data). The Contact page requires a React island for form interactivity (Acceptance Criterion #6: Contact form validates inputs).
 
-- [ ] **CE-4-14**: Update Task 1.1 to use MONGODB_URI instead of DATABASE_URL, matching the ARCHITECTURE.md specification and Payload CMS 3.x conventions.
+- [x] **CE-4-14**: Update Task 1.1 to use MONGODB_URI instead of DATABASE_URL, matching the ARCHITECTURE.md specification and Payload CMS 3.x conventions.
   - Value: CMS will not connect to MongoDB on docker compose up if the wrong env var is used, breaking the entire stack on first launch.
   - Acceptance: Fix: Environment variable mismatch between Architecture doc and Task 1.1. ARCHITECTURE.md specifies MONGODB_URI=mongodb://db:27017/beep2b but Task 1.1 uses DATABASE_URL=mongodb://db:27017/beep2b. Payload CMS 3.x with @payloadcms/db-mongodb uses MONGODB_URI (or the uri option in mongooseAdapter). Using the wrong env var name will cause the CMS to fail to connect to MongoDB.
 
-- [ ] **CE-4-15**: Change CMS service in Task 1.1 from node:22-alpine to node:20-alpine to match ARCHITECTURE.md.
+- [x] **CE-4-15**: Change CMS service in Task 1.1 from node:22-alpine to node:20-alpine to match ARCHITECTURE.md.
   - Value: Potential build failures or runtime incompatibilities from Node version mismatch between ARCHITECTURE spec and plan.
   - Acceptance: Fix: Task 1.1 specifies node:22-alpine for the CMS service, but ARCHITECTURE.md specifies node:20-alpine for both frontend and CMS. Payload CMS 3.x with Next.js 15 works fine on Node 20, and using mismatched Node versions between services is unnecessary complexity. More importantly, node:22-alpine may have compatibility issues with native modules like sharp.
 
-- [ ] **CE-4-16**: Add responsive breakpoint custom properties to Task 3.1 (e.g., --breakpoint-sm: 480px, --breakpoint-md: 768px, --breakpoint-lg: 1280px). Add responsive media queries to global.css and each component. Alternatively, add a dedicated responsive pass task after all pages are built, but it is better to bake responsiveness into each component task.
+- [x] **CE-4-16**: Add responsive breakpoint custom properties to Task 3.1 (e.g., --breakpoint-sm: 480px, --breakpoint-md: 768px, --breakpoint-lg: 1280px). Add responsive media queries to global.css and each component. Alternatively, add a dedicated responsive pass task after all pages are built, but it is better to bake responsiveness into each component task.
   - Value: Site will look broken on tablets and phones. The 480px breakpoint (mobile) will have overflowing content, unreadable text, and broken layouts for grids, hero sections, and footer columns.
   - Acceptance: Fix: No responsive design task exists. PRD Acceptance Criterion #9 requires responsive layout at 1280px, 768px, and 480px breakpoints. The design token system (3.1) defines sizes but no media query breakpoints or responsive utilities. Individual page tasks mention no responsive considerations. Without explicit responsive work, the 3-column grids, hero sections, and multi-column footer will break at mobile viewports.
 
-- [ ] **CE-4-17**: Task 3.4 should specify: (a) creating a MobileNav.tsx React island or inline <script> for toggle state, (b) the slide-in/dropdown menu panel design, (c) body scroll lock when menu is open, (d) menu closes on link click and on escape key. Add MobileNav component to files_expected.
+- [x] **CE-4-17**: Task 3.4 should specify: (a) creating a MobileNav.tsx React island or inline <script> for toggle state, (b) the slide-in/dropdown menu panel design, (c) body scroll lock when menu is open, (d) menu closes on link click and on escape key. Add MobileNav component to files_expected.
   - Value: On mobile viewports (480px, 768px), users will see a hamburger icon that does not work. They will have no way to navigate between pages on mobile devices.
   - Acceptance: Fix: Mobile navigation has no implementation plan. Task 3.4 mentions a mobile hamburger icon trigger but does not describe the mobile menu panel, toggle behavior, or the React island needed for interactive state. Astro components are static HTML -- a hamburger menu toggle requires JavaScript interactivity, either as a React island or inline script. Without this, the hamburger icon will render but clicking it will do nothing.
 
-- [ ] **CE-4-18**: Priority fixes: (1) Add tasks for About, Contact, Blog, Blog Post pages. (2) Fix MONGODB_URI env var name. (3) Fix node version to 20-alpine. (4) Add responsive breakpoints to design system and components. (5) Specify mobile nav toggle implementation. (6) Add CMS API client helper task. (7) Wire testimonial/blog data fetching from CMS.
+- [x] **CE-4-18**: Priority fixes: (1) Add tasks for About, Contact, Blog, Blog Post pages. (2) Fix MONGODB_URI env var name. (3) Fix node version to 20-alpine. (4) Add responsive breakpoints to design system and components. (5) Specify mobile nav toggle implementation. (6) Add CMS API client helper task. (7) Wire testimonial/blog data fetching from CMS.
   - Value: If built as planned, the site will be missing About, Contact, Blog, and Blog Post pages. Navigation will have dead links. CMS blog content will be unreachable. Contact form acceptance criterion cannot be met. Mobile experience will be broken. This is not shippable as the beep2b.com website.
   - Acceptance: Fix: PLAN VERDICT: REVISE. The plan has 1 critical gap (4 missing pages = ~50% of deliverable), 4 blocking issues (env var mismatch, node version mismatch, no responsive design, broken mobile nav), 4 degraded issues (missing SectionDivider file, no Pages collection, no CMS data fetching for testimonials, no shared CMS API client), and 2 polish items (task ID gaps, hardcoded API key). The critical gap alone is disqualifying — the PRD promises 7 pages and the plan only delivers 3.

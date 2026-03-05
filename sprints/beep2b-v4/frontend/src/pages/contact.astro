@@ -1,0 +1,415 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Section from '../components/Section.astro';
+import Card from '../components/Card.astro';
+import Badge from '../components/Badge.astro';
+import SectionDivider from '../components/SectionDivider.astro';
+import ContactForm from '../components/ContactForm';
+import { getImageUrl } from '../lib/pixabay';
+
+const heroBackground = getImageUrl('networking-professional', 'linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%)');
+
+// Benefits of booking a discovery call
+const benefits = [
+  {
+    icon: '🎯',
+    title: 'Custom Strategy Session',
+    description: 'We\'ll analyze your industry, target audience, and current LinkedIn presence to design a tailored BEEP roadmap.'
+  },
+  {
+    icon: '📊',
+    title: 'Pipeline Forecast',
+    description: 'Get a realistic estimate of how many qualified leads you can expect per month based on your ICP and market.'
+  },
+  {
+    icon: '💡',
+    title: 'No-Obligation Audit',
+    description: 'We\'ll review your LinkedIn profile and content strategy, highlighting quick wins you can implement immediately.'
+  },
+  {
+    icon: '🚀',
+    title: 'Implementation Options',
+    description: 'Learn whether managed service, training, or a hybrid approach is best for your team and budget.'
+  }
+];
+---
+
+<BaseLayout
+  title="Contact Us - Book a Discovery Call | Beep2B"
+  description="Book a free discovery call to discuss how the BEEP methodology can generate consistent B2B leads on LinkedIn for your business."
+>
+  <!-- Hero Section -->
+  <section class="hero" style={`background-image: url(${heroBackground});`}>
+    <div class="hero-overlay"></div>
+    <div class="hero-content" data-animate="fade-in">
+      <Badge variant="primary">Get Started</Badge>
+      <h1 class="hero-title">Let's Talk About Your LinkedIn Lead Generation Goals</h1>
+      <p class="hero-subtitle">
+        Book a 30-minute discovery call with our team. We'll show you exactly how the BEEP methodology
+        can work for your business — no sales pitch, just strategy.
+      </p>
+    </div>
+  </section>
+
+  <SectionDivider />
+
+  <!-- Main Contact Section -->
+  <Section>
+    <div class="contact-container">
+      <!-- Left Column: Why Book a Call -->
+      <div class="benefits-column" data-animate="slide-right">
+        <h2 class="column-heading">Why Book a Discovery Call?</h2>
+        <p class="column-intro">
+          This isn't a high-pressure sales call. It's a genuine strategy session where we'll:
+        </p>
+
+        <div class="benefits-list">
+          {benefits.map((benefit) => (
+            <div class="benefit-card">
+              <div class="benefit-icon">{benefit.icon}</div>
+              <div class="benefit-content">
+                <h3 class="benefit-title">{benefit.title}</h3>
+                <p class="benefit-description">{benefit.description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div class="contact-details">
+          <h3 class="details-heading">Other Ways to Reach Us</h3>
+          <div class="contact-links">
+            <a href="mailto:hello@beep2b.com" class="contact-link">
+              <span class="link-icon">✉️</span>
+              <span>hello@beep2b.com</span>
+            </a>
+            <a href="https://linkedin.com/company/beep2b" target="_blank" rel="noopener noreferrer" class="contact-link">
+              <span class="link-icon">🔗</span>
+              <span>Follow us on LinkedIn</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Contact Form (React Island) -->
+      <div class="form-column" data-animate="slide-left">
+        <Card class="form-card">
+          <h2 class="form-heading">Book Your Discovery Call</h2>
+          <p class="form-intro">
+            Fill out the form below and we'll reach out within 24 hours to schedule your call.
+          </p>
+          <ContactForm client:load />
+        </Card>
+      </div>
+    </div>
+  </Section>
+
+  <SectionDivider variant="spaced" />
+
+  <!-- FAQ Section -->
+  <Section label="Common Questions">
+    <h2 class="section-heading text-center" data-animate="fade-in">
+      What to Expect on the Call
+    </h2>
+    <div class="faq-grid" data-stagger>
+      <Card>
+        <h3 class="faq-question">How long is the call?</h3>
+        <p class="faq-answer">
+          30 minutes. We respect your time. If you want to go deeper, we can always schedule a follow-up.
+        </p>
+      </Card>
+
+      <Card>
+        <h3 class="faq-question">Will you try to sell me something?</h3>
+        <p class="faq-answer">
+          No hard sell. We'll share honest recommendations based on your situation. If BEEP isn't a fit, we'll tell you.
+        </p>
+      </Card>
+
+      <Card>
+        <h3 class="faq-question">Do I need to prepare anything?</h3>
+        <p class="faq-answer">
+          Just bring clarity on your target audience and current LinkedIn challenges. We'll handle the rest.
+        </p>
+      </Card>
+
+      <Card>
+        <h3 class="faq-question">What if I'm not ready to commit?</h3>
+        <p class="faq-answer">
+          That's fine! Many clients sit on our insights for months before they're ready. The call is still valuable.
+        </p>
+      </Card>
+    </div>
+  </Section>
+</BaseLayout>
+
+<style>
+  /* Hero Section */
+  .hero {
+    position: relative;
+    min-height: 50vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    overflow: hidden;
+  }
+
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(10, 10, 15, 0.95) 0%,
+      rgba(26, 26, 46, 0.85) 100%
+    );
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 800px;
+    padding: var(--space-8);
+    text-align: center;
+  }
+
+  .hero-title {
+    font-size: var(--text-4xl);
+    font-weight: var(--font-bold);
+    line-height: var(--line-tight);
+    margin: var(--space-6) 0 var(--space-4);
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-subtitle {
+    font-size: var(--text-lg);
+    line-height: var(--line-relaxed);
+    color: var(--color-text-secondary);
+    max-width: 650px;
+    margin: 0 auto;
+  }
+
+  /* Contact Container */
+  .contact-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-12);
+    margin-top: var(--space-8);
+  }
+
+  .column-heading {
+    font-size: var(--text-3xl);
+    font-weight: var(--font-bold);
+    margin-bottom: var(--space-4);
+    color: var(--color-text-primary);
+  }
+
+  .column-intro {
+    font-size: var(--text-lg);
+    line-height: var(--line-relaxed);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-6);
+  }
+
+  /* Benefits List */
+  .benefits-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    margin-bottom: var(--space-8);
+  }
+
+  .benefit-card {
+    display: flex;
+    gap: var(--space-4);
+    align-items: start;
+  }
+
+  .benefit-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+  }
+
+  .benefit-content {
+    flex: 1;
+  }
+
+  .benefit-title {
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    margin-bottom: var(--space-2);
+    color: var(--color-text-primary);
+  }
+
+  .benefit-description {
+    font-size: var(--text-base);
+    line-height: var(--line-relaxed);
+    color: var(--color-text-secondary);
+    margin: 0;
+  }
+
+  /* Contact Details */
+  .contact-details {
+    padding: var(--space-6);
+    background: rgba(18, 18, 26, 0.4);
+    border: 1px solid rgba(79, 125, 247, 0.1);
+    border-radius: var(--radius-lg);
+  }
+
+  .details-heading {
+    font-size: var(--text-xl);
+    font-weight: var(--font-semibold);
+    margin-bottom: var(--space-4);
+    color: var(--color-text-primary);
+  }
+
+  .contact-links {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .contact-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-base);
+  }
+
+  .contact-link:hover {
+    background: rgba(79, 125, 247, 0.1);
+    color: var(--color-accent-primary);
+    transform: translateX(4px);
+  }
+
+  .link-icon {
+    font-size: 1.25rem;
+  }
+
+  /* Form Column */
+  .form-column {
+    position: relative;
+  }
+
+  .form-card {
+    position: sticky;
+    top: calc(var(--space-24) + 80px); /* Account for sticky header */
+  }
+
+  .form-heading {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-bold);
+    margin-bottom: var(--space-3);
+    color: var(--color-text-primary);
+  }
+
+  .form-intro {
+    font-size: var(--text-base);
+    line-height: var(--line-relaxed);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-6);
+  }
+
+  /* FAQ Section */
+  .section-heading {
+    font-size: var(--text-3xl);
+    font-weight: var(--font-bold);
+    margin-bottom: var(--space-8);
+    color: var(--color-text-primary);
+  }
+
+  .faq-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-6);
+    margin-top: var(--space-8);
+  }
+
+  .faq-question {
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    margin-bottom: var(--space-3);
+    color: var(--color-accent-primary);
+  }
+
+  .faq-answer {
+    font-size: var(--text-base);
+    line-height: var(--line-relaxed);
+    color: var(--color-text-secondary);
+    margin: 0;
+  }
+
+  /* Responsive */
+  @media (max-width: 1024px) {
+    .contact-container {
+      grid-template-columns: 1fr;
+      gap: var(--space-8);
+    }
+
+    .form-card {
+      position: static;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .hero {
+      min-height: 40vh;
+    }
+
+    .hero-title {
+      font-size: var(--text-2xl);
+    }
+
+    .hero-subtitle {
+      font-size: var(--text-base);
+    }
+
+    .column-heading {
+      font-size: var(--text-2xl);
+    }
+
+    .section-heading {
+      font-size: var(--text-2xl);
+    }
+
+    .benefits-list {
+      gap: var(--space-4);
+    }
+
+    .benefit-icon {
+      font-size: 1.5rem;
+    }
+
+    .faq-grid {
+      grid-template-columns: 1fr;
+      gap: var(--space-4);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .hero-title {
+      font-size: var(--text-xl);
+    }
+
+    .column-heading {
+      font-size: var(--text-xl);
+    }
+
+    .section-heading {
+      font-size: var(--text-xl);
+    }
+  }
+
+  /* Utilities */
+  .text-center {
+    text-align: center;
+  }
+</style>

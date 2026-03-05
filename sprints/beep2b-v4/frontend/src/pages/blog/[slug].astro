@@ -1,0 +1,371 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Section from '../../components/Section.astro';
+import Badge from '../../components/Badge.astro';
+import BlogCard from '../../components/BlogCard.astro';
+import RichText from '../../components/RichText.astro';
+import SectionDivider from '../../components/SectionDivider.astro';
+import { getPosts, getPostBySlug, getRelatedPosts, formatDate, getResponsiveImageUrl, type Category } from '../../lib/cms';
+import { getImageUrl } from '../../lib/pixabay';
+
+// Generate static paths for all posts
+export async function getStaticPaths() {
+  const postsData = await getPosts({ limit: 100 }); // Get all posts
+  const posts = postsData?.docs || [];
+
+  return posts.map((post) => ({
+    params: { slug: post.slug },
+    props: { post }
+  }));
+}
+
+// Get slug from URL params
+const { slug } = Astro.params;
+const { post: propsPost } = Astro.props;
+
+// Use post from props (provided by getStaticPaths) or fetch it
+const post = propsPost || await getPostBySlug(slug as string);
+
+// Handle 404
+if (!post) {
+  return Astro.redirect('/404');
+}
+
+// Get featured image or fallback
+const featuredImage = getResponsiveImageUrl(post.featuredImage, 'feature')
+  || getImageUrl('business-abstract', 'linear-gradient(135deg, #1a1a2e 0%, #0a0a0f 100%)');
+
+// Extract category objects
+const categories = Array.isArray(post.categories)
+  ? post.categories.filter((cat): cat is Category => typeof cat === 'object')
+  : [];
+
+// Get related posts from the first category
+let relatedPosts: any[] = [];
+if (categories.length > 0) {
+  const firstCategory = categories[0];
+  relatedPosts = await getRelatedPosts(firstCategory.id, post.id, 3);
+}
+
+const pageTitle = `${post.title} | Beep2B Blog`;
+const pageDescription = post.excerpt || 'Read more on the Beep2B blog';
+---
+
+<BaseLayout title={pageTitle} description={pageDescription}>
+  <!-- Featured Image Header -->
+  <section class="post-header" style={`background-image: url(${featuredImage});`}>
+    <div class="header-overlay"></div>
+  </section>
+
+  <!-- Post Meta -->
+  <Section>
+    <article class="post-container">
+      <!-- Categories -->
+      {categories.length > 0 && (
+        <div class="post-categories" data-animate="fade-in">
+          {categories.map((category) => (
+            <a href={`/blog?category=${category.slug}`}>
+              <Badge variant="primary">{category.title}</Badge>
+            </a>
+          ))}
+        </div>
+      )}
+
+      <!-- Title -->
+      <h1 class="post-title" data-animate="slide-up">{post.title}</h1>
+
+      <!-- Post Meta -->
+      <div class="post-meta" data-animate="fade-in">
+        <span class="meta-author">{post.author}</span>
+        <span class="meta-separator">•</span>
+        <time class="meta-date" datetime={post.date}>{formatDate(post.date)}</time>
+      </div>
+
+      <!-- Excerpt -->
+      {post.excerpt && (
+        <p class="post-excerpt" data-animate="fade-in">{post.excerpt}</p>
+      )}
+
+      <SectionDivider />
+
+      <!-- Post Content -->
+      <div class="post-content" data-animate="slide-up">
+        <RichText content={post.content} />
+      </div>
+    </article>
+  </Section>
+
+  <!-- Related Posts -->
+  {relatedPosts.length > 0 && (
+    <>
+      <SectionDivider variant="spaced" />
+
+      <Section label="Related Articles">
+        <h2 class="section-heading" data-animate="fade-in">
+          More from {categories[0]?.title || 'the Blog'}
+        </h2>
+        <div class="related-posts-grid" data-stagger>
+          {relatedPosts.map((relatedPost) => (
+            <BlogCard post={relatedPost} />
+          ))}
+        </div>
+      </Section>
+    </>
+  )}
+
+  <SectionDivider variant="spaced" />
+
+  <!-- CTA Section -->
+  <Section>
+    <div class="cta-box" data-animate="fade-in">
+      <h2 class="cta-title">Want to Implement These Strategies?</h2>
+      <p class="cta-text">
+        Book a discovery call and we'll show you exactly how to apply the BEEP methodology to your LinkedIn presence.
+      </p>
+      <div class="cta-buttons">
+        <a href="/contact" class="btn btn-primary btn-lg">Book a Discovery Call</a>
+        <a href="/blog" class="btn btn-secondary btn-lg">Back to Blog</a>
+      </div>
+    </div>
+  </Section>
+</BaseLayout>
+
+<style>
+  /* Post Header */
+  .post-header {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+
+  .header-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(10, 10, 15, 0.3) 0%,
+      rgba(10, 10, 15, 0.9) 100%
+    );
+  }
+
+  /* Post Container */
+  .post-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: var(--space-8) 0;
+  }
+
+  .post-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-6);
+  }
+
+  .post-categories a {
+    text-decoration: none;
+  }
+
+  .post-title {
+    font-size: var(--text-5xl);
+    font-weight: var(--font-black);
+    line-height: var(--line-tight);
+    color: var(--color-text-primary);
+    margin: 0 0 var(--space-6);
+  }
+
+  .post-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: var(--text-base);
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-6);
+  }
+
+  .meta-author {
+    font-weight: var(--font-semibold);
+    color: var(--color-accent-primary);
+  }
+
+  .meta-separator {
+    opacity: 0.5;
+  }
+
+  .post-excerpt {
+    font-size: var(--text-xl);
+    line-height: var(--line-relaxed);
+    color: var(--color-text-secondary);
+    font-style: italic;
+    padding: var(--space-6);
+    background: rgba(79, 125, 247, 0.05);
+    border-left: 4px solid var(--color-accent-primary);
+    border-radius: var(--radius-md);
+    margin: var(--space-6) 0;
+  }
+
+  .post-content {
+    margin-top: var(--space-8);
+  }
+
+  /* Related Posts */
+  .section-heading {
+    font-size: var(--text-3xl);
+    font-weight: var(--font-bold);
+    margin-bottom: var(--space-8);
+    color: var(--color-text-primary);
+    text-align: center;
+  }
+
+  .related-posts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-6);
+  }
+
+  /* CTA Box */
+  .cta-box {
+    background: var(--gradient-dark);
+    border: 1px solid rgba(79, 125, 247, 0.2);
+    border-radius: var(--radius-xl);
+    padding: var(--space-16);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-box::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--gradient-primary);
+    opacity: 0.05;
+    pointer-events: none;
+  }
+
+  .cta-title {
+    font-size: var(--text-3xl);
+    font-weight: var(--font-bold);
+    margin-bottom: var(--space-4);
+    color: var(--color-text-primary);
+    position: relative;
+  }
+
+  .cta-text {
+    font-size: var(--text-lg);
+    color: var(--color-text-secondary);
+    max-width: 600px;
+    margin: 0 auto var(--space-6);
+    position: relative;
+  }
+
+  .cta-buttons {
+    display: flex;
+    gap: var(--space-4);
+    justify-content: center;
+    flex-wrap: wrap;
+    position: relative;
+  }
+
+  /* Button styles */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    font-weight: var(--font-semibold);
+    text-decoration: none;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    white-space: nowrap;
+    font-family: inherit;
+  }
+
+  .btn-lg {
+    padding: var(--space-4) var(--space-8);
+    font-size: var(--text-lg);
+  }
+
+  .btn-primary {
+    background: var(--gradient-primary);
+    color: var(--color-text-primary);
+    box-shadow: var(--shadow-glow-sm);
+  }
+
+  .btn-primary:hover {
+    box-shadow: var(--shadow-glow-md);
+    transform: translateY(-2px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--color-accent-primary);
+    border: 2px solid var(--color-accent-primary);
+  }
+
+  .btn-secondary:hover {
+    background: var(--color-accent-primary);
+    color: var(--color-text-primary);
+    box-shadow: var(--shadow-glow-sm);
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .post-header {
+      height: 300px;
+    }
+
+    .post-container {
+      padding: var(--space-6) 0;
+    }
+
+    .post-title {
+      font-size: var(--text-3xl);
+    }
+
+    .post-excerpt {
+      font-size: var(--text-lg);
+      padding: var(--space-4);
+    }
+
+    .section-heading {
+      font-size: var(--text-2xl);
+    }
+
+    .related-posts-grid {
+      grid-template-columns: 1fr;
+      gap: var(--space-4);
+    }
+
+    .cta-box {
+      padding: var(--space-8);
+    }
+
+    .cta-title {
+      font-size: var(--text-xl);
+    }
+
+    .cta-buttons {
+      flex-direction: column;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .post-header {
+      height: 250px;
+    }
+
+    .post-title {
+      font-size: var(--text-2xl);
+    }
+
+    .section-heading {
+      font-size: var(--text-xl);
+    }
+  }
+</style>
