@@ -364,6 +364,7 @@ def execute_tool(name: str, input_data: dict, state: LoopState,
         "vrc_history": copy.deepcopy(state.vrc_history),
         "gates_passed": copy.deepcopy(state.gates_passed),
         "exit_requested": state.exit_requested,
+        "evaluation_findings": copy.deepcopy(state.evaluation_findings),
     }
     try:
         result = handler(input_data, state, task_source=task_source)
@@ -375,6 +376,7 @@ def execute_tool(name: str, input_data: dict, state: LoopState,
         state.vrc_history = snapshot["vrc_history"]
         state.gates_passed = snapshot["gates_passed"]
         state.exit_requested = snapshot["exit_requested"]
+        state.evaluation_findings = snapshot["evaluation_findings"]
         return json.dumps({"error": f"Handler failed: {e}", "rolled_back": True})
 
 
@@ -610,13 +612,118 @@ def handle_vrc(input_data: dict, state: LoopState, **_: Any) -> str:
     return f"VRC recorded: {score:.0%} value ({rec}){task_msg}"
 
 
+# ---------------------------------------------------------------------------
+# Browser evidence validation for SHIP_READY
+# ---------------------------------------------------------------------------
+
+_BROWSER_EVIDENCE_TERMS = {
+    "screenshot", "browser", "navigate", "viewport", "playwright",
+    "browser_navigate", "browser_click", "browser_snapshot",
+    "browser_take_screenshot", "browser_fill", "browser_select_option",
+    "browser_resize", "localhost", "http://", "https://",
+    "landing page", "ui", "rendered", "displayed", "visible",
+    "layout", "responsive", "mobile", "hover", "clicked",
+}
+
+# Deliverable types that clearly have no browser UI
+_NON_UI_TYPES = {"document", "data", "config"}
+
+# Project types that clearly have no browser UI
+_NON_UI_PROJECT_TYPES = {
+    "cli", "library", "api", "rest-api", "graphql-api", "microservice",
+    "script", "automation", "etl", "pipeline", "sdk", "package",
+    "backend", "daemon", "worker", "bot", "plugin", "extension",
+}
+
+# Deliverable types / project types that imply a browser UI
+_UI_TYPES = {"hybrid", "web", "webapp", "website", "frontend", "fullstack"}
+
+
+def _requires_browser_evidence(state: LoopState) -> bool:
+    """True if the deliverable likely has a UI that should be browser-tested."""
+    dt = state.context.deliverable_type.lower()
+    pt = state.context.project_type.lower()
+
+    # Explicit non-UI types
+    if dt in _NON_UI_TYPES or pt in _NON_UI_PROJECT_TYPES:
+        return False
+
+    # Explicit UI types
+    if dt in _UI_TYPES or pt in _UI_TYPES:
+        return True
+
+    # Services with a port hint at something browsable
+    if state.context.services:
+        return True
+
+    # Default: no positive signal of a UI, don't require browser evidence
+    return False
+
+
+def _has_browser_evidence(text: str) -> bool:
+    """Check if evidence text contains sufficient browser-related terms."""
+    if not text:
+        return False
+    text_lower = text.lower()
+    matches = sum(1 for term in _BROWSER_EVIDENCE_TERMS if term in text_lower)
+    return matches >= 2
+
+
+def _validate_ship_ready(state: LoopState, input_data: dict) -> str | None:
+    """Validate that SHIP_READY verdict has sufficient browser evidence.
+
+    Returns error message if validation fails, None if it passes.
+    Skips validation for non-UI deliverables.
+    """
+    if not _requires_browser_evidence(state):
+        return None
+
+    findings = state.evaluation_findings
+    # Need at least 2 prior findings with substantive evidence
+    substantive = [f for f in findings if len(f.get("evidence", "")) > 20]
+    if len(substantive) < 2:
+        return (
+            "SHIP_READY REJECTED: Insufficient evaluation evidence. "
+            f"Only {len(substantive)} finding(s) with evidence recorded. "
+            "You must report at least 2 findings with detailed evidence "
+            "before issuing SHIP_READY. Open the app in the browser, "
+            "test user flows, and report what you observe."
+        )
+
+    # Need at least 1 finding with browser-related evidence
+    has_browser = any(_has_browser_evidence(f.get("evidence", "")) for f in findings)
+    if not has_browser:
+        return (
+            "SHIP_READY REJECTED: No browser evidence found. "
+            "This deliverable has a UI but none of your findings "
+            "reference browser testing (screenshots, navigation, viewport, etc.). "
+            "You MUST open the app with browser_navigate, test the UI, "
+            "and report findings with browser evidence before issuing SHIP_READY."
+        )
+
+    return None
+
+
 def handle_eval_finding(input_data: dict, state: LoopState, **_: Any) -> str:
     from .state import TaskState
     severity = input_data["severity"]
 
+    # Always record finding to audit trail
+    state.evaluation_findings.append({
+        "severity": severity,
+        "description": input_data.get("description", ""),
+        "evidence": input_data.get("evidence", ""),
+        "user_impact": input_data.get("user_impact", ""),
+        "verdict": input_data.get("verdict", ""),
+        "timestamp": datetime.now().isoformat(),
+    })
+
     # Handle verdict for exit gate decisions
     verdict = input_data.get("verdict", "")
     if verdict == "SHIP_READY":
+        error = _validate_ship_ready(state, input_data)
+        if error:
+            return error
         state.pass_gate("critical_eval_passed")
 
     if severity in ("critical", "blocking"):

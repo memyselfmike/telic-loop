@@ -163,8 +163,40 @@ def _run_implement_phase(config: LoopConfig, state: LoopState, agent: Agent) -> 
     return True
 
 
+def _detect_start_command(config: LoopConfig) -> str | None:
+    """Scan project dir for the most likely server start command."""
+    proj = config.effective_project_dir
+    for name in ("docker-compose.yml", "docker-compose.yaml", "compose.yml", "compose.yaml"):
+        if (proj / name).exists():
+            return "docker compose up -d --build"
+    pkg = proj / "package.json"
+    if pkg.exists():
+        try:
+            data = json.loads(pkg.read_text(encoding="utf-8"))
+            scripts = data.get("scripts", {})
+            if "start" in scripts:
+                return "npm start"
+            if "dev" in scripts:
+                return "npm run dev"
+        except (json.JSONDecodeError, OSError):
+            pass
+    for entry in ("app.py", "main.py", "server.py", "run.py"):
+        if (proj / entry).exists():
+            return f"python {entry}"
+    return None
+
+
+def _needs_browser_eval(state: LoopState) -> bool:
+    """True if the deliverable likely has a UI that needs browser evaluation."""
+    from .tools import _requires_browser_evidence
+    return _requires_browser_evidence(state)
+
+
 def _run_evaluate_phase(config: LoopConfig, state: LoopState, agent: Agent) -> bool:
     """Evaluator judges quality adversarially."""
+    # Clear evaluation findings for a fresh evaluation pass
+    state.evaluation_findings = []
+
     prompt = load_prompt("evaluator",
         **_base_prompt_params(config),
         STATE_SUMMARY=_format_state_summary(state),
@@ -173,8 +205,7 @@ def _run_evaluate_phase(config: LoopConfig, state: LoopState, agent: Agent) -> b
     # Add Playwright MCP for UI evaluation
     mcp_servers = {}
     extra_tools: list[str] = []
-    services = state.context.services
-    if services or state.context.deliverable_type in ("software",):
+    if _needs_browser_eval(state):
         from .agent import PLAYWRIGHT_MCP_TOOLS
         mcp_servers = {
             "playwright": {
@@ -191,12 +222,27 @@ def _run_evaluate_phase(config: LoopConfig, state: LoopState, agent: Agent) -> b
         extra_tools=extra_tools,
     )
 
-    state.exit_gate_attempts += 1
-    session.send(
+    # Build user message with start command hint and rejection warning
+    user_msg = (
         "Evaluate the deliverable against the Vision and PRD. "
         "Report findings via report_eval_finding. "
-        "Use verdict 'SHIP_READY' if ready to ship, or list issues to fix.",
+        "Use verdict 'SHIP_READY' if ready to ship, or list issues to fix."
     )
+    if _needs_browser_eval(state):
+        start_cmd = _detect_start_command(config)
+        if start_cmd:
+            user_msg += (
+                f"\n\nHint: The server can likely be started with: `{start_cmd}` "
+                f"(run from `{config.effective_project_dir}`)"
+            )
+        user_msg += (
+            "\n\nIMPORTANT: SHIP_READY will be programmatically REJECTED unless "
+            "your prior findings include browser evidence (screenshots, navigation, "
+            "viewport testing). You MUST open the app in a browser and test it."
+        )
+
+    state.exit_gate_attempts += 1
+    session.send(user_msg)
     return True
 
 

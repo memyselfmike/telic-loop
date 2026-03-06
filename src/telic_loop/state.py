@@ -181,6 +181,9 @@ class LoopState:
     # VRC history
     vrc_history: list[VRCSnapshot] = field(default_factory=list)
 
+    # Evaluation findings audit trail (populated by handle_eval_finding)
+    evaluation_findings: list[dict] = field(default_factory=list)
+
     # Progress tracking
     progress_log: list[dict] = field(default_factory=list)
 

@@ -158,12 +158,34 @@ def _build_deliverables_lines(state: LoopState) -> list[str]:
     return lines
 
 
+def _build_eval_findings_lines(state: LoopState) -> list[str]:
+    if not state.evaluation_findings:
+        return []
+    lines = [
+        "## Evaluation Findings", "",
+        "| Severity | Description | Evidence | Verdict |",
+        "|----------|-------------|----------|---------|",
+    ]
+    for f in state.evaluation_findings:
+        sev = f.get("severity", "?")
+        desc = f.get("description", "")[:80]
+        evidence = f.get("evidence", "")[:60]
+        verdict = f.get("verdict", "")
+        # Escape pipes in table cells
+        desc = desc.replace("|", "\\|")
+        evidence = evidence.replace("|", "\\|")
+        lines.append(f"| {sev} | {desc} | {evidence} | {verdict} |")
+    lines.append("")
+    return lines
+
+
 def generate_delivery_report(config: LoopConfig, state: LoopState) -> None:
     """Generate DELIVERY_REPORT.md from full state."""
     from .git import git_commit
 
     lines = _build_summary_lines(config, state)
     lines.extend(_build_phase_usage_lines(state))
+    lines.extend(_build_eval_findings_lines(state))
     lines.extend(_build_crash_summary_lines(state))
     lines.extend(_build_deliverables_lines(state))
 
