@@ -156,6 +156,13 @@ Do NOT rely solely on code correctness — CSS specificity bugs are invisible in
 
 This is NOT optional polish — it is the baseline quality standard. A bare-bones functional UI will be rejected by the evaluator.
 
+## File Placement Rules
+
+- **Project code and docs go in `{PROJECT_DIR}`**, not `{SPRINT_DIR}`. README.md, source code, package.json, configuration — all belong in the project directory.
+- **Sprint artifacts stay in `{SPRINT_DIR}`**: VISION.md, PRD.md, .loop_state.json, .loop/ (verifications), IMPLEMENTATION_PLAN.md, VALUE_CHECKLIST.md, DELIVERY_REPORT.md.
+- **Check before creating.** Before creating any file (especially README.md, docs, config files), check if it already exists. If it does, UPDATE it — do not rewrite from scratch. Preserve existing content that is still valid and add/modify only what's needed.
+- When `{PROJECT_DIR}` and `{SPRINT_DIR}` are the same path, these rules still apply — just be aware that everything is co-located.
+
 ## Working Rules
 
 - **One task at a time.** Complete and report each task before starting the next.

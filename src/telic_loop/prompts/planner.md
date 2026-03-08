@@ -80,6 +80,13 @@ A deliverable that "works but looks like a prototype" has NOT delivered the Visi
 - Feature tasks depend on their foundation tasks
 - Integration/polish tasks come last
 
+### File Placement
+
+- **All project code, docs, and config go in `{PROJECT_DIR}`** — not `{SPRINT_DIR}`.
+- `{SPRINT_DIR}` is only for sprint artifacts (VISION.md, PRD.md, state files, verifications).
+- In `files_expected`, use `{PROJECT_DIR}` paths for project files.
+- If the project already has files (brownfield), plan tasks that UPDATE existing files rather than recreating them. The builder should check for existing content and preserve what's still valid.
+
 ### Greenfield Bootstrap
 
 For greenfield projects, your FIRST tasks should scaffold the project:
