@@ -70,7 +70,8 @@ For each task:
 1. Read the task description and acceptance criteria
 2. Implement the changes described
 3. Verify your implementation matches the acceptance criteria
-4. Report completion via `report_task_complete` with files_created and files_modified
+4. **Security self-check** before reporting (see Security Checklist below)
+5. Report completion via `report_task_complete` with files_created and files_modified
 
 ### P3: Generate Verification Scripts
 When you have completed tasks but no verification scripts exist yet, generate them.
@@ -81,6 +82,7 @@ Create verification scripts in `{SPRINT_DIR}/.loop/verifications/`:
 - **integration_*.sh** — End-to-end workflows testing real data flows
 - **unit_*.sh** — Focused unit/component tests
 - **value_*.sh** — User-visible value checks (does the deliverable actually work?)
+- **security_*.sh** — Automated security checks (see Security Checklist below)
 
 #### Script Rules
 - Scripts MUST exit 0 on pass, non-zero on fail
@@ -155,6 +157,48 @@ After implementing UI tasks, **start the dev server and open the page in a brows
 Do NOT rely solely on code correctness — CSS specificity bugs are invisible in source code but catastrophic in the browser.
 
 This is NOT optional polish — it is the baseline quality standard. A bare-bones functional UI will be rejected by the evaluator.
+
+## Security Checklist
+
+Review your code for these issues **before reporting each task complete**. If you find a problem, fix it immediately — do not leave it for a later task.
+
+### Per-Task Self-Check
+
+After implementing a task, scan the files you created/modified for:
+
+1. **Injection** — SQL queries use parameterized statements (never string concatenation). Shell commands use argument arrays (never template strings). HTML output is escaped.
+2. **XSS** — User-supplied content is sanitized before rendering in HTML. Use framework escaping (React JSX, Jinja2 autoescaping, etc.) — never `innerHTML` or `dangerouslySetInnerHTML` with raw user input.
+3. **Hardcoded secrets** — No API keys, passwords, tokens, or connection strings in source code. Use environment variables or config files excluded from version control.
+4. **Path traversal** — File operations validate/sanitize user-supplied paths. Never join user input directly to filesystem paths without checking for `..` traversal.
+5. **Open redirects** — Redirects validate destination URLs against an allowlist. Never redirect to a user-supplied URL without validation.
+6. **Missing auth checks** — Protected routes/endpoints verify authentication and authorization. Don't rely on UI hiding alone.
+7. **Sensitive data exposure** — API responses don't leak passwords, tokens, or internal errors to clients. Error messages are generic in production.
+8. **Dependency safety** — Use `npm audit` / `pip audit` after installing packages. Pin versions — no wildcard or `latest` ranges.
+
+### Security Verification Scripts
+
+When generating verification scripts (P3), include at least one `security_*.sh` script. Adapt checks to the project type:
+
+**Web apps (Node/Python):**
+```bash
+# Check for hardcoded secrets
+! grep -rn "password\s*=\s*['\"]" --include="*.py" --include="*.js" --include="*.ts" src/ || exit 1
+# Check for raw SQL string concatenation
+! grep -rn "f['\"].*SELECT.*{" --include="*.py" src/ || exit 1
+# Check for innerHTML with variables
+! grep -rn "innerHTML\s*=" --include="*.js" --include="*.ts" src/ || exit 1
+# Run dependency audit
+cd {PROJECT_DIR} && npm audit --audit-level=high 2>/dev/null; pip audit 2>/dev/null
+```
+
+**API servers:**
+```bash
+# Verify auth middleware is present on protected routes
+# Verify CORS is configured (not wildcard in production)
+# Verify rate limiting is present
+```
+
+Adapt these patterns to the actual stack — don't include checks for technologies the project doesn't use.
 
 ## File Placement Rules
 
