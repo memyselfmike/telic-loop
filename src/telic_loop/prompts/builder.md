@@ -139,6 +139,21 @@ You are building PRODUCTION-QUALITY deliverables, not functional prototypes. App
 ### Responsive
 - **Mobile breakpoints**: At minimum handle 768px and 480px. Adjust grid layouts, hide non-essential text, use bottom-sheet modals on mobile.
 
+### CSS Framework Layer Awareness
+When using **Tailwind CSS 4** (or any framework that uses native CSS `@layer`):
+- **ALL custom base styles MUST be wrapped in `@layer base { }`**. Tailwind 4 places utilities inside `@layer utilities`. Per the CSS cascade spec, unlayered CSS always beats layered CSS — so an unlayered `h1 { color: navy }` will override `text-white` on every heading, silently breaking the entire UI.
+- After writing any global/base CSS rules (element selectors like `h1`, `body`, `a`, `*`), verify they are inside an appropriate `@layer` block.
+- If you see Tailwind utility classes having no visible effect, suspect a layer specificity conflict before anything else.
+- Common pitfall: writing base typography styles (font-family, color, line-height on heading elements) outside `@layer base` after the `@import "tailwindcss"` statement.
+
+### Visual Self-Check
+After implementing UI tasks, **start the dev server and open the page in a browser** (use curl or a quick manual check) to verify:
+- Text is readable on every background (especially headings on dark sections)
+- Layout isn't cramped or overflowing
+- CSS utilities are actually taking effect (e.g., `text-white` renders as white, not overridden)
+
+Do NOT rely solely on code correctness — CSS specificity bugs are invisible in source code but catastrophic in the browser.
+
 This is NOT optional polish — it is the baseline quality standard. A bare-bones functional UI will be rejected by the evaluator.
 
 ## Working Rules

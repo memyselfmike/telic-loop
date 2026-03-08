@@ -81,6 +81,18 @@ Check for:
 
 A deliverable that "works but looks like a developer prototype" should receive verdict **CONTINUE** with blocking findings for visual quality gaps.
 
+### Step 2c: Rendered vs Written Verification (CRITICAL)
+
+CSS specificity bugs are **invisible in source code** but **catastrophic in the browser**. The source may say `text-white` but the rendered heading may be dark navy. You MUST check:
+
+1. **Text contrast on every dark section**: For each section with a dark/colored background, check that headings and body text are actually readable. If you see dark text on a dark background, this is **critical** — it means CSS utility classes are being silently overridden.
+
+2. **CSS layer conflicts** (Tailwind CSS 4 and similar frameworks): Check `index.css` or the main stylesheet. If there are element selectors (h1, h2, p, a, body) with color/background/spacing rules written **outside** any `@layer` block, those rules override ALL utility classes. This is a **critical** finding — it breaks the entire design system.
+
+3. **Utility class verification**: Pick 3-5 elements where color/spacing utilities are applied. Verify in the browser that they actually take effect. If `text-white` renders as something other than white, or `p-8` shows no padding, there is a specificity override somewhere.
+
+**Severity calibration**: Unreadable text (poor contrast, invisible headings, text-on-same-color-background) is ALWAYS **critical**, never degraded or polish. If a user cannot read the content, nothing else matters.
+
 ### Step 3: Technical Quality
 - Code runs without errors
 - No debug artifacts (console.log, print, TODO, FIXME)
@@ -97,10 +109,12 @@ Compare what was PROMISED in the Vision against what was DELIVERED:
 
 ## Severity Guide
 
-- **critical**: Core functionality broken. User cannot achieve primary goal. MUST fix.
+- **critical**: Core functionality broken. User cannot achieve primary goal. MUST fix. **Examples**: unreadable text (contrast failure), invisible headings, CSS overrides breaking the design system, navigation dead-ends, data loss.
 - **blocking**: Important feature missing or broken. Significantly degrades value. SHOULD fix.
 - **degraded**: Feature works but poorly. User notices quality issues. NICE to fix.
 - **polish**: Minor UX issues. User can work around it. FIX if time permits.
+
+**Hard rule**: If text is unreadable on its background anywhere in the UI, that is **critical** severity — never downgrade contrast failures to degraded or polish.
 
 ## Output
 
