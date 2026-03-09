@@ -65,14 +65,30 @@ For brownfield projects or complex stacks, add `ARCHITECTURE.md` to give the pla
 
 ## Running a Sprint
 
+**The loop is long-running (30-90+ minutes). Run it in the background and check on it periodically.**
+
+Use the `telic-loop` CLI command (installed by pip). On Windows, you may need to use `python -X utf8 -m telic_loop.main` instead if the CLI entry point isn't on PATH.
+
 ```bash
-# Basic — sprint artifacts and project code go in sprints/<name>/
+# CLI entry point (preferred)
+telic-loop <sprint-name> --project-dir .
+
+# Module entry point (alternative — NOTE: telic_loop.main, NOT telic_loop)
+python -X utf8 -m telic_loop.main <sprint-name> --project-dir .
+```
+
+**IMPORTANT**: The module path is `telic_loop.main`, not `telic_loop`. There is no `__main__.py` — running `python -m telic_loop` will fail.
+
+### Command Options
+
+```bash
+# Basic — sprint artifacts and project code both go in sprints/<name>/
 telic-loop <sprint-name>
 
 # Existing repo — project code stays in current directory
 telic-loop <sprint-name> --project-dir .
 
-# Custom sprint directory
+# Custom sprint directory location
 telic-loop <sprint-name> --sprint-dir /path/to/sprint
 
 # Skip post-delivery doc generation
@@ -90,6 +106,22 @@ telic-loop <sprint-name> --project-dir .
 ```
 
 The `--project-dir .` flag tells the loop the application source code is here. Sprint artifacts (state, plan, verifications) stay in the sprint directory.
+
+### Monitoring Progress
+
+The loop saves state continuously. To check progress:
+
+```bash
+# Check current phase and task status
+python -c "
+from pathlib import Path; import json
+s = json.loads(Path('sprints/<sprint-name>/.loop_state.json').read_text(encoding='utf-8'))
+print(f'Iteration: {s[\"iteration\"]}')
+print(f'Gates: {s[\"gates_passed\"]}')
+for tid, t in s.get('tasks', {}).items():
+    print(f'  {tid}: [{t[\"status\"]}] {t[\"description\"][:60]}')
+"
+```
 
 ## Resuming / Resetting
 
