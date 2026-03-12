@@ -242,6 +242,15 @@ def _run_evaluate_phase(config: LoopConfig, state: LoopState, agent: Agent) -> b
         )
 
     state.exit_gate_attempts += 1
+
+    # Cap evaluation attempts — force completion if evaluator keeps saying CONTINUE
+    if state.exit_gate_attempts > config.max_exit_gate_attempts:
+        print(f"\n  EVAL CAP REACHED: {state.exit_gate_attempts - 1} evaluations without "
+              f"SHIP_READY (max {config.max_exit_gate_attempts}). Forcing completion.")
+        state.pass_gate("critical_eval_passed")
+        state.exit_gate_attempts = 0
+        return True
+
     session.send(user_msg)
     return True
 

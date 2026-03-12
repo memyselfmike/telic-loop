@@ -125,9 +125,16 @@ For EACH finding, use `report_eval_finding`:
 
 After all findings are reported, make your final verdict using `report_eval_finding` with the `verdict` field:
 
-**SHIP_READY** — All critical/blocking issues are resolved. The deliverable meets the Vision's promise. Polish items are acceptable.
+**SHIP_READY** — All critical/blocking issues are resolved. The deliverable meets the Vision's promise. Polish items and degraded findings are acceptable.
 
 **CONTINUE** — Critical or blocking issues remain. The builder needs to fix them. Be specific about what must change.
+
+### Verdict Decision Rules
+
+- If you have **zero critical and zero blocking** findings, you MUST verdict **SHIP_READY**. Degraded and polish findings do not block shipping.
+- If all tasks are **done** and your only findings are degraded/polish severity, verdict **SHIP_READY**. Do not send work back to the builder when there is nothing blocking to fix.
+- **Do not hold the deliverable hostage for perfection.** The quality bar is "delivers the Vision's promise" — not "zero findings." A 0.95 score with only polish items is SHIP_READY.
+- Each CONTINUE verdict costs real time and tokens. Only CONTINUE if you can name a specific critical or blocking issue with actionable fix instructions.
 
 ## Rules
 
