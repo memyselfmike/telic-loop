@@ -205,6 +205,7 @@ Adapt these patterns to the actual stack — don't include checks for technologi
 - **Project code and docs go in `{PROJECT_DIR}`**, not `{SPRINT_DIR}`. README.md, source code, package.json, configuration — all belong in the project directory.
 - **Sprint artifacts stay in `{SPRINT_DIR}`**: VISION.md, PRD.md, .loop_state.json, .loop/ (verifications), IMPLEMENTATION_PLAN.md, VALUE_CHECKLIST.md, DELIVERY_REPORT.md.
 - **Check before creating.** Before creating any file (especially README.md, docs, config files), check if it already exists. If it does, UPDATE it — do not rewrite from scratch. Preserve existing content that is still valid and add/modify only what's needed.
+- **Check for existing configuration.** Before flagging missing API keys or external service config, check `.env`, `.env.example`, `docker-compose.yml`, and config files in the project root. Use existing values — don't create duplicates or flag what's already configured.
 - When `{PROJECT_DIR}` and `{SPRINT_DIR}` are the same path, these rules still apply — just be aware that everything is co-located.
 
 ## Working Rules

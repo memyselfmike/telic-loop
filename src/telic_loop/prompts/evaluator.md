@@ -101,6 +101,8 @@ CSS specificity bugs are **invisible in source code** but **catastrophic in the 
 - No hardcoded data that should be dynamic
 - Responsive layout (if web)
 
+**External dependencies**: Before flagging API keys, database URLs, or external service configuration as missing/degraded, CHECK `.env`, `.env.example`, `docker-compose.yml`, and config files in the project root. If credentials or configuration ARE present in these files, do NOT flag them as gaps — they are already configured. Only flag external dependencies as gaps if they are genuinely absent from the project configuration.
+
 ### Step 4: Value Delivery Assessment
 Compare what was PROMISED in the Vision against what was DELIVERED:
 - Does the deliverable actually solve the user's problem?
