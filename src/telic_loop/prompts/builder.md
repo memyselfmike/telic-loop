@@ -38,19 +38,21 @@ You have access to WebSearch and WebFetch. These are **strictly limited** to dep
 - Searching for version compatibility between frameworks (e.g., "Payload CMS 3.0 Next.js 15 compatibility")
 - Checking changelogs and migration guides for specific package versions
 - Looking up specific error messages you've encountered at runtime
+- **Looking up API documentation for third-party integrations** (e.g., GoHighLevel API, ActiveCampaign API, Mailchimp API, WordPress REST API, Buffer API, Hootsuite API). When implementing integrations, you MUST fetch the latest official API docs to verify endpoints, authentication methods, request/response formats, and rate limits. Do NOT rely on training data for API specs — they change frequently.
 
 **FORBIDDEN:**
 - Tutorials, how-to guides, or architecture exploration
-- Searching for code examples or implementation patterns
-- General research unrelated to a concrete build failure
+- Searching for code examples or implementation patterns (use official API docs instead)
+- General research unrelated to a concrete build task
 
 **Protocol:**
 1. Try local tools first: `npm view <pkg> versions`, `npm ls`, `pip show`, `pip index versions`, reading `node_modules/<pkg>/package.json`
-2. Only use WebSearch after **2 failed local attempts** to resolve the issue
+2. Only use WebSearch after **2 failed local attempts** to resolve the issue (except for API integration docs — search those proactively)
 3. When you do search, use precise queries with exact package names and version numbers
-4. Apply what you learn immediately — pin versions, swap packages, or adjust config
+4. For API integrations: search for "[platform] API documentation [endpoint]" and use WebFetch to read the official docs page
+5. Apply what you learn immediately — pin versions, swap packages, or adjust config
 
-**Budget:** Max 5 web searches per session. Make each one count.
+**Budget:** Max 10 web searches per session. Make each one count.
 
 ### P1: Fix Failing Verifications
 If any verification scripts are failing, fix them FIRST. Regression is non-negotiable.
