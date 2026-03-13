@@ -265,9 +265,29 @@ class ClaudeSession:
         # Allow nested Claude Code sessions
         os.environ.pop("CLAUDECODE", None)
 
+        # On Windows, the CLI command line has a ~32K char limit. When the
+        # system prompt is large (accumulated task state, evaluation findings),
+        # write it to a temp file and pass a short system prompt that tells the
+        # agent to read the full instructions from that file.
+        system_prompt = self.system
+        system_file: Path | None = None
+        total_cli_estimate = len(self.system or "") + len(user_message) + 2000
+
+        if total_cli_estimate > _WIN_CMD_LIMIT and self.system:
+            import tempfile
+            # Write full system prompt to temp file in the sprint dir
+            sprint_dir = self.config.sprint_dir if self.config else Path(tempfile.gettempdir())
+            system_file = sprint_dir / ".system_prompt.md"
+            system_file.write_text(self.system, encoding="utf-8")
+            system_prompt = (
+                f"IMPORTANT: Your full system instructions are in the file "
+                f"{system_file}. Read that file FIRST before doing anything else. "
+                f"Follow those instructions exactly."
+            )
+
         options = ClaudeAgentOptions(
             model=self.model,
-            system_prompt=self.system,
+            system_prompt=system_prompt,
             allowed_tools=list(self.builtin_tools),
             permission_mode="bypassPermissions",
             max_turns=self.max_turns,
@@ -275,8 +295,8 @@ class ClaudeSession:
             max_buffer_size=10 * 1024 * 1024,  # 10MB — handles large prompts + screenshots
         )
 
-        # Estimate CLI arg size; switch to streaming mode if too large for Windows
-        estimated_cli_len = len(self.system or "") + len(user_message) + 500
+        # Also switch user message to streaming if still too large
+        estimated_cli_len = len(system_prompt) + len(user_message) + 500
         prompt: str | AsyncIterable[dict[str, Any]]
         if estimated_cli_len > _WIN_CMD_LIMIT:
             prompt = _streaming_prompt(user_message)
@@ -322,6 +342,14 @@ class ClaudeSession:
                 raise RuntimeError(
                     f"Claude CLI connection failed ({len(eg.exceptions)} errors): {eg.exceptions[0]}"
                 ) from eg
+
+        finally:
+            # Clean up temp system prompt file
+            if system_file and system_file.exists():
+                try:
+                    system_file.unlink()
+                except OSError:
+                    pass
 
         return "\n".join(text_parts)
 
