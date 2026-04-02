@@ -24,8 +24,38 @@ pip install -e .
 - **Python** >= 3.11
 - **Claude Code CLI** installed and authenticated (`claude` must be on PATH)
 - **Claude Max subscription** or Anthropic API key configured in Claude Code
-- **Node.js** (for browser-based evaluation via Playwright MCP)
+- **Node.js** >= 18 (for browser-based evaluation via Playwright MCP)
 - **Git** (the loop creates branches and commits automatically)
+
+#### macOS Setup
+
+```bash
+# Install Homebrew if you don't have it
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install prerequisites
+brew install python node git
+
+# Install Claude Code CLI (requires npm)
+npm install -g @anthropic-ai/claude-code
+
+# Authenticate Claude Code
+claude auth
+```
+
+#### Windows Setup
+
+```bash
+# Install Python from https://python.org (3.11+)
+# Install Node.js from https://nodejs.org (18+)
+# Install Git from https://git-scm.com
+
+# Install Claude Code CLI
+npm install -g @anthropic-ai/claude-code
+
+# Authenticate Claude Code
+claude auth
+```
 
 ### Run a Sprint
 
@@ -40,6 +70,8 @@ telic-loop my-sprint
 ```
 
 That's it. The loop handles planning, implementation, verification, and evaluation autonomously.
+
+See `sprints/temp-calc/` for an example VISION.md and PRD.md to use as a starting point.
 
 ## How It Works
 
@@ -263,10 +295,15 @@ telic-loop/
 │   ├── tool_cli.py      # Tool CLI bridge
 │   ├── errors.py        # Error classification + crash logging
 │   └── prompts/         # 5 prompt templates (system, planner, reviewer, builder, evaluator)
-├── run_e2e.py           # E2E test runner
+├── AGENT_INSTRUCTIONS.md # Instructions for agents/projects using telic-loop
+├── run_e2e.py           # E2E test runner (development only)
 ├── pyproject.toml
 └── CLAUDE.md            # Development guide
 ```
+
+## Platform Support
+
+Telic Loop runs on **macOS**, **Windows**, and **Linux**. The codebase uses pathlib for all path handling and explicit UTF-8 encoding for all file I/O. Shell-based verification scripts (`.sh`) require `bash` to be available on PATH (included by default on macOS and Linux; on Windows, Git Bash provides this).
 
 ## License
 

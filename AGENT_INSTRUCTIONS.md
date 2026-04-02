@@ -1,6 +1,6 @@
 # Working with Telic Loop — Agent Instructions
 
-Copy the relevant sections below into your project's `CLAUDE.md` to give Claude Code context for working with telic-loop sprints.
+Copy the relevant sections below into your project's `CLAUDE.md` to give Claude Code context for working with telic-loop sprints. Telic Loop runs on macOS, Windows, and Linux.
 
 ---
 

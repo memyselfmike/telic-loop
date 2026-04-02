@@ -26,6 +26,8 @@ Thumbs.db
 .loop_state.json
 .loop_state.json.tmp
 .rollback_wal
+.crash_log.jsonl
+.system_prompt.md
 
 # Node / JS
 node_modules/
@@ -42,3 +44,6 @@ test-results/
 # Environment
 .env
 .env.local
+
+# pytest
+.pytest_cache/
